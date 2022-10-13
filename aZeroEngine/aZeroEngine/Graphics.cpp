@@ -44,7 +44,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/sadcat.png");
 	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
-	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/sphere");
+	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/goblin");
 	float x[4] = { 1,1,0,1 };
 	cb = new ConstantBuffer(device, resourceHeap, &directCmdList, &x, sizeof(x), false, L"Test");
 
@@ -60,6 +60,21 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	
 	// Sampler causes root signature to SOMETIMES fail...
 	D3D12_STATIC_SAMPLER_DESC* xx[] = { &sampler->staticDesc };
+	D3D12_STATIC_SAMPLER_DESC samp = {};
+	samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+	samp.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	samp.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	samp.MipLODBias = 0;
+	samp.MaxAnisotropy = 0;
+	samp.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	samp.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	samp.MinLOD = 0.0f;
+	samp.MaxLOD = D3D12_FLOAT32_MAX;
+	samp.ShaderRegister = 0;
+	samp.RegisterSpace = 0;
+	samp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 	pso.Init(device, &signature, &layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
 		L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
@@ -73,7 +88,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	
 	world.pos = Vector3(0, 0, 0);
 
-	world.world = Matrix::CreateTranslation(0, 0, 3);
+	world.world = Matrix::CreateTranslation(0, 0, 5);
 	world.world.Transpose();
 
 	world.buffer = new ConstantBuffer(device, resourceHeap, &directCmdList, (void*)&world.world, sizeof(Matrix), false, L"World");

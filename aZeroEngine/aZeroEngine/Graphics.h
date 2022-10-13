@@ -28,12 +28,12 @@ struct Camera
 	Vector3 right = RIGHT;
 
 	float maxFov = 3.14f * 0.7f;
-	float minFov = 3.14f * 0.1f;
+	float minFov = 3.14f * 0.05f;
 	float fov = 3.14f * 0.2f;
 	float fovChange = 1.f;
 	float pitch = 0.f;
 	float yaw = 0.f;
-	float moveSpeed = 0.01f;
+	float moveSpeed = 0.001f;
 
 	ConstantBuffer* buffer;
 	DIMOUSESTATE diMouse;

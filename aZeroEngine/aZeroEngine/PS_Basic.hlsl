@@ -1,7 +1,7 @@
 Texture2D test : register(t0);
 Texture2D testx : register(t1);
 
-SamplerState basicSampler : register(s0);
+SamplerState basicSampler;
 
 cbuffer buf : register(b0)
 {
@@ -17,5 +17,6 @@ struct FragmentInput
 
 float4 main(FragmentInput input) : SV_Target
 {
-    return float4(input.normal, 1.f);
+    //return test.Sample(basicSampler, input.uv);;
+    return float4(input.normal, 1);
 }
