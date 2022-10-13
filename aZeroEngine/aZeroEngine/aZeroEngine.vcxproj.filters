@@ -1,0 +1,232 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="D3D12 Core">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="D3D12 Core\Command Handling">
+      <UniqueIdentifier>{8eb92d3c-b7a3-4845-98bc-aec97aeb1462}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12 Core\Descriptor Handling">
+      <UniqueIdentifier>{a368e836-a482-4825-ac74-9b831dbef00d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12 Core\Pipeline Functionality">
+      <UniqueIdentifier>{cc818853-e756-432b-ab19-3dc15cd30148}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12 Core\Resources">
+      <UniqueIdentifier>{2730c2a2-f4b9-4e15-a0d5-880d6b32acbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core">
+      <UniqueIdentifier>{008dab9f-1237-4b0b-a3d9-2a7c1dbfcd46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{9babefa8-e750-4f74-8836-fc377ada768b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Random">
+      <UniqueIdentifier>{cc9c5012-9a7e-4510-8bb7-98bebbd4a36f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RenderObjects">
+      <UniqueIdentifier>{2ec56bfa-e99e-4ca6-97c3-1c86fe0b15b2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandAllocator.cpp">
+      <Filter>D3D12 Core\Command Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueue.cpp">
+      <Filter>D3D12 Core\Command Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandList.cpp">
+      <Filter>D3D12 Core\Command Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="PipelineState.cpp">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClCompile>
+    <ClCompile Include="RootSignature.cpp">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseResource.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderDescriptorHeap.cpp">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="SwapChain.cpp">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTarget.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="HiddenDescriptorHeap.cpp">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthStencil.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexBuffer.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderResource.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>Engine Core</Filter>
+    </ClCompile>
+    <ClCompile Include="AppWindow.cpp">
+      <Filter>Engine Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics.cpp">
+      <Filter>Engine Core</Filter>
+    </ClCompile>
+    <ClCompile Include="HelperFunctions.cpp">
+      <Filter>Random</Filter>
+    </ClCompile>
+    <ClCompile Include="stbiHack.cpp">
+      <Filter>Random</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>RenderObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture2D.cpp">
+      <Filter>RenderObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="ConstantBuffer.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Sampler.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CommandAllocator.h">
+      <Filter>D3D12 Core\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueue.h">
+      <Filter>D3D12 Core\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandList.h">
+      <Filter>D3D12 Core\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeap.h">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHandle.h">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineState.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="RootSignature.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="RootParameter.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="InputLayout.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="RasterState.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapChain.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseResource.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderDescriptorHeap.h">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderTarget.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="HiddenDescriptorHeap.h">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthStencil.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexBuffer.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderResource.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="AppWindow.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexDefinitions.h">
+      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Include.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\directx\d3dx12.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="HelperFunctions.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="stbiHack.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>RenderObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture2D.h">
+      <Filter>RenderObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBuffer.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Sampler.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>D3D12 Core</Filter>
+    </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>D3D12 Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>D3D12 Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="PS_Basic.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VS_Basic.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="aZeroEngine.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\sprites\snowflake.PNG" />
+  </ItemGroup>
+</Project>
