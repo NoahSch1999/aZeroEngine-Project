@@ -2,6 +2,11 @@
 #include <dinput.h>
 #include <iostream>
 
+namespace MouseButtons
+{
+	enum BUTTON { LEFT, RIGHT, MIDDLE, SIDE };
+}
+
 class Input
 {
 private:
@@ -16,6 +21,8 @@ private:
 
 	IDirectInputDevice8* mouseDevice;
 	LPDIRECTINPUTDEVICE8 lpMouseDevice;
+	bool mPressed[4];
+	bool mPressedLastFrame[4];
 
 public:
 	Input(HINSTANCE _instance, HWND _handle)
@@ -82,6 +89,48 @@ public:
 		{
 			lastWheelValue = false;
 		}
+	}
+
+	bool MouseButtonUp(MouseButtons::BUTTON _btn)
+	{
+		if (currentState.rgbButtons[_btn] & 0x80)
+		{
+			mPressed[_btn] = true;
+		}
+		else
+		{
+			mPressed[_btn] = false;
+		}
+
+		if (!mPressed[_btn] && mPressedLastFrame[_btn])
+		{
+			mPressedLastFrame[_btn] = mPressed[_btn];
+			return true;
+		}
+
+		mPressedLastFrame[_btn] = mPressed[_btn];
+		return false;
+	}
+
+	bool MouseButtonDown(MouseButtons::BUTTON _btn)
+	{
+		if ((currentState.rgbButtons[_btn] & 0x80) && !mPressedLastFrame[_btn])
+		{
+			mPressedLastFrame[_btn] = true;
+			return true;
+		}
+		else if (!(currentState.rgbButtons[_btn] & 0x80))
+		{
+			mPressedLastFrame[_btn] = false;
+		}
+		return false;
+	}
+
+	bool MouseButtonHeld(MouseButtons::BUTTON _btn)
+	{
+		if (currentState.rgbButtons[_btn] & 0x80)
+			return true;
+		return false;
 	}
 
 	bool KeyHeld(const char key)

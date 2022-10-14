@@ -160,8 +160,11 @@ void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, HiddenDescript
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
+
 	// Get an empty handle from the descriptor heap
 	handle = _heap->GetNewDescriptorHandle(1);
+
+	_device->CreateShaderResourceView(resource, &srvDesc, handle.cpuHandle);
 
 	// Change usage state from current state to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE to enable usage within the pixel shader
 	Transition(_cmdList->graphic, _state);

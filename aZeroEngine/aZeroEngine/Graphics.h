@@ -16,7 +16,7 @@
 #include "Input.h"
 
 #define FORWARD Vector3(0,0,1)
-#define RIGHT Vector3(1,0,0)
+#define VECRIGHT Vector3(1,0,0)
 #define UP Vector3(0,1,0)
 
 struct Camera
@@ -25,7 +25,7 @@ struct Camera
 	Matrix proj;
 	Vector3 position = Vector3::Zero;
 	Vector3 forward = FORWARD;
-	Vector3 right = RIGHT;
+	Vector3 right = VECRIGHT;
 
 	float maxFov = 3.14f * 0.7f;
 	float minFov = 3.14f * 0.05f;
@@ -78,7 +78,7 @@ struct Camera
 		forward = Vector3::Transform(FORWARD, vecRotMatrix);
 		forward.Normalize();
 
-		right = Vector3::Transform(RIGHT, vecRotMatrix);
+		right = Vector3::Transform(VECRIGHT, vecRotMatrix);
 		right.Normalize();
 
 		Vector3 camTarget = forward + position;
@@ -107,12 +107,14 @@ struct Camera
 		{
 			position -= UP * moveSpeed * _deltaTime;
 		}
-
 		if (_input.mouseMoved)
 		{
 			yaw += _input.lastState.lX * 0.001f;
 			pitch += _input.currentState.lY * 0.001f;
 		}
+		view = Matrix::CreateLookAt(position, camTarget, UP);
+		view.Transpose();
+		
 
 		// Make better looking... Quickfix...
 		if (_input.mouseWheelMoved)
@@ -139,14 +141,10 @@ struct Camera
 			proj = Matrix::CreatePerspectiveFieldOfView(fov, (float)_width / (float)_height, 0.1f, 1000.f);
 			proj.Transpose();
 		}
-		//
 
-		view = Matrix::CreateLookAt(position, camTarget, UP);
-		view.Transpose();
 		buffer->Update((void*)&view, sizeof(Matrix) + sizeof(Matrix));
 	}
 };
-//
 
 struct Transform
 {

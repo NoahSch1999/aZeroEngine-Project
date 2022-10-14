@@ -46,8 +46,7 @@ void Application::Run()
 
 		input->Update();
 
-		if(input->KeyHeld(DIK_LALT))
-			graphics->camera->Update(deltaTime, *input, window->width, window->height);
+		graphics->camera->Update(deltaTime, *input, window->width, window->height);
 
 		if (input->KeyDown(DIK_H))
 		{

@@ -11,11 +11,15 @@ public:
 	}
 
 	std::vector<D3D12_ROOT_PARAMETER>parameters;
+	D3D12_DESCRIPTOR_RANGE ranges[10];
+	int num = 0;
 
 	void AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE _rangeType, UINT _baseShaderRegister, UINT _numDescriptors = 1, D3D12_SHADER_VISIBILITY _shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT _offsetFromStart = 0, UINT _registerSpace = 0)
 	{
 		D3D12_DESCRIPTOR_RANGE range{ _rangeType, _numDescriptors, _baseShaderRegister, _registerSpace, _offsetFromStart };
-		D3D12_ROOT_DESCRIPTOR_TABLE table{ 1, &range };
+		ranges[num] = range;
+		D3D12_ROOT_DESCRIPTOR_TABLE table{ 1, &ranges[num] };
+		num++;
 		D3D12_ROOT_PARAMETER param{ D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE, table, _shaderVisability };
 		parameters.emplace_back(param);
 	}

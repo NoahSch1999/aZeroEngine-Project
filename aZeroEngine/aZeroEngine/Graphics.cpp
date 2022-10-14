@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include <array>
 
 Graphics::Graphics(AppWindow* _window, HINSTANCE _instance)
 	:frameCount(0), frameIndex(0), texture(), texturex()
@@ -35,7 +36,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, L"RTV Heap");
 	dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, L"DSV Heap");
 	resourceHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 6, L"SHADER Heap");
-	/*samplerHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, L"SAMPLER Heap");*/
+	//samplerHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, L"SAMPLER Heap");
 	stagingHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 5, L"STAGING Heap");
 	allocator = new CommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	allocator->InitCommandList(device, &directCmdList);
@@ -44,38 +45,36 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/sadcat.png");
 	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
-	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/goblin");
-	float x[4] = { 1,1,0,1 };
-	cb = new ConstantBuffer(device, resourceHeap, &directCmdList, &x, sizeof(x), false, L"Test");
+	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/cube");
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
 
-	sampler = new Sampler(D3D12_FILTER_MAXIMUM_ANISOTROPIC, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+	//sampler = new Sampler(device, samplerHeap, D3D12_FILTER_ANISOTROPIC);
 
 	RootParameters params;
-	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
-	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL);
 	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
 	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
-	
-	// Sampler causes root signature to SOMETIMES fail...
-	D3D12_STATIC_SAMPLER_DESC* xx[] = { &sampler->staticDesc };
-	D3D12_STATIC_SAMPLER_DESC samp = {};
-	samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-	samp.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-	samp.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-	samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-	samp.MipLODBias = 0;
-	samp.MaxAnisotropy = 0;
-	samp.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-	samp.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	samp.MinLOD = 0.0f;
-	samp.MaxLOD = D3D12_FLOAT32_MAX;
-	samp.ShaderRegister = 0;
-	samp.RegisterSpace = 0;
-	samp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
+	//params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
 
-	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
+
+	D3D12_STATIC_SAMPLER_DESC staticDesc;
+	staticDesc.Filter = D3D12_FILTER_ANISOTROPIC;
+	staticDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	staticDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	staticDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	staticDesc.MaxAnisotropy = 16;
+	staticDesc.MipLODBias = 0;
+	staticDesc.MinLOD = 0;
+	staticDesc.MaxLOD = D3D12_FLOAT32_MAX;
+	staticDesc.ShaderRegister = 0;
+	staticDesc.RegisterSpace = 0;
+	staticDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticDesc);
+
 	pso.Init(device, &signature, &layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
 		L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
 		L"", L"", L"");
@@ -119,14 +118,13 @@ void Graphics::Update(AppWindow* _window)
 	directCmdList.graphic->SetPipelineState(pso.pipelineState);
 	directCmdList.graphic->SetDescriptorHeaps(1, &resourceHeap->heap);
 	directCmdList.graphic->SetGraphicsRootSignature(signature.signature);
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, cb->gpuAddress);
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(2, world.buffer->gpuAddress);
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(3, camera->buffer->gpuAddress);
-	//directCmdList.graphic->SetGraphicsRootDescriptorTable(5, sampler->handle.gpuHandle);
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(0, world.buffer->gpuAddress);
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, camera->buffer->gpuAddress);
+	//directCmdList.graphic->SetGraphicsRootDescriptorTable(3, sampler->handle.gpuHandle);
 
 	// Per draw / model
-	directCmdList.graphic->SetGraphicsRootDescriptorTable(0, texture.sResource->handle.gpuHandle);
-	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);
+	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	directCmdList.graphic->IASetVertexBuffers(0, 1, &mesh.buffer->view);
 	directCmdList.graphic->DrawInstanced(mesh.numVertices, 1, 0, 0);
 }
