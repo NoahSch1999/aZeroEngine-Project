@@ -47,6 +47,24 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, I
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
 	desc.PS = { reinterpret_cast<BYTE*>(pShader->GetBufferPointer()), pShader->GetBufferSize() };
 	desc.RasterizerState = _rasterState->desc;
+
+	//D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
+	//transparencyBlendDesc.BlendEnable = true;
+	//transparencyBlendDesc.LogicOpEnable = false;
+	//transparencyBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	//transparencyBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	//transparencyBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+	//transparencyBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+	//transparencyBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+	//transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	//transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+	//transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	//D3D12_BLEND_DESC bDesc = {};
+	//bDesc.AlphaToCoverageEnable = true;
+	//bDesc.IndependentBlendEnable = true;
+	//bDesc.RenderTarget[0] = transparencyBlendDesc;
+
 	desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	desc.SampleMask = UINT_MAX;

@@ -44,7 +44,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	swapChain = new SwapChain(device, directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/sadcat.png");
-	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
+	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylotTest.png");
 	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/cube");
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
@@ -57,22 +57,6 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
 	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
 	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-
-
-	D3D12_STATIC_SAMPLER_DESC staticDesc;
-	staticDesc.Filter = D3D12_FILTER_ANISOTROPIC;
-	staticDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	staticDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	staticDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-	staticDesc.MaxAnisotropy = 16;
-	staticDesc.MipLODBias = 0;
-	staticDesc.MinLOD = 0;
-	staticDesc.MaxLOD = D3D12_FLOAT32_MAX;
-	staticDesc.ShaderRegister = 0;
-	staticDesc.RegisterSpace = 0;
-	staticDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
@@ -88,8 +72,8 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	
 	world.pos = Vector3(0, 0, 0);
 
-	world.world = Matrix::CreateScale(0.2f);
-	world.world *= Matrix::CreateTranslation(0, 0, 5);
+	world.world = Matrix::CreateScale(0.4f);
+	world.world *= Matrix::CreateTranslation(0, 0, 1);
 	world.world.Transpose();
 
 	world.buffer = new ConstantBuffer(device, resourceHeap, &directCmdList, (void*)&world.world, sizeof(Matrix), false, L"World");
@@ -108,6 +92,8 @@ void Graphics::Begin()
 	currentBackBuffer->Transition(directCmdList.graphic, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	directCmdList.graphic->RSSetViewports(1, &swapChain->viewport);
 	directCmdList.graphic->RSSetScissorRects(1, &swapChain->scissorRect);
+	FLOAT x[4] = { 1,1,0,0 };
+	directCmdList.graphic->OMSetBlendFactor(x);
 	directCmdList.graphic->ClearRenderTargetView(currentBackBuffer->handle.cpuHandle, clearColor, 0, nullptr);
 	directCmdList.graphic->ClearDepthStencilView(swapChain->dsv->handle.cpuHandle, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
 	directCmdList.graphic->OMSetRenderTargets(1, &currentBackBuffer->handle.cpuHandle, true, &swapChain->dsv->handle.cpuHandle);
@@ -122,10 +108,9 @@ void Graphics::Update(AppWindow* _window)
 	directCmdList.graphic->SetGraphicsRootSignature(signature.signature);
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(0, world.buffer->gpuAddress);
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, camera->buffer->gpuAddress);
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);
 	directCmdList.graphic->SetGraphicsRootDescriptorTable(3, sampler->handle.gpuHandle);
 
-	// Per draw / model
-	directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);
 	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	directCmdList.graphic->IASetVertexBuffers(0, 1, &mesh.buffer->view);
 	directCmdList.graphic->DrawInstanced(mesh.numVertices, 1, 0, 0);

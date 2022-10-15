@@ -20,7 +20,7 @@ void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, ShaderDescript
 	// Load texture data
 	const char* filePath = _path.c_str();
 	int width, height, channels;
-	unsigned char* image = stbi_load(filePath, &width, &height, &channels, STBI_rgb_alpha);
+	unsigned char* image = stbi_load(filePath, &width, &height, nullptr, STBI_rgb_alpha);
 
 	D3D12_RESOURCE_DESC rDesc = {};
 	rDesc.MipLevels = 1;
@@ -68,22 +68,23 @@ void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, ShaderDescript
 	// Define the subresource of the resource that we want to copy to
 	D3D12_SUBRESOURCE_DATA sData = {};
 	sData.pData = image;
-	sData.RowPitch = width * channels;
+	sData.RowPitch = width * STBI_rgb_alpha;
 	sData.SlicePitch = sData.RowPitch * height;
 	
 	// Actually update the subresource of the resource. Copy from "uploadbuffer" to "resource"
 	UpdateSubresources(_cmdList->graphic, resource, uploadBuffer, 0, 0, 1, &sData);
 
+	// Get an empty handle from the descriptor heap
+	handle = _heap->GetNewDescriptorHandle(1);
+
 	// Define the SRV desc for the creation of the SRV
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.Format = rDesc.Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
-
-
-	// Get an empty handle from the descriptor heap
-	handle = _heap->GetNewDescriptorHandle(1);
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = rDesc.MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 
 	// Specifies that the resource and the descriptor handle can be used as an SRV
 	_device->CreateShaderResourceView(resource, &srvDesc, handle.cpuHandle);

@@ -1,6 +1,9 @@
 #pragma once
 #include "DescriptorHandle.h"
 
+// Descriptor tells Direct3D how the resource will be used (i.e. what stage of the pipeline)
+// Descriptor tells Direct3D what state the resource is in (how it can be used, i.e. read, write etc.)
+
 class DescriptorHeap
 {
 public:

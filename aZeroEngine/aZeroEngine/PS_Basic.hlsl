@@ -1,7 +1,7 @@
 Texture2D test : register(t0);
 Texture2D testx : register(t1);
 
-SamplerState StaticSampler : register(s0);
+SamplerState basicSampler : register(s0);
 
 struct FragmentInput
 {
@@ -12,6 +12,6 @@ struct FragmentInput
 
 float4 main(FragmentInput input) : SV_Target
 {
-    //return float4(1,1,1,1);
-    return test.Sample(StaticSampler, input.uv);
+    float4 color = testx.Sample(basicSampler, input.uv);
+    return color;
 }
