@@ -36,7 +36,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, L"RTV Heap");
 	dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, L"DSV Heap");
 	resourceHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 6, L"SHADER Heap");
-	//samplerHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, L"SAMPLER Heap");
+	samplerHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, L"SAMPLER Heap");
 	stagingHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 5, L"STAGING Heap");
 	allocator = new CommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	allocator->InitCommandList(device, &directCmdList);
@@ -49,13 +49,14 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
 
-	//sampler = new Sampler(device, samplerHeap, D3D12_FILTER_ANISOTROPIC);
+	sampler = new Sampler(device, samplerHeap, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
 
 	RootParameters params;
 	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
 	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
 	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
-	//params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_ALL);
+	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
 
 
 	D3D12_STATIC_SAMPLER_DESC staticDesc;
@@ -73,7 +74,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	staticDesc.RegisterSpace = 0;
 	staticDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticDesc);
+	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
 	pso.Init(device, &signature, &layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
 		L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
@@ -87,7 +88,8 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	
 	world.pos = Vector3(0, 0, 0);
 
-	world.world = Matrix::CreateTranslation(0, 0, 5);
+	world.world = Matrix::CreateScale(0.2f);
+	world.world *= Matrix::CreateTranslation(0, 0, 5);
 	world.world.Transpose();
 
 	world.buffer = new ConstantBuffer(device, resourceHeap, &directCmdList, (void*)&world.world, sizeof(Matrix), false, L"World");
@@ -114,13 +116,13 @@ void Graphics::Begin()
 void Graphics::Update(AppWindow* _window)
 {
 	// Per frame
-	ID3D12DescriptorHeap* heap = { resourceHeap->heap };
+	ID3D12DescriptorHeap* heap[] = { resourceHeap->heap, samplerHeap->heap };
 	directCmdList.graphic->SetPipelineState(pso.pipelineState);
-	directCmdList.graphic->SetDescriptorHeaps(1, &resourceHeap->heap);
+	directCmdList.graphic->SetDescriptorHeaps(2, heap);
 	directCmdList.graphic->SetGraphicsRootSignature(signature.signature);
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(0, world.buffer->gpuAddress);
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, camera->buffer->gpuAddress);
-	//directCmdList.graphic->SetGraphicsRootDescriptorTable(3, sampler->handle.gpuHandle);
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(3, sampler->handle.gpuHandle);
 
 	// Per draw / model
 	directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);

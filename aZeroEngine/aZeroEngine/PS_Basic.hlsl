@@ -12,5 +12,6 @@ struct FragmentInput
 
 float4 main(FragmentInput input) : SV_Target
 {
+    //return float4(1,1,1,1);
     return test.Sample(StaticSampler, input.uv);
 }

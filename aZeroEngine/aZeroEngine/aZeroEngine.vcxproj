@@ -173,6 +173,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\DirectXTex\DDSTextureLoader\DDSTextureLoader12.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="BaseResource.cpp" />
     <ClCompile Include="CommandAllocator.cpp" />
@@ -200,6 +201,7 @@
     <ClCompile Include="VertexBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DirectXTex\DDSTextureLoader\DDSTextureLoader12.h" />
     <ClInclude Include="..\include\directx\d3dx12.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="BaseResource.h" />

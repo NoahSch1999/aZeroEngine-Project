@@ -68,9 +68,9 @@ void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, ShaderDescript
 	// Define the subresource of the resource that we want to copy to
 	D3D12_SUBRESOURCE_DATA sData = {};
 	sData.pData = image;
-	sData.RowPitch = width * 4;
-	sData.SlicePitch = width * 4 * height;
-
+	sData.RowPitch = width * channels;
+	sData.SlicePitch = sData.RowPitch * height;
+	
 	// Actually update the subresource of the resource. Copy from "uploadbuffer" to "resource"
 	UpdateSubresources(_cmdList->graphic, resource, uploadBuffer, 0, 0, 1, &sData);
 
@@ -81,8 +81,12 @@ void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, ShaderDescript
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
+
 	// Get an empty handle from the descriptor heap
 	handle = _heap->GetNewDescriptorHandle(1);
+
+	// Specifies that the resource and the descriptor handle can be used as an SRV
+	_device->CreateShaderResourceView(resource, &srvDesc, handle.cpuHandle);
 
 	// Change usage state from current state to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE to enable usage within the pixel shader
 	Transition(_cmdList->graphic, _state);
