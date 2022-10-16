@@ -50,15 +50,15 @@ void CommandQueue::Flush(UINT _fenceValue, CommandAllocator* _allocator, ID3D12G
 	_cmdList->Reset(_allocator->allocator, nullptr);
 }
 
-void CommandQueue::Flush()
+void CommandQueue::Flush(UINT _fenceValue)
 {
-	if (FenceReached(nextFenceValue))
+	if (FenceReached(_fenceValue))
 	{
 		return;
 	}
-	fence->SetEventOnCompletion(nextFenceValue, eventHandle);
+	fence->SetEventOnCompletion(_fenceValue, eventHandle);
 	WaitForSingleObjectEx(eventHandle, INFINITE, false);
-	lastReachedValue = nextFenceValue;
+	lastReachedValue = _fenceValue;
 }
 
 bool CommandQueue::FenceReached(UINT _fenceValue)
@@ -68,7 +68,10 @@ bool CommandQueue::FenceReached(UINT _fenceValue)
 		lastReachedValue = PollCurrentFenceValue();
 	}
 
-	return _fenceValue <= lastReachedValue;
+	if (lastReachedValue >= _fenceValue)
+		return true;
+	
+	return false;
 }
 
 int CommandQueue::PollCurrentFenceValue()

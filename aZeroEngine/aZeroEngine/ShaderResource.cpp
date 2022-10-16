@@ -96,6 +96,7 @@ void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, ShaderDescript
 	resource->SetName(_resourceName.c_str());
 }
 
+// not up to date
 void ShaderResource::InitAsTextureImplicit(ID3D12Device* _device, HiddenDescriptorHeap* _heap, CommandList* _cmdList, const std::string& _path, D3D12_RESOURCE_STATES _state, const std::wstring& _resourceName)
 {
 	// Since it will transition from this state to the other, this has to be set here (BaseResource constructor initially sets D3D12_RESOURCE_STATE_COMMON)

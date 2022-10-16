@@ -234,6 +234,7 @@
     <ClInclude Include="SwapChain.h" />
     <ClInclude Include="AppWindow.h" />
     <ClInclude Include="Texture2D.h" />
+    <ClInclude Include="Timer.h" />
     <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="VertexDefinitions.h" />
   </ItemGroup>

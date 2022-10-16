@@ -9,6 +9,10 @@ Graphics::Graphics(AppWindow* _window, HINSTANCE _instance)
 
 Graphics::~Graphics()
 {
+	directCommandQueue->Flush(nextSyncSignal);
+	allocator->allocator->Reset();
+	directCmdList.graphic->Reset(allocator->allocator, nullptr);
+
 	delete directCommandQueue;
 	delete swapChain;
 	delete rasterState;
@@ -43,8 +47,8 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	swapChain = new SwapChain(device, directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
-	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/sadcat.png");
-	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylotTest.png");
+	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
+	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/brickAlbedo.png");
 	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/cube");
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
@@ -119,20 +123,16 @@ void Graphics::Update(AppWindow* _window)
 void Graphics::Present()
 {
 	currentBackBuffer->Transition(directCmdList.graphic, D3D12_RESOURCE_STATE_PRESENT);
-	int nextSignal = directCommandQueue->Execute(&directCmdList, 1);
+	nextSyncSignal = directCommandQueue->Execute(&directCmdList, 1);
 	swapChain->swapChain->Present(0, 0);
-	// DXGI ERROR: IDXGISwapChain::Present: The application has not called ResizeBuffers or re-created the SwapChain after a fullscreen or windowed transition. 
-	//		Flip model swapchains (DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL and DXGI_SWAP_EFFECT_FLIP_DISCARD) are required to do so. [ MISCELLANEOUS ERROR #117: ]
-	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
+	
+	if (frameCount % 3 == 0)
+	{
+		directCommandQueue->Flush(nextSyncSignal);
+		allocator->allocator->Reset();
+	}
+
+	directCmdList.graphic->Reset(allocator->allocator, nullptr);
+
 	frameCount++;
-}
-
-void Graphics::SyncProcessors()
-{
-	directCommandQueue->Flush();
-}
-
-void Graphics::SyncProcessors(CommandQueue* _cmdQueue)
-{
-	_cmdQueue->Flush();
 }

@@ -30,10 +30,10 @@ struct Camera
 	float maxFov = 3.14f * 0.7f;
 	float minFov = 3.14f * 0.05f;
 	float fov = 3.14f * 0.2f;
-	float fovChange = 1.f;
+	float fovChange = 100.f;
 	float pitch = 0.f;
 	float yaw = 0.f;
-	float moveSpeed = 0.001f;
+	float moveSpeed = 4.f;
 
 	ConstantBuffer* buffer;
 	DIMOUSESTATE diMouse;
@@ -159,6 +159,7 @@ private:
 	int frameIndex;
 	int frameCount;
 	float clearColor[4] = { 1,0,0,1 };
+	int nextSyncSignal = 0;
 public:
 	Graphics(AppWindow* _window, HINSTANCE _instance);
 	~Graphics();
@@ -167,12 +168,8 @@ public:
 	void Update(AppWindow* _window);
 	void Present();
 
-	// Bad
-	void SyncProcessors();
-	void SyncProcessors(CommandQueue* _cmdQueue);
 	template<typename T>
 	void SyncProcessors(CommandQueue* _cmdQueue, T _func);
-	//
 
 	ID3D12Device* device;
 	CommandQueue* directCommandQueue;

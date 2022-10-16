@@ -19,6 +19,6 @@ public:
 
 	int Execute(CommandList* _cmdLists, int _numLists);
 	void Flush(UINT _fenceValue, CommandAllocator* _allocator, ID3D12GraphicsCommandList* _cmdList);
-	void Flush();
+	void Flush(UINT _fenceValue);
 };
 

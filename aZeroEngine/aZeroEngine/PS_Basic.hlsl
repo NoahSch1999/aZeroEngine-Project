@@ -1,5 +1,5 @@
-Texture2D test : register(t0);
-Texture2D testx : register(t1);
+Texture2D albedoTexture : register(t0);
+Texture2D other : register(t1);
 
 SamplerState basicSampler : register(s0);
 
@@ -12,6 +12,6 @@ struct FragmentInput
 
 float4 main(FragmentInput input) : SV_Target
 {
-    float4 color = testx.Sample(basicSampler, input.uv);
+    float4 color = albedoTexture.Sample(basicSampler, input.uv);
     return color;
 }

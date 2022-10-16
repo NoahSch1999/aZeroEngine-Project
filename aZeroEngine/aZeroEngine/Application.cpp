@@ -19,66 +19,45 @@ void Application::Initialize(HINSTANCE _instance, int _width, int _height)
 
 void Application::Run()
 {
-	double deltaTime = 0;
-	std::chrono::high_resolution_clock timer;
+	performanceTimer.StartCountDown();
+	int lastSecond = 0;
+	int currentSecond = 0;
+	int totalFrames = 0;
+
 	while (true)
 	{
-		auto start = timer.now();
+		performanceTimer.Update();
 
 		if (!window->Update())
 			break;
 
-		if (GetAsyncKeyState(VK_ESCAPE))
+		if (input->KeyDown(DIK_ESCAPE))
 		{
 			break;
 		}
 
-		if (GetAsyncKeyState('X'))
-		{
-			float x[4] = { 0, 1, 0, 1};
-			graphics->cb->Update((void*)&x, sizeof(x));
-		}
-		if (GetAsyncKeyState('C'))
-		{
-			float x[4] = { 0, 0, 1, 1 };
-			graphics->cb->Update((void*)&x, sizeof(x));
-		}
-
 		input->Update();
 
-		graphics->camera->Update(deltaTime, *input, window->width, window->height);
+		graphics->camera->Update(performanceTimer.deltaTime, *input, window->width, window->height);
 
-		if (input->KeyDown(DIK_H))
-		{
-			printf("DOWN\n");
-		}
-
-		if (input->KeyUp(DIK_J))
-		{
-			printf("UP\n");
-		}
-
-		//static bool te = false;
-		//if (GetAsyncKeyState('E') && !te)
-		//{
-		//	te = true;
-		//	graphics->swapChain->SetFullscreen(window);
-		//}
-		//static bool tex = false;
-		//if (GetAsyncKeyState('R') && !tex)
-		//{
-		//	tex = true;
-		//	graphics->swapChain->SetWindowed(window, 800, 500);
-		//}
-
+		// Rendering
 		graphics->Begin();
 
 		graphics->Update(window);
 
 		graphics->Present();
+		
+		// FPS
+		currentSecond = performanceTimer.StopCountDown<std::chrono::seconds>();
+		if (currentSecond != lastSecond)
+		{
+			std::cout << "FPS: " << totalFrames << std::endl;
+			totalFrames = 0;
+		}
 
-		auto stop = timer.now();
-		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() / 1000.0f;
+		lastSecond = performanceTimer.StopCountDown<std::chrono::seconds>();
+		++totalFrames;
+		//
 	}
 }
 
