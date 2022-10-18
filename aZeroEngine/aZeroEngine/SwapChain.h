@@ -6,6 +6,7 @@
 #include "HiddenDescriptorHeap.h"
 //#include "AppWindow.h"
 #include "DepthStencil.h"
+#include "CommandQueue.h"
 
 class SwapChain
 {
@@ -22,6 +23,11 @@ public:
 	D3D12_RECT scissorRect;
 
 	int refreshRate;
+
+	CommandQueue* queue;
+	CommandList* cmdList;
+	ID3D12Device* device;
+	int* syncValue;
 
 	// render target and dsv
 	SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList* _cmdList, HiddenDescriptorHeap* _dsvHeap, HiddenDescriptorHeap* _heap, 

@@ -107,10 +107,10 @@
     <ClCompile Include="Sampler.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\DirectXTex\DDSTextureLoader\DDSTextureLoader12.cpp">
+      <Filter>Random</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
       <Filter>Random</Filter>
     </ClCompile>
   </ItemGroup>
@@ -214,13 +214,13 @@
     <ClInclude Include="resource1.h">
       <Filter>D3D12 Core</Filter>
     </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>D3D12 Core</Filter>
-    </ClInclude>
     <ClInclude Include="..\DirectXTex\DDSTextureLoader\DDSTextureLoader12.h">
       <Filter>Random</Filter>
     </ClInclude>
     <ClInclude Include="Timer.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
       <Filter>Random</Filter>
     </ClInclude>
   </ItemGroup>

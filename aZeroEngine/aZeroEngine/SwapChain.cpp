@@ -50,6 +50,8 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 
 		backBuffers[i]->handle = _heap->GetNewDescriptorHandle(1);
 		_device->CreateRenderTargetView(backBuffers[i]->resource, NULL, backBuffers[i]->handle.cpuHandle);
+		std::wstring name = L"Back Buffer " + i;
+		backBuffers[i]->resource->SetName(name.c_str());
 	}
 	rtvFormat = _rtvFormat;
 	dsvFormat = _dsvFormat;
@@ -69,8 +71,6 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	scissorRect.right = _width;
 	scissorRect.bottom = _height;
 
-	//SetFullscreen(_window);
-
 	dsv = new DepthStencil(_device, _dsvHeap, _cmdList, _width, _height, dsvFormat);
 	dsv->resource->SetName(L"SwapChain DSV");
 }
@@ -80,88 +80,20 @@ SwapChain::~SwapChain()
 	swapChain->Release();
 	dxgiFactory->Release();
 	delete dsv;
-
-	// Why not work....?
-	//for (int i = 0; i < numBackBuffers; i++)
-	//	delete backBuffers[i];
 }
 
-//void SwapChain::SetFullscreen(AppWindow* _window)
-//{
-//	Helper::GetWindowDimensions(_window);
-//
-//	DXGI_MODE_DESC desc = {};
-//	ZeroMemory(&desc, sizeof(desc));
-//	desc.Width = _window->width;
-//	desc.Height = _window->height;
-//	desc.RefreshRate.Numerator = refreshRate;
-//	desc.RefreshRate.Denominator = 1;
-//	desc.Format = rtvFormat;
-//	desc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-//	//swapChain->ResizeTarget(&desc);
-//
-//	// Why doesn't it go into fullscreen? it did earlier, but something changed...
-//	HRESULT hr = swapChain->SetFullscreenState(true, NULL);
-//	if (FAILED(hr))
-//		throw;
-//
-//	//SetWindowPos(_window->windowHandle, 0, 0, 0, _window->width, _window->height, SWP_SHOWWINDOW); // Needed?
-//
-//	viewport.Width = (FLOAT)_window->width;
-//	viewport.Height = (FLOAT)_window->height;
-//	scissorRect.right = _window->width;
-//	scissorRect.bottom = _window->height;
-//
-//	// They need to be released and recreated... but in order to do this, they have to be unbound from the pipeline
-//	//for (int i = 0; i < numBackBuffers; i++)
-//	//	backBuffers[i]->resource->Release();
-//
-//	hr = swapChain->ResizeBuffers(numBackBuffers, _window->width, _window->height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
-//	if (FAILED(hr))
-//		throw;
-//	// DXGI ERROR: IDXGISwapChain::ResizeBuffers: Swapchain cannot be resized unless all outstanding buffer references have been released. [ MISCELLANEOUS ERROR #19: ]
-//
-//	// Resize textures such as depth stencils etc...
-//
-//}
-//
-//void SwapChain::SetWindowed(AppWindow* _window, int _width, int _height)
-//{
-//	_window->width = _width;
-//	_window->height = _height;
-//
-//	DXGI_MODE_DESC desc = {};
-//	ZeroMemory(&desc, sizeof(desc));
-//	desc.Width = _window->width;
-//	desc.Height = _window->height;
-//	desc.RefreshRate.Numerator = refreshRate;
-//	desc.RefreshRate.Denominator = 1;
-//	desc.Format = rtvFormat;
-//	desc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-//
-//	swapChain->SetFullscreenState(false, NULL);
-//
-//	swapChain->ResizeTarget(&desc);
-//
-//	swapChain->ResizeBuffers(numBackBuffers, _window->width, _window->height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
-//
-//	// Resize textures such as depth stencils etc...
-//
-//}
-
-void SwapChain::OnResize(HWND _winHandle/*, UINT& _width, UINT& _height*/)
+void SwapChain::OnResize(HWND _winHandle)
 {
-	// Resize buffers etc...
-	UINT width, height;
-	//_width = width;
-	//_height = height;
-	Helper::GetWindowDimensions(width, height); // doesnt set the appwindow variables...
+	queue->queue->Signal(queue->fence, queue->nextFenceValue);
+	queue->Flush(queue->nextFenceValue);
+	queue->nextFenceValue++;
 
+	UINT width, height;
+	Helper::GetWindowDimensions(width, height); // doesnt set the appwindow variables...
 	viewport.Width = (FLOAT)width;
 	viewport.Height = (FLOAT)height;
 	scissorRect.right = width;
 	scissorRect.bottom = height;
-
 
 	DXGI_MODE_DESC desc = {};
 	ZeroMemory(&desc, sizeof(desc));
@@ -171,11 +103,26 @@ void SwapChain::OnResize(HWND _winHandle/*, UINT& _width, UINT& _height*/)
 	desc.RefreshRate.Denominator = 1;
 	desc.Format = rtvFormat;
 	desc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-	HRESULT hr = swapChain->ResizeTarget(&desc);
+
+	for (int i = 0; i < numBackBuffers; ++i)
+	{
+		backBuffers[i]->resource->Release();
+	}
+
+	HRESULT hr = swapChain->ResizeBuffers(numBackBuffers, width, height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
 	if (FAILED(hr))
 		throw;
 
-	hr = swapChain->ResizeBuffers(numBackBuffers, width, height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
-	if (FAILED(hr))
-		throw;
+	for (int i = 0; i < numBackBuffers; ++i)
+	{
+		swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->resource));
+		device->CreateRenderTargetView(backBuffers[i]->resource, NULL, backBuffers[i]->handle.cpuHandle);
+		backBuffers[i]->state = D3D12_RESOURCE_STATE_COMMON;
+	}
+
+	// Resize depth stencil etc...
+	//dsv->ReInit(device, cmdList, width, height, dsvFormat);
+
+	int next = queue->Execute(cmdList, 1);
+	queue->Flush(next);
 }

@@ -156,10 +156,7 @@ struct Transform
 class Graphics
 {
 private:
-	int frameIndex;
-	int frameCount;
 	float clearColor[4] = { 1,0,0,1 };
-	int nextSyncSignal = 0;
 public:
 	Graphics(AppWindow* _window, HINSTANCE _instance);
 	~Graphics();
@@ -181,6 +178,9 @@ public:
 	// Presenting and culling
 	SwapChain* swapChain;
 	RenderTarget* currentBackBuffer;
+	int nextSyncSignal = 0;
+	int frameIndex;
+	int frameCount;
 
 	// Heaps
 	HiddenDescriptorHeap* rtvHeap;
@@ -202,7 +202,6 @@ public:
 	ConstantBuffer* cb;
 	Transform world;
 	Sampler* sampler;
-
 	Camera* camera;
 };
 

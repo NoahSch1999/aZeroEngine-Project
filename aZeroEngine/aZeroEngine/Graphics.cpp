@@ -49,7 +49,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
 	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/brickAlbedo.png");
-	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/cube");
+	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/goblin");
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
 
@@ -85,7 +85,10 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	mesh.buffer->resource->SetName(L"Mesh");
 
-
+	swapChain->queue = directCommandQueue;
+	swapChain->syncValue = &nextSyncSignal;
+	swapChain->device = device;
+	swapChain->cmdList = &directCmdList;
 }
 
 void Graphics::Begin()
@@ -124,7 +127,10 @@ void Graphics::Present()
 {
 	currentBackBuffer->Transition(directCmdList.graphic, D3D12_RESOURCE_STATE_PRESENT);
 	nextSyncSignal = directCommandQueue->Execute(&directCmdList, 1);
+
+	// might enqueue work on gpu...
 	swapChain->swapChain->Present(0, 0);
+	// add fence + execute command queue + update nextSyncSignal...
 	
 	if (frameCount % 3 == 0)
 	{

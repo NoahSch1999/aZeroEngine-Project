@@ -49,8 +49,8 @@ static inline LRESULT CALLBACK WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LP
 		}
 		case WM_SIZE:
 		{
-			//if(init)
-			//	sc->OnResize(win->windowHandle/*, win->width, win->height*/);
+			if(init)
+				sc->OnResize(win->windowHandle);
 			break;
 		}
 	}

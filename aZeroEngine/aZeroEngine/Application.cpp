@@ -36,6 +36,22 @@ void Application::Run()
 			break;
 		}
 
+		if (input->KeyDown(DIK_F))
+		{
+			HRESULT hr = graphics->swapChain->swapChain->SetFullscreenState(true, NULL);
+			if (FAILED(hr))
+				throw;
+			graphics->frameCount = 0;
+		}
+
+		if (input->KeyDown(DIK_G))
+		{
+			HRESULT hr = graphics->swapChain->swapChain->SetFullscreenState(false, NULL);
+			if (FAILED(hr))
+				throw;
+			graphics->frameCount = 0;
+		}
+
 		input->Update();
 
 		graphics->camera->Update(performanceTimer.deltaTime, *input, window->width, window->height);
