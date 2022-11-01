@@ -1,5 +1,5 @@
 #pragma once
-#include "CommandList.h"
+#include "directx/d3dx12.h"
 
 class CommandAllocator
 {
@@ -12,7 +12,5 @@ public:
 	CommandAllocator() = default;
 	CommandAllocator(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type);
 	~CommandAllocator();
-
-	void InitCommandList(ID3D12Device* _device, CommandList* _cmdList);
 };
 

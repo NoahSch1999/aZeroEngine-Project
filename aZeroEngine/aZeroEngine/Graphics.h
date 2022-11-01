@@ -3,7 +3,7 @@
 #include "SwapChain.h"
 #include "AppWindow.h"
 #include "ShaderDescriptorHeap.h"
-#include "HiddenDescriptorHeap.h"
+#include "HiddenDescHeap.h"
 #include "DepthStencil.h"
 #include "PipelineState.h"
 
@@ -47,9 +47,10 @@ struct Camera
 		view.Transpose();
 		proj.Transpose();
 
-		buffer = new ConstantBuffer(_device, _heap, _cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix));
-		buffer->Update((void*)&view, sizeof(Matrix) + sizeof(Matrix));
-		buffer->resource->SetName(L"Camera");
+		buffer = new ConstantBuffer();
+		buffer->InitAsDynamic(_device, _cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), L"Camera");
+		buffer->handle = _heap->GetNewDescriptorHandle(1);
+		buffer->InitAsCBV(_device);
 
 		HRESULT hr = DirectInput8Create(_instance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, NULL);
 		if (FAILED(hr))
@@ -153,6 +154,44 @@ struct Transform
 	ConstantBuffer* buffer;
 };
 
+struct TestMaterial
+{
+	ShaderResource* diffuse;
+	ShaderResource* bump;
+	ConstantBuffer* color;
+
+	TestMaterial(ID3D12Device* _device, HiddenDescriptorHeap* _heap, CommandList* _cmdList, std::string _diffuse, std::string _bump, const std::wstring& _name)
+	{
+		diffuse = new ShaderResource();
+		bump = new ShaderResource();
+		float col[4] = { 1, 0, 1, 1};
+		color = new ConstantBuffer();
+		color->InitStatic(_device, _cmdList, (void*)col, sizeof(col), _name + L"CB");
+
+		diffuse->InitAsTexture(_device, _cmdList, _diffuse, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, _name + L"Diffuse");
+		bump->InitAsTexture(_device, _cmdList, _bump, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, _name + L"Bump");
+
+		int descSize = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		DescriptorHandle handle = _heap->GetNewSlot();
+
+		diffuse->handle.cpuHandle = handle.cpuHandle;
+		diffuse->handle.heapIndex = handle.heapIndex;
+		diffuse->InitAsSRV(_device);
+
+		handle.cpuHandle.ptr += descSize;
+		handle.heapIndex += 1;
+		bump->handle.cpuHandle = handle.cpuHandle;
+		bump->handle.heapIndex = handle.heapIndex;
+		bump->InitAsSRV(_device);
+
+		handle.cpuHandle.ptr += descSize;
+		handle.heapIndex += 1;
+		color->handle.cpuHandle = handle.cpuHandle;
+		color->handle.heapIndex = handle.heapIndex;
+		color->InitAsCBV(_device);
+	}
+};
+
 class Graphics
 {
 private:
@@ -189,6 +228,9 @@ public:
 	ShaderDescriptorHeap* resourceHeap;
 	ShaderDescriptorHeap* samplerHeap;
 	HiddenDescriptorHeap* stagingHeap;
+
+	HiddenDescriptorHeap* materialHeap;
+	std::vector<TestMaterial*>mats;
 
 	// DEBUG
 	Texture2D texture;

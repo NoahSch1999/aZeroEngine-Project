@@ -48,7 +48,7 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 		if (FAILED(hr))
 			throw;
 
-		backBuffers[i]->handle = _heap->GetNewDescriptorHandle(1);
+		backBuffers[i]->handle = _heap->GetNewSlot();
 		_device->CreateRenderTargetView(backBuffers[i]->resource, NULL, backBuffers[i]->handle.cpuHandle);
 		std::wstring name = L"Back Buffer " + i;
 		backBuffers[i]->resource->SetName(name.c_str());
@@ -123,6 +123,6 @@ void SwapChain::OnResize(HWND _winHandle)
 	// Resize depth stencil etc...
 	//dsv->ReInit(device, cmdList, width, height, dsvFormat);
 
-	int next = queue->Execute(cmdList, 1);
+	int next = queue->Execute(cmdList);
 	queue->Flush(next);
 }

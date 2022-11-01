@@ -29,9 +29,7 @@ public:
 		heapIndex = _heapIndex;
 	}
 
-	~DescriptorHandle()
-	{
-	}
+	~DescriptorHandle() = default;
 
 
 };

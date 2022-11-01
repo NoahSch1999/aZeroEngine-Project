@@ -215,6 +215,7 @@
     <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="HelperFunctions.h" />
+    <ClInclude Include="HiddenDescHeap.h" />
     <ClInclude Include="HiddenDescriptorHeap.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="InputLayout.h" />

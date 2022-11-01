@@ -72,3 +72,41 @@ void Helper::Print(Vector3 _vec)
 {
 	printf("[%f] : [%f] : [%f]", _vec.x, _vec.y, _vec.z);
 }
+
+void Helper::CreateCommitedResourceStatic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc,
+	ID3D12Resource*& _interResource, const D3D12_RESOURCE_DESC& _uDesc,
+	CommandList* _cmdList = nullptr, const void* _initData = nullptr, int _rowPitch = 0, int _slicePitch = 0)
+{
+	D3D12_HEAP_PROPERTIES heapProps = {};
+	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&_mainResource));
+	if (FAILED(hr))
+		throw;
+
+	heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+	hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &_uDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_interResource));
+	if (FAILED(hr))
+		throw;
+
+	if (_cmdList == nullptr)
+		return;
+
+	D3D12_SUBRESOURCE_DATA sData = {};
+	sData.pData = _initData;
+	sData.RowPitch = _rowPitch;
+	sData.SlicePitch = _slicePitch;
+
+	UpdateSubresources(_cmdList->graphic, _mainResource, _interResource, 0, 0, 1, &sData);
+
+}
+
+void Helper::CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc)
+{
+	D3D12_HEAP_PROPERTIES heapProps = {};
+	heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_mainResource));
+	if (FAILED(hr))
+		throw;
+}

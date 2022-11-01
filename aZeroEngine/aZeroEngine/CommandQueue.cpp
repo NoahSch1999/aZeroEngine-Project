@@ -27,10 +27,10 @@ CommandQueue::~CommandQueue()
 	fence->Release();
 }
 
-int CommandQueue::Execute(CommandList* _cmdLists, int _numLists = 1)
+int CommandQueue::Execute(CommandList* _cmdList)
 {
-	_cmdLists->graphic->Close();
-	queue->ExecuteCommandLists(_numLists, &_cmdLists->basic);
+	_cmdList->graphic->Close();
+	queue->ExecuteCommandLists(1, &_cmdList->basic);
 	queue->Signal(fence, nextFenceValue);
 	return nextFenceValue++;
 }

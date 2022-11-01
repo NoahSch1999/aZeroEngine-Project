@@ -1,6 +1,7 @@
 #pragma once
 #include "BaseResource.h"
-#include "HiddenDescriptorHeap.h"
+//#include "HiddenDescriptorHeap.h"
+#include "HiddenDescHeap.h"
 
 class RenderTarget : public BaseResource
 {

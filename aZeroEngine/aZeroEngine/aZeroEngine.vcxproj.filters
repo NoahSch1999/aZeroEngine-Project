@@ -223,6 +223,9 @@
     <ClInclude Include="Input.h">
       <Filter>Random</Filter>
     </ClInclude>
+    <ClInclude Include="HiddenDescHeap.h">
+      <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PS_Basic.hlsl">

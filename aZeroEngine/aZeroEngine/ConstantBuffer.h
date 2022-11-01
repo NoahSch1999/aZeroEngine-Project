@@ -1,24 +1,26 @@
 #pragma once
 #include "BaseResource.h"
 #include "ShaderDescriptorHeap.h"
-#include "HiddenDescriptorHeap.h"
+#include "HiddenDescHeap.h"
 #include "CommandList.h"
 
 class ConstantBuffer : public BaseResource
 {
 public:
-	// Try avoid duplicate of constructors...
-	ConstantBuffer(ID3D12Device* _device, ShaderDescriptorHeap* _heap, CommandList* _cmdList, void* _data, int _size, bool _static = false, const std::wstring& _name = L"");
-	
-	// Add functionality for this...
-	ConstantBuffer(ID3D12Device* _device, HiddenDescriptorHeap* _heap, CommandList* _cmdList, void* _data, int _size, bool _static = false, const std::wstring& _name = L"");
-	
+	ConstantBuffer();
+
+	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _size, const std::wstring& _name = L"");
+	void InitAsDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _size, const std::wstring& _name = L"");
+
+	// Requires the handle to be initialized
+	void InitAsCBV(ID3D12Device* _device);
+
 	void Update(const void* data, int size);
 	~ConstantBuffer();
 
 	ID3D12Resource* uploadBuffer;
 	void* mappedBuffer;
-	int dataSize;
+	int size;
 	bool isStatic;
 };
 

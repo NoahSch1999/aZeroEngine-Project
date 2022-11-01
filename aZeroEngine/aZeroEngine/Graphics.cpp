@@ -37,19 +37,24 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 		D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE);
 
 	// SwapChain
-	rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, L"RTV Heap");
-	dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, L"DSV Heap");
-	resourceHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 6, L"SHADER Heap");
+	//rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, L"RTV Heap");
+	rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, 1, L"RTV Heap");
+	//dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, L"DSV Heap");
+	dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, 1, L"DSV Heap");
+	resourceHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100, L"SHADER Heap");
 	samplerHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, L"SAMPLER Heap");
-	stagingHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 5, L"STAGING Heap");
 	allocator = new CommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-	allocator->InitCommandList(device, &directCmdList);
+
+	materialHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+		10, 3, L"Material Heap");
+
+	directCmdList.Init(device, allocator);
 
 	swapChain = new SwapChain(device, directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
 	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/brickAlbedo.png");
-	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/goblin");
+	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/cube");
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
 
@@ -60,6 +65,8 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
 	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
 	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
+	//params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL);
+	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
 	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
@@ -68,7 +75,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 		L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
 		L"", L"", L"");
 
-	int nextSignal = directCommandQueue->Execute(&directCmdList, 1);
+	int nextSignal = directCommandQueue->Execute(&directCmdList);
 	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
 
 	//
@@ -79,9 +86,10 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	world.world = Matrix::CreateScale(0.4f);
 	world.world *= Matrix::CreateTranslation(0, 0, 1);
 	world.world.Transpose();
-
-	world.buffer = new ConstantBuffer(device, resourceHeap, &directCmdList, (void*)&world.world, sizeof(Matrix), false, L"World");
-	//
+	world.buffer = new ConstantBuffer();
+	world.buffer->InitAsDynamic(device, &directCmdList, (void*)&world.world, sizeof(Matrix), L"World");
+	world.buffer->handle = resourceHeap->GetNewDescriptorHandle(1);
+	world.buffer->InitAsCBV(device);
 
 	mesh.buffer->resource->SetName(L"Mesh");
 
@@ -89,6 +97,22 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	swapChain->syncValue = &nextSyncSignal;
 	swapChain->device = device;
 	swapChain->cmdList = &directCmdList;
+
+	mats.push_back(new TestMaterial(device, materialHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/sadcat.png",
+		"C:/Projects/aZeroEngine/aZeroEngine/textures/gravelBump1.png", L"Mat1"));
+
+	mats.push_back(new TestMaterial(device, materialHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/brickBump1.png",
+		"C:/Projects/aZeroEngine/aZeroEngine/textures/metalBump1.png", L"Mat2"));
+
+	resourceHeap->CopyFromHiddenHeap(device, materialHeap);
+
+	// This alternative reinitiates the resources gpu handle AND returns it into nothing
+	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->diffuse->handle);
+	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->bump->handle);
+	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->color->handle);
+	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->diffuse->handle);
+	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->bump->handle);
+	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->color->handle);
 }
 
 void Graphics::Begin()
@@ -115,8 +139,26 @@ void Graphics::Update(AppWindow* _window)
 	directCmdList.graphic->SetGraphicsRootSignature(signature.signature);
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(0, world.buffer->gpuAddress);
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, camera->buffer->gpuAddress);
-	directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);
-	directCmdList.graphic->SetGraphicsRootDescriptorTable(3, sampler->handle.gpuHandle);
+	//directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);
+
+	if (frameCount % 2 == 0)
+	{
+		// This alternative reinitiates the resources gpu handle AND returns it
+		//directCmdList.graphic->SetGraphicsRootDescriptorTable(2, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->diffuse->handle));
+		//directCmdList.graphic->SetGraphicsRootDescriptorTable(3, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->color->handle));
+
+		// This alternative simply uses the already set gpu handle
+		directCmdList.graphic->SetGraphicsRootDescriptorTable(2, mats[0]->diffuse->handle.gpuHandle);
+		directCmdList.graphic->SetGraphicsRootDescriptorTable(3, mats[0]->color->handle.gpuHandle);
+	}
+	else
+	{
+		directCmdList.graphic->SetGraphicsRootDescriptorTable(2, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->diffuse->handle));
+		directCmdList.graphic->SetGraphicsRootDescriptorTable(3, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->color->handle));
+		//directCmdList.graphic->SetGraphicsRootConstantBufferView(3, mats[1]->color->gpuAddress);
+	}
+	
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(4, sampler->handle.gpuHandle);
 
 	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	directCmdList.graphic->IASetVertexBuffers(0, 1, &mesh.buffer->view);
@@ -126,7 +168,7 @@ void Graphics::Update(AppWindow* _window)
 void Graphics::Present()
 {
 	currentBackBuffer->Transition(directCmdList.graphic, D3D12_RESOURCE_STATE_PRESENT);
-	nextSyncSignal = directCommandQueue->Execute(&directCmdList, 1);
+	nextSyncSignal = directCommandQueue->Execute(&directCmdList);
 
 	// might enqueue work on gpu...
 	swapChain->swapChain->Present(0, 0);

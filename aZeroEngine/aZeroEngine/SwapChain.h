@@ -3,7 +3,8 @@
 #include "CommandQueue.h"
 #include <vector>
 #include "RenderTarget.h"
-#include "HiddenDescriptorHeap.h"
+//#include "HiddenDescriptorHeap.h"
+#include "HiddenDescHeap.h"
 //#include "AppWindow.h"
 #include "DepthStencil.h"
 #include "CommandQueue.h"
