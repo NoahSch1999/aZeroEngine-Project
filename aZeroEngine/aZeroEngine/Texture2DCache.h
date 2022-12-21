@@ -1,10 +1,10 @@
 #pragma once
 #include "ResourceCache.h"
-#include "ShaderResource.h"
+#include "Texture2D.h"
 
 /** @brief Class that stores and manages 2D textures. A subclass of ResourceCache.
 */
-class Texture2DCache : public ResourceCache<ShaderResource>
+class Texture2DCache : public ResourceCache<Texture2D>
 {
 private:
 

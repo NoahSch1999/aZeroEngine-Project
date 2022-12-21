@@ -1,6 +1,6 @@
 #pragma once
 #include "BaseResource.h"
-#include "HiddenDescHeap.h"
+#include "HiddenDescriptorHeap.h"
 #include "CommandList.h"
 
 class DepthStencil : public BaseResource

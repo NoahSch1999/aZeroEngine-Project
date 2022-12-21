@@ -13,7 +13,7 @@
 class MaterialManager
 {
 private:
-	MappedVector<PhongMaterial*>phongMaterials;
+	MappedVector<PhongMaterial*>phongMaterials; // Change from PhongMaterial* to PhongMaterial!!!!
 public:
 	MaterialManager() = default;
 
@@ -26,7 +26,7 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, DescriptorHandle _handle, Texture2DCache* _textureCache, const std::string _materialName);
+	void CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _materialName);
 
 	/** Removes the material of the template specified type with the input name.
 	@param _materialName Name of the material to remove. Has to exist, otherwise there could be a potential crash
@@ -58,15 +58,22 @@ public:
 	@return pointer to the specified material instance
 	*/
 	template<typename T>
-	int GetMaterialIDByName(const std::string& _materialName);
+	int GetReferenceID(const std::string& _materialName);
+
+	/** Decrements the material reference ID.
+	@param _ID ID of the material to decrement reference count for
+	@return void
+	*/
+	template<typename T>
+	void FreeReferenceID(int _ID);
 };
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, DescriptorHandle _handle, Texture2DCache* _textureCache, const std::string _materialName)
+inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Add(_materialName, new PhongMaterial(_device, _cmdList, _handle, _textureCache));
+		phongMaterials.Add(_materialName, new PhongMaterial(_device, _cmdList, _textureCache));
 	}
 }
 
@@ -104,12 +111,24 @@ inline T* MaterialManager::GetMaterial(int _ID)
 }
 
 template<typename T>
-inline int MaterialManager::GetMaterialIDByName(const std::string& _materialName)
+inline int MaterialManager::GetReferenceID(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
+		phongMaterials.Get(_materialName)->referenceCount++;
 		return phongMaterials.GetID(_materialName);
 	}
 
 	return -1;
+}
+
+template<typename T>
+inline void MaterialManager::FreeReferenceID(int _ID)
+{
+	if constexpr (std::is_same_v<T, PhongMaterial>)
+	{
+		PhongMaterial* temp = phongMaterials.Get(_ID);
+		if(temp->referenceCount > 0)
+			temp->referenceCount--;
+	}
 }

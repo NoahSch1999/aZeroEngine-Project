@@ -1,6 +1,6 @@
 #include "Sampler.h"
 
-Sampler::Sampler(ID3D12Device* _device, ShaderDescriptorHeap* _heap, D3D12_FILTER _filter,
+Sampler::Sampler(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _filter,
 	D3D12_TEXTURE_ADDRESS_MODE _addressModeU, D3D12_TEXTURE_ADDRESS_MODE _addressModeV,
 	D3D12_TEXTURE_ADDRESS_MODE _addressModeW, D3D12_COMPARISON_FUNC _comparisonFunc, 
 	int _maxAnisotropy, Vector4 _borderColor, float _midLodBias, float _minLod, float _maxLod)
@@ -20,7 +20,7 @@ Sampler::Sampler(ID3D12Device* _device, ShaderDescriptorHeap* _heap, D3D12_FILTE
 	desc.MinLOD = _minLod;
 	desc.MaxLOD = _maxLod;
 
-	handle = _heap->GetNewDescriptorHandle(1);
+	handle = _handle;
 	_device->CreateSampler(&desc, handle.cpuHandle);
 }
 

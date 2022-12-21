@@ -17,6 +17,8 @@ private:
 public:
 	MappedVector() = default;
 
+	std::unordered_map<std::string, int>& GetStringToIndexMap() { return strToIndex; }
+
 	/** Adds the input object to the internal vector and maps the index to the input string value.
 	@param _name Key value which gets mapped to the objects' index within the internal vector
 	@param _object Object that gets copied to the internal vector

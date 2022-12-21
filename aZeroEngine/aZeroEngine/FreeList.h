@@ -56,4 +56,9 @@ public:
 		std::unique_lock<std::mutex>lock(mutex);
 		return (int)queue.size();
 	}
+
+	int GetMaxValues()
+	{
+		return maxValues;
+	}
 };

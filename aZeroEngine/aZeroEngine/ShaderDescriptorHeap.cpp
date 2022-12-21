@@ -2,6 +2,11 @@
 
 ShaderDescriptorHeap::ShaderDescriptorHeap(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, const std::wstring& _name)
 {
+	Init(_device, _type, _maxDescriptors, _name);
+}
+
+void ShaderDescriptorHeap::Init(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, const std::wstring& _name)
+{
 	D3D12_DESCRIPTOR_HEAP_DESC desc;
 	desc.NumDescriptors = _maxDescriptors;
 	desc.Type = _type;
@@ -18,8 +23,6 @@ ShaderDescriptorHeap::ShaderDescriptorHeap(ID3D12Device* _device, D3D12_DESCRIPT
 
 	type = _type;
 	maxDescriptors = _maxDescriptors;
-	numDescriptors = 0;
-	currentIndex = 0;
 
 	heap->SetName(_name.c_str());
 }
@@ -28,51 +31,45 @@ ShaderDescriptorHeap::~ShaderDescriptorHeap()
 {
 }
 
-DescriptorHandle ShaderDescriptorHeap::GetNewDescriptorHandle(int _numHandles)
+DescriptorHandle ShaderDescriptorHeap::GetNewDescriptorHandle(int _index)
 {
-	int newHandleIndex = 0;
-	int handleBlockEnd = currentIndex + _numHandles;
-	if (handleBlockEnd <= maxDescriptors)
-	{
-		newHandleIndex = currentIndex;
-		currentIndex = handleBlockEnd;
-	}
-	else
-	{
-		throw;
-	}
-
 	D3D12_CPU_DESCRIPTOR_HANDLE newCPUHandle = handle.cpuHandle;
-	newCPUHandle.ptr += newHandleIndex * descriptorSize;
+	newCPUHandle.ptr += _index * descriptorSize;
 	D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = handle.gpuHandle;
-	newGPUHandle.ptr += newHandleIndex * descriptorSize;
+	newGPUHandle.ptr += _index * descriptorSize;
 
-	DescriptorHandle handle(newCPUHandle, newGPUHandle, newHandleIndex);
+	DescriptorHandle handle(newCPUHandle, newGPUHandle, _index);
 
 	return handle;
 }
 
-
-void ShaderDescriptorHeap::CopyFromHiddenHeap(ID3D12Device* _device, HiddenDescriptorHeap* _hiddenHeap)
+void ShaderDescriptorHeap::Reset()
 {
-	if (type != _hiddenHeap->type)
-		throw;
 
-	int totalDescriptorsUsed = _hiddenHeap->totalDescriptors - (_hiddenHeap->freeSlots.size() * _hiddenHeap->slotSize);
-	D3D12_CPU_DESCRIPTOR_HANDLE destinationStart = handle.cpuHandle;
-	destinationStart.ptr += currentIndex * descriptorSize;
-	D3D12_CPU_DESCRIPTOR_HANDLE sourceStart = _hiddenHeap->handle.cpuHandle;
-
-	_device->CopyDescriptorsSimple(totalDescriptorsUsed, destinationStart, sourceStart, type);
-	
-	_hiddenHeap->offsetInShaderHeap = currentIndex;
-	currentIndex += totalDescriptorsUsed;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE ShaderDescriptorHeap::GetGPUHandleForHiddenResource(HiddenDescriptorHeap* _hiddenHeap, DescriptorHandle& _handle)
-{
-	D3D12_GPU_DESCRIPTOR_HANDLE handleToReturn = handle.gpuHandle;
-	handleToReturn.ptr += (_hiddenHeap->offsetInShaderHeap + _handle.heapIndex) * descriptorSize;
-	_handle.gpuHandle = handleToReturn;
-	return handleToReturn;
-}
+// OBSOLETE
+//void ShaderDescriptorHeap::CopyFromHiddenHeap(ID3D12Device* _device, HiddenDescriptorHeap* _hiddenHeap)
+//{
+//	if (type != _hiddenHeap->type)
+//		throw;
+//
+//	int totalDescriptorsUsed = _hiddenHeap->totalDescriptors - (_hiddenHeap->freeSlots.size() * _hiddenHeap->slotSize);
+//	D3D12_CPU_DESCRIPTOR_HANDLE destinationStart = handle.cpuHandle;
+//	destinationStart.ptr += currentIndex * descriptorSize;
+//	D3D12_CPU_DESCRIPTOR_HANDLE sourceStart = _hiddenHeap->handle.cpuHandle;
+//
+//	_device->CopyDescriptorsSimple(totalDescriptorsUsed, destinationStart, sourceStart, type);
+//	
+//	_hiddenHeap->offsetInShaderHeap = currentIndex;
+//	currentIndex += totalDescriptorsUsed;
+//}
+//
+//D3D12_GPU_DESCRIPTOR_HANDLE ShaderDescriptorHeap::GetGPUHandleForHiddenResource(HiddenDescriptorHeap* _hiddenHeap, DescriptorHandle& _handle)
+//{
+//	D3D12_GPU_DESCRIPTOR_HANDLE handleToReturn = handle.gpuHandle;
+//	handleToReturn.ptr += (_hiddenHeap->offsetInShaderHeap + _handle.heapIndex) * descriptorSize;
+//	_handle.gpuHandle = handleToReturn;
+//	return handleToReturn;
+//}
+//

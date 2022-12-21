@@ -41,6 +41,15 @@ void Helper::LoadVertexListFromFile(BasicVertexListInfo* _vInfo, const std::stri
 		value = mesh->mNormals[i];
 		_vInfo->verticeData[i].normal = { value.x, value.y, value.z };
 	}
+
+	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+	{
+		for (int h = 0; h < mesh->mFaces[i].mNumIndices; h++)
+		{
+			_vInfo->indexData.push_back(mesh->mFaces[i].mIndices[h]);
+		}
+	}
+
 }
 
 bool Helper::GetDisplaySettings(DEVMODEA* _devMode)
@@ -59,13 +68,13 @@ void Helper::GetWindowDimensions(AppWindow* _window)
 	_window->height = desktop.bottom;
 }
 
-void Helper::GetWindowDimensions(UINT& _width, UINT& _height)
+void Helper::GetWindowDimensions(UINT* _width, UINT* _height)
 {
 	RECT desktop;
 	HWND desktopHandle = GetDesktopWindow();
 	GetWindowRect(desktopHandle, &desktop);
-	_width = desktop.right;
-	_height = desktop.bottom;
+	*_width = desktop.right;
+	*_height = desktop.bottom;
 }
 
 void Helper::Print(Vector3 _vec)
@@ -109,4 +118,13 @@ void Helper::CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource
 	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_mainResource));
 	if (FAILED(hr))
 		throw;
+}
+
+void Helper::LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer*& _vBuffer)
+{
+	Helper::BasicVertexListInfo vertexInfo;
+	Helper::LoadVertexListFromFile(&vertexInfo, _path);
+	_vBuffer->InitStatic(_device, _cmdList, vertexInfo.verticeData.data(), (int)vertexInfo.verticeData.size(), sizeof(BasicVertex));
+	_vBuffer->SetNumVertices((int)vertexInfo.verticeData.size());
+	_vBuffer->GetIndexBuffer()->InitStatic(_device, _cmdList, vertexInfo.indexData.data(), vertexInfo.indexData.size());
 }

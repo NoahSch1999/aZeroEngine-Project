@@ -89,7 +89,7 @@ void SwapChain::OnResize(HWND _winHandle)
 	queue->nextFenceValue++;
 
 	UINT width, height;
-	Helper::GetWindowDimensions(width, height); // doesnt set the appwindow variables...
+	Helper::GetWindowDimensions(&width, &height); // doesnt set the appwindow variables...
 	viewport.Width = (FLOAT)width;
 	viewport.Height = (FLOAT)height;
 	scissorRect.right = width;

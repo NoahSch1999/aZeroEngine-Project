@@ -1,5 +1,4 @@
 #pragma once
-#include "HiddenDescriptorHeap.h"
 #include "ShaderDescriptorHeap.h"
 #include "BaseResource.h"
 #include "HelperFunctions.h"
@@ -8,7 +7,7 @@ class Sampler : public BaseResource
 {
 public:
 	D3D12_STATIC_SAMPLER_DESC staticDesc;
-	Sampler(ID3D12Device* _device, ShaderDescriptorHeap* _heap, D3D12_FILTER _filter, 
+	Sampler(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _filter,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeU = D3D12_TEXTURE_ADDRESS_MODE_WRAP, 
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,

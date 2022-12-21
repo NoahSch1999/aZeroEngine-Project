@@ -54,7 +54,8 @@ public:
 	{
 		return resourceHeap.GetNewDescriptorHandle(texture2DFreeList.GetValue());
 	}
-
+	
+	// Have to call this when removing from the texture cache
 	void FreeTexture2DDescriptor(int _index)
 	{
 		texture2DFreeList.FreeValue(_index);

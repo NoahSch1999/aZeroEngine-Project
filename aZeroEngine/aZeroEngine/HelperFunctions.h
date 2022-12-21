@@ -2,6 +2,7 @@
 #include "D3D12Include.h"
 #include "VertexDefinitions.h"
 #include "AppWindow.h"
+#include "VertexBuffer.h"
 
 namespace Helper
 {
@@ -10,6 +11,7 @@ namespace Helper
 	struct BasicVertexListInfo
 	{
 		std::vector<BasicVertex>verticeData;
+		std::vector<int>indexData;
 	};
 
 	void LoadVertexListFromFile(BasicVertexListInfo* _vInfo, const std::string& _path);
@@ -18,7 +20,7 @@ namespace Helper
 
 	void GetWindowDimensions(AppWindow* _window);
 
-	void GetWindowDimensions(UINT& _width, UINT& _height);
+	void GetWindowDimensions(UINT* _width, UINT* _height);
 
 	void Print(Vector3 _vec);
 
@@ -27,4 +29,6 @@ namespace Helper
 		CommandList* _cmdList, const void* _initData, int _rowPitch, int _slicePitch);
 
 	void CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc);
+
+	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer*& _vBuffer);
 }

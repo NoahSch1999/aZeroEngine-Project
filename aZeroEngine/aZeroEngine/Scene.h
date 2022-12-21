@@ -60,7 +60,7 @@ public:
 		if (entities.count(_entityName) > 0)
 		{
 			Mesh temp;
-			temp.vBuffer = *vbCache->GetResource("cube");
+			temp.vBuffer = *vbCache->GetBuffer("cube");
 			cManager->RegisterComponent<Mesh>(entities.at(_entityName), temp);
 
 			// Add to systems...?
@@ -96,12 +96,9 @@ public:
 	*/
 	void ChangeMeshForEntity(const std::string& _entityName, const std::string& _meshName)
 	{
-		if (!vbCache->Exists(_meshName))
-			return;
-
 		if (entities.count(_entityName) > 0)
 		{
-			cManager->GetComponent<Mesh>(entities.at(_entityName))->vBuffer = *vbCache->GetResource(_meshName);
+			cManager->GetComponent<Mesh>(entities.at(_entityName))->vBuffer = *vbCache->GetBuffer(_meshName);
 
 			// Add to systems for that specific Mesh...
 

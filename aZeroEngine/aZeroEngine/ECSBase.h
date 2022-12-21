@@ -27,7 +27,7 @@ static const int MAXCOMPONENTS = 10;
 */
 namespace COMPONENTENUM
 {	
-	enum COMPONENTBITID { TRANSFORM, MESH, MATERIAL };
+	enum COMPONENTBITID { TRANSFORM, MESH, MATERIAL, LIGHT };
 }
 
 // ---------------	SOURCE CODE EXAMPLES	----------------------
@@ -62,13 +62,23 @@ struct Transform
 
 struct Mesh
 {
+	// SHOULD THE COMPONENT HAVE A VERTEX BUFFER OR AN INDEX TO THE VERTEX BUFFER WITHIN THE VERTEXBUFFERCACHE (SAME AS WITH THE MATERIAL COMPONENT)?
+	// PROS WITH HAVING ITS OWN VERTEX BUFFER: 
+	//		DOESN'T NEED TO GO THROUGH THE VERTEXBUFFERCACHE
+	// PROS WITH HAVING ONLY AN INDEX: 
+	//		LESS MEMORY CONSUMPTION
+	//		IF VERTEX BUFFER CHANGES MID-APPLICATION, THE CHANGE IS APPLIED TO EVERY MESH COMPONENT THAT HAS AN ID TO THE SAME VERTEX BUFFER
 	VertexBuffer vBuffer;
 };
 
-struct Material
+struct MaterialComponent
 {
 	int materialID;
 };
+
+// Light component
+
+//
 
 /** @brief Contains an ID and std::bitset which a user can register components for using the ComponentManager class.
 */
@@ -207,7 +217,7 @@ private:
 	// ---------------------------------------------------------------
 	BiDirectionalMap<Transform>transformMap;
 	BiDirectionalMap<Mesh>meshMap;
-	BiDirectionalMap<Material>materialMap;
+	BiDirectionalMap<MaterialComponent>materialMap;
 
 public:
 	ComponentManager() = default;
@@ -371,7 +381,7 @@ public:
 
 		componentManager.RemoveComponent<Transform>(_entity);
 		componentManager.RemoveComponent<Mesh>(_entity);
-		componentManager.RemoveComponent<Material>(_entity);
+		componentManager.RemoveComponent<MaterialComponent>(_entity);
 
 		entityManager.RemoveEntity(_entity);
 	}
@@ -471,7 +481,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _initVal
 			return meshMap.GetObjectByID(_entity.id);
 		}
 	}
-	else if constexpr (std::is_same_v<T, Material>)
+	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
 		if (!_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 		{
@@ -530,7 +540,7 @@ inline void ComponentManager::RemoveComponent(Entity& _entity)
 			meshMap.Remove(_entity);
 		}
 	}
-	else if constexpr (std::is_same_v<T, Material>)
+	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
 		if (_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 		{
@@ -581,7 +591,7 @@ inline T* ComponentManager::GetComponent(const Entity& _entity)
 		else
 			return nullptr;
 	}
-	else if constexpr (std::is_same_v<T, Material>)
+	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
 		if (_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 			return &materialMap.objects[materialMap.idToIndex.at(_entity.id)];
@@ -618,7 +628,7 @@ inline T* ComponentManager::GetComponentFast(const Entity& _entity)
 	{
 		return &meshMap.objects[meshMap.idToIndex.at(_entity.id)];
 	}
-	else if constexpr (std::is_same_v<T, Material>)
+	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
 		return &materialMap.objects[materialMap.idToIndex.at(_entity.id)];
 	}

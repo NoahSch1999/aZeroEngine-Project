@@ -2,7 +2,7 @@
 #include <array>
 
 Graphics::Graphics(AppWindow* _window, HINSTANCE _instance)
-	:frameCount(0), frameIndex(0), texture(), texturex()
+	:frameCount(0), frameIndex(0)
 {
 	Initialize(_window, _instance);
 }
@@ -17,10 +17,9 @@ Graphics::~Graphics()
 	delete swapChain;
 	delete rasterState;
 	device->Release();
-	delete cb, sampler;
-	delete rtvHeap, dsvHeap, resourceHeap, stagingHeap;
-	delete allocator/*, directCommandQueue*/;
-	delete camera->buffer, world.buffer;
+	delete rtvHeap, dsvHeap;
+	delete allocator;
+	delete camera->buffer;
 }
 
 void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
@@ -36,42 +35,34 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 		D3D12_COMMAND_QUEUE_PRIORITY::D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 		D3D12_COMMAND_QUEUE_FLAGS::D3D12_COMMAND_QUEUE_FLAG_NONE);
 
-	// SwapChain
-	//rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, L"RTV Heap");
 	rtvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, 1, L"RTV Heap");
-	//dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, L"DSV Heap");
 	dsvHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, 1, L"DSV Heap");
-	resourceHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 100, L"SHADER Heap");
-	samplerHeap = new ShaderDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 4, L"SAMPLER Heap");
 	allocator = new CommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-
-	materialHeap = new HiddenDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-		10, 3, L"Material Heap");
 
 	directCmdList.Init(device, allocator);
 
-	swapChain = new SwapChain(device, directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	resourceManager.Init(device, 100, 1500);
 
-	texture.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/pylot.png");
-	texturex.Init(device, resourceHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/brickAlbedo.png");
-	mesh.LoadBufferFromFile(device, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/meshes/cube");
+	swapChain = new SwapChain(device, directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 	rasterState = new RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE);
 
-	sampler = new Sampler(device, samplerHeap, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+	sampler = new Sampler(device, resourceManager.GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
 
 	RootParameters params;
-	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
-	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
-	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, D3D12_SHADER_VISIBILITY_PIXEL);
-	//params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL);
-	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
+	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, D3D12_SHADER_VISIBILITY_ALL, 0, 1);								// textures 0
+	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// perdrawconstants 1
+	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX, 0);			// world matrix 2
+	//params.AddRootConstants(0, 16, D3D12_SHADER_VISIBILITY_VERTEX, 0);																	// world matrix 2
+	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX, 0);			// camera 3
+	params.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE::D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);	// sampler 4
+	params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_SRV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// point light structs 5
+	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_SRV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// point light indices 6
+	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// num lights
+	bindlessSignature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
-	signature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
-
-	pso.Init(device, &signature, &layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
+	pso.Init(device, &bindlessSignature, &layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
 		L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
 		L"", L"", L"");
 
@@ -79,40 +70,47 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
 
 	//
-	camera = new Camera(device, resourceHeap, &directCmdList, _window->width, _window->height, _instance, _window->windowHandle);
-	
-	world.pos = Vector3(0, 0, 0);
+	camera = new Camera(device, &directCmdList, _window->width, _window->height, _instance, _window->windowHandle);
 
-	world.world = Matrix::CreateScale(0.4f);
-	world.world *= Matrix::CreateTranslation(0, 0, 1);
-	world.world.Transpose();
-	world.buffer = new ConstantBuffer();
-	world.buffer->InitAsDynamic(device, &directCmdList, (void*)&world.world, sizeof(Matrix), L"World");
-	world.buffer->handle = resourceHeap->GetNewDescriptorHandle(1);
-	world.buffer->InitAsCBV(device);
-
-	mesh.buffer->resource->SetName(L"Mesh");
+	Matrix x = Matrix::Identity;
+	x = Matrix::CreateTranslation(0, 0, 0);
+	testWorld.InitAsDynamic(device, &directCmdList, (void*)&x, sizeof(Matrix), true, L"testWorld");
+	x = Matrix::CreateTranslation(1, 0, 0);
+	testWorld2.InitAsDynamic(device, &directCmdList, (void*)&x, sizeof(Matrix), true, L"testWorld2");
 
 	swapChain->queue = directCommandQueue;
 	swapChain->syncValue = &nextSyncSignal;
 	swapChain->device = device;
 	swapChain->cmdList = &directCmdList;
 
-	mats.push_back(new TestMaterial(device, materialHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/sadcat.png",
-		"C:/Projects/aZeroEngine/aZeroEngine/textures/gravelBump1.png", L"Mat1"));
+	vbCache = new VertexBufferCache();
+	vbCache->LoadBuffer(device, &directCmdList, "cube");
+	vbCache->LoadBuffer(device, &directCmdList, "sphere");
+	vbCache->LoadBuffer(device, &directCmdList, "goblin");
+	//vbCache->LoadBuffer(device, &directCmdList, "Wa");
 
-	mats.push_back(new TestMaterial(device, materialHeap, &directCmdList, "C:/Projects/aZeroEngine/aZeroEngine/textures/brickBump1.png",
-		"C:/Projects/aZeroEngine/aZeroEngine/textures/metalBump1.png", L"Mat2"));
+	textureCache = new Texture2DCache();
+	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "pylot.png");
+	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "sadcat.png");
+	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "brickAlbedo.png");
+	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "defaultDiffuse.png");
+	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "goblintexture.png");
 
-	resourceHeap->CopyFromHiddenHeap(device, materialHeap);
+	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "testMaterial");
+	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
+	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("pylot.png")->handle.heapIndex;
+	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, 0);
 
-	// This alternative reinitiates the resources gpu handle AND returns it into nothing
-	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->diffuse->handle);
-	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->bump->handle);
-	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->color->handle);
-	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->diffuse->handle);
-	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->bump->handle);
-	resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->color->handle);
+	testIDMaterial = materialManager.GetReferenceID<PhongMaterial>("otherMaterial");
+
+	testMeshID = vbCache->GetReferenceID("goblin");
+
+	ui = new EditorUI(device, &resourceManager, _window->windowHandle);
+
+	lManager = new LightManager(device, &directCmdList, 1, 10, 1);
+
+	nextSignal = directCommandQueue->Execute(&directCmdList);
+	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
 }
 
 void Graphics::Begin()
@@ -130,39 +128,77 @@ void Graphics::Begin()
 	directCmdList.graphic->OMSetRenderTargets(1, &currentBackBuffer->handle.cpuHandle, true, &swapChain->dsv->handle.cpuHandle);
 }
 
-void Graphics::Update(AppWindow* _window)
+void Graphics::Render(AppWindow* _window)
 {
 	// Per frame
-	ID3D12DescriptorHeap* heap[] = { resourceHeap->heap, samplerHeap->heap };
-	directCmdList.graphic->SetPipelineState(pso.pipelineState);
+	ID3D12DescriptorHeap* heap[] = { resourceManager.GetResourceHeap(), resourceManager.GetSamplerHeap() };
 	directCmdList.graphic->SetDescriptorHeaps(2, heap);
-	directCmdList.graphic->SetGraphicsRootSignature(signature.signature);
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(0, world.buffer->gpuAddress);
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, camera->buffer->gpuAddress);
-	//directCmdList.graphic->SetGraphicsRootDescriptorTable(2, texture.sResource->handle.gpuHandle);
+	
+	// Why does this result in the scene being rendered to the rtv of the imgui?
+	//ui->BeginFrame();
+	//ui->Update();
+	//ui->Render(&directCmdList);
 
-	if (frameCount % 2 == 0)
+	
+
+	directCmdList.graphic->SetPipelineState(pso.pipelineState);
+	directCmdList.graphic->SetGraphicsRootSignature(bindlessSignature.signature);
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(0, resourceManager.GetTexture2DStartAddress());
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(3, camera->buffer->GetGPUAddress());
+	directCmdList.graphic->SetGraphicsRootShaderResourceView(5, lManager->pLightList.GetLightsBufferPtr()->GetGPUAddress());
+	directCmdList.graphic->SetGraphicsRootShaderResourceView(6, lManager->pLightList.GetLightsIndicesBufferPtr()->GetGPUAddress());
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(7, lManager->numLightsCB.GetGPUAddress());
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, materialManager.GetMaterial<PhongMaterial>(testIDMaterial)->GetGPUAddress());
+
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(4, sampler->handle.gpuHandle);
+	Matrix x = Matrix::Identity;
+	static float temp = 0.f;
+	x = Matrix::CreateRotationX(temp);
+	static float pos = 0.f;
+	//x *= Matrix::CreateTranslation(0, 0, pos);
+	//testWorld.Update((void*)&x, sizeof(Matrix), frameIndex);
+	temp += 0.0001f;
+	static bool dir = false;
+
+	if (dir)
 	{
-		// This alternative reinitiates the resources gpu handle AND returns it
-		//directCmdList.graphic->SetGraphicsRootDescriptorTable(2, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->diffuse->handle));
-		//directCmdList.graphic->SetGraphicsRootDescriptorTable(3, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[0]->color->handle));
-
-		// This alternative simply uses the already set gpu handle
-		directCmdList.graphic->SetGraphicsRootDescriptorTable(2, mats[0]->diffuse->handle.gpuHandle);
-		directCmdList.graphic->SetGraphicsRootDescriptorTable(3, mats[0]->color->handle.gpuHandle);
+		if (pos > 1)
+		{
+			dir = false;
+		}
+		pos += 0.0001f;
 	}
 	else
 	{
-		directCmdList.graphic->SetGraphicsRootDescriptorTable(2, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->diffuse->handle));
-		directCmdList.graphic->SetGraphicsRootDescriptorTable(3, resourceHeap->GetGPUHandleForHiddenResource(materialHeap, mats[1]->color->handle));
-		//directCmdList.graphic->SetGraphicsRootConstantBufferView(3, mats[1]->color->gpuAddress);
+		if (pos < -1)
+		{
+			dir = true;
+		}
+		pos -= 0.0001f;
 	}
-	
-	directCmdList.graphic->SetGraphicsRootDescriptorTable(4, sampler->handle.gpuHandle);
 
+
+
+
+	//std::cout << pos << std::endl;
+
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld.GetGPUAddress());
+
+	// draw
+	//directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	directCmdList.graphic->IASetVertexBuffers(0, 1, &mesh.buffer->view);
-	directCmdList.graphic->DrawInstanced(mesh.numVertices, 1, 0, 0);
+	directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(testMeshID)->GetView());
+	//directCmdList.graphic->IASetIndexBuffer(&vbCache->GetBuffer(testMeshID)->GetIndexBuffer()->GetView());
+	//directCmdList.graphic->DrawIndexedInstanced(vbCache->GetBuffer(testMeshID)->GetIndexBuffer()->numIndices, 1, 0, 0, 0);
+	directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(testMeshID)->GetNumVertices(), 1, 0, 0);
+	//
+
+	directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld2.GetGPUAddress());
+	directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer("sphere")->GetView());
+	directCmdList.graphic->DrawInstanced(vbCache->GetBuffer("sphere")->GetNumVertices(), 1, 0, 0);
+
+	ui->Update();
+	ui->Render(&directCmdList);
 }
 
 void Graphics::Present()
@@ -172,7 +208,6 @@ void Graphics::Present()
 
 	// might enqueue work on gpu...
 	swapChain->swapChain->Present(0, 0);
-	// add fence + execute command queue + update nextSyncSignal...
 	
 	if (frameCount % 3 == 0)
 	{

@@ -13,6 +13,7 @@ public:
 	LPARAM lParam;
 	UINT width;
 	UINT height;
+	WNDCLASS wc = { 0 };
 
 	AppWindow() = default;
 	template <typename T>
@@ -75,7 +76,7 @@ inline void AppWindow::Initialize(T* _wndProc, HINSTANCE _instance, int _width, 
 	HICON bigIcon = reinterpret_cast<HICON>(LoadImage(nullptr, _bigIconPath.c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE));
 
 	LPCWSTR className = L"MyWindow";
-	WNDCLASS wc = { 0 };
+	wc = { 0 };
 	wc.lpfnWndProc = _wndProc;
 	wc.lpszClassName = className;
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -84,7 +85,7 @@ inline void AppWindow::Initialize(T* _wndProc, HINSTANCE _instance, int _width, 
 	wc.hInstance = _instance;
 	//wc.hIcon = LoadIcon(_instance, MAKEINTRESOURCE(path.c_str()));
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hCursor = LoadCursor(0, IDC_ARROW);
+	wc.hCursor = LoadCursor(_instance, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	wc.lpszMenuName = 0;
 
@@ -96,8 +97,11 @@ inline void AppWindow::Initialize(T* _wndProc, HINSTANCE _instance, int _width, 
 	if (windowHandle == 0)
 		throw;
 
+#ifdef _DEBUG
 	AllocConsole();
 	(void)freopen("conout$", "w", stdout);
+#endif
+
 	ShowWindow(windowHandle, SW_SHOW);
 	UpdateWindow(windowHandle);
 

@@ -19,6 +19,7 @@ struct VertexIn
 struct VertexOut
 {
     float4 position : SV_Position;
+    float3 worldPosition : WORLDPOSITION;
     float2 uv : UV;
     float3 normal : NORMAL;
 };
@@ -27,6 +28,7 @@ VertexOut main(VertexIn input)
 {
     VertexOut output;
     output.position = mul(world, float4(input.position, 1.f));
+    output.worldPosition = output.position.xyz;
     output.position = mul(view, float4(output.position));
     output.position = mul(proj, float4(output.position));
     
@@ -35,6 +37,7 @@ VertexOut main(VertexIn input)
     //output.position = mul(float4(output.position), proj);
     
     output.uv = input.uv;
+
     float4 normal = normalize(mul(world, float4(input.normal, 0.f)));
     output.normal = normal.xyz;
     

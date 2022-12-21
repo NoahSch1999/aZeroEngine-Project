@@ -19,13 +19,14 @@ private:
 	IDirectInputDevice8* keyboardDevice;
 	LPDIRECTINPUTDEVICE8 lpKeyboardDevice;
 
-	IDirectInputDevice8* mouseDevice;
 	LPDIRECTINPUTDEVICE8 lpMouseDevice;
 	bool mPressed[4];
 	bool mPressedLastFrame[4];
 
 public:
-	Input(HINSTANCE _instance, HWND _handle)
+	IDirectInputDevice8* mouseDevice;
+
+	Input(HINSTANCE _instance, const HWND& _handle)
 	{
 		memset(&pressedLastFrame, false, sizeof(pressedLastFrame));
 		HRESULT hr;

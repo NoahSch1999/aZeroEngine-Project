@@ -1,29 +1,60 @@
 #pragma once
-#include "ResourceCache.h"
 #include "VertexBuffer.h"
+#include "MappedVector.h"
+#include "HelperFunctions.h"
 
-/** @brief Subclass of Cache. Stores loaded vertex buffers and relevant information which benefits from being loaded once.
-*/
-class VertexBufferCache : public ResourceCache<VertexBuffer>
+class VertexBufferCache
 {
 private:
-
+	MappedVector<VertexBuffer*>vertexBuffers;
 public:
-	VertexBufferCache();
-	~VertexBufferCache();
+	  VertexBufferCache() = default;
+	  ~VertexBufferCache();
 
-	/**Overriden version of ResourceCache::LoadResource(). Loads resource by filename.
-	@param _device Device used to create the resource
-	@param _cmdList CommandList used to create the resource
-	@param _name Name of the resource
-	@return void
-	*/
-	virtual void LoadResource(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name) override;
+	  void LoadBuffer(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
+	  {
+		  VertexBuffer* temp = new VertexBuffer();
+		  Helper::LoadVertexDataFromFile(_device, _cmdList, "../meshes/" + _name, temp);
+		  vertexBuffers.Add(_name, temp);
+	  }
 
-	/**Overriden version of Cache::RemoveResource(). Removes resources by filename.
-	@param _name Filename of the resource to remove
-	@return void
-	*/
-	virtual void RemoveResource(const std::string& _name) override;
+	  void RemoveBuffer(const std::string& _name)
+	  {
+		  delete vertexBuffers.Get(_name);
+		  vertexBuffers.Remove(_name);
+	  }
 
+	  VertexBuffer* GetBuffer(int _ID)
+	  {
+		  return vertexBuffers.Get(_ID);
+	  }
+
+	  VertexBuffer* GetBuffer(const std::string& _name)
+	  {
+		  return vertexBuffers.Get(_name);
+	  }
+
+	  int GetReferenceID(const std::string& _name)
+	  {
+		  vertexBuffers.Get(_name)->referenceCount++;
+		  return vertexBuffers.GetID(_name);
+	  }
+
+	  void FreeReferenceID(int _ID)
+	  {
+		  VertexBuffer* temp = vertexBuffers.Get(_ID);
+		  if (temp->referenceCount > 0)
+			  temp->referenceCount--;
+	  }
+
+	  void ClearUnused()
+	  {
+		  for (auto& [key, value] : vertexBuffers.GetStringToIndexMap())
+		  {
+			  if (vertexBuffers.Get(value)->referenceCount == 0)
+			  {
+				  vertexBuffers.Remove(key);
+			  }
+		  }
+	  }
 };

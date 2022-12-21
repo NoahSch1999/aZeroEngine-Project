@@ -13,7 +13,7 @@ void RootSignature::Initialize(ID3D12Device* _device, RootParameters* _params, D
 	D3D12_STATIC_SAMPLER_DESC* _staticSamplerDesc = nullptr)
 {
 	D3D12_ROOT_SIGNATURE_DESC desc{(UINT)_params->parameters.size(), _params->parameters.data(), _numStaticSamplers, _staticSamplerDesc, _flags };
-	desc.NumParameters = _params->parameters.size();
+	desc.NumParameters = (UINT)_params->parameters.size();
 	desc.pParameters = _params->parameters.data();
 	desc.NumStaticSamplers = _numStaticSamplers;
 	desc.pStaticSamplers = _staticSamplerDesc;
