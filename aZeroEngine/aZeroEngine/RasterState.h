@@ -3,6 +3,8 @@
 
 class RasterState
 {
+private:
+	D3D12_RASTERIZER_DESC desc = {};
 public:
 	RasterState(D3D12_FILL_MODE _fillMode, D3D12_CULL_MODE _cullMode, bool _frontCCW = false, bool _multiSample = true, bool _antiAliasing = true)
 	{
@@ -13,5 +15,7 @@ public:
 		desc.FrontCounterClockwise = _frontCCW;
 	}
 
-	D3D12_RASTERIZER_DESC desc = {};
+	const D3D12_RASTERIZER_DESC GetDesc() const { return desc; }
+	void SetDesc(const D3D12_RASTERIZER_DESC& _desc) { desc = _desc; }
+
 };

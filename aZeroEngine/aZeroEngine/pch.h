@@ -1,0 +1,17 @@
+#pragma once
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <map>
+#include <unordered_map>
+#include <bitset>
+#include <memory>
+#include <thread>
+#include <utility>
+#include <stack>
+#include <queue>
+#include <deque>
+#include <set>
+#include <unordered_set>
+#include <Windows.h>

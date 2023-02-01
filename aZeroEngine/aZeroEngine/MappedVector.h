@@ -48,6 +48,17 @@ public:
 	@return void
 	*/
 	T& Get(int _ID);
+
+	/** Returns whether or not the key already exists.
+	@param _key Key to check.
+	@return bool
+	*/
+	bool Exists(const std::string& _key)
+	{
+		if (strToIndex.count(_key) > 0)
+			return true;
+		return false;
+	}
 };
 
 template<typename T>

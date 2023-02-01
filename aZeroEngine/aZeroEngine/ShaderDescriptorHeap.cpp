@@ -17,8 +17,8 @@ void ShaderDescriptorHeap::Init(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYP
 	if (FAILED(hr))
 		throw;
 
-	handle.cpuHandle = heap->GetCPUDescriptorHandleForHeapStart();
-	handle.gpuHandle = heap->GetGPUDescriptorHandleForHeapStart();
+	handle.SetHandle(heap->GetCPUDescriptorHandleForHeapStart());
+	handle.SetHandle(heap->GetGPUDescriptorHandleForHeapStart());
 	descriptorSize = _device->GetDescriptorHandleIncrementSize(_type);
 
 	type = _type;
@@ -29,23 +29,19 @@ void ShaderDescriptorHeap::Init(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYP
 
 ShaderDescriptorHeap::~ShaderDescriptorHeap()
 {
+	heap->Release();
 }
 
 DescriptorHandle ShaderDescriptorHeap::GetNewDescriptorHandle(int _index)
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE newCPUHandle = handle.cpuHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE newCPUHandle = handle.GetCPUHandle();
 	newCPUHandle.ptr += _index * descriptorSize;
-	D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = handle.gpuHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE newGPUHandle = handle.GetGPUHandle();
 	newGPUHandle.ptr += _index * descriptorSize;
 
 	DescriptorHandle handle(newCPUHandle, newGPUHandle, _index);
 
 	return handle;
-}
-
-void ShaderDescriptorHeap::Reset()
-{
-
 }
 
 // OBSOLETE

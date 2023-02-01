@@ -1,3 +1,5 @@
+#include "pch.h"
+
 #pragma comment(lib, "dinput8.lib")
 #include <iostream>
 #include "Application.h"
@@ -19,7 +21,7 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int s
 	DXGIGetDebugInterface1(0, IID_PPV_ARGS(&idxgiDebug));
 #endif // DEBUG
 
-	app = new Application(instance, 800, 600);
+	app = new Application(instance, 1920, 1080);
 
 	app->Run();
 

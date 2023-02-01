@@ -60,7 +60,7 @@ void Application::Run()
 				//std::cout << ShowCursor(false) << "\n";
 				//graphics->testIDMaterial = graphics->materialManager.GetMaterialIDByName<PhongMaterial>("testMaterial");
 				graphics->materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID =
-					graphics->textureCache->GetResource("goblintexture.png")->handle.heapIndex;
+					graphics->textureCache->GetResource("brickAlbedo.png")->GetHandle().GetHeapIndex();
 			}
 			else
 			{
@@ -70,7 +70,7 @@ void Application::Run()
 				//std::cout << ShowCursor(true) << "\n";
 				//graphics->testIDMaterial = graphics->materialManager.GetMaterialIDByName<PhongMaterial>("otherMaterial");
 				graphics->materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID =
-					graphics->textureCache->GetResource("sadcat.png")->handle.heapIndex;
+					graphics->textureCache->GetResource("sadcat.png")->GetHandle().GetHeapIndex();
 			}
 
 			graphics->materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&graphics->directCmdList, graphics->frameIndex);
@@ -104,6 +104,35 @@ void Application::Run()
 			//graphics->materialManager.GetMaterial<PhongMaterial>("testMaterial")->Update(graphics->frameIndex);
 		}
 
+		if (input->KeyDown(DIK_V))
+		{
+			graphics->scene->Save("C:/Users/Noah Schierenbeck/Desktop/Test", "Level1");
+		}
+		if (input->KeyDown(DIK_B))
+		{
+			graphics->scene->Load(graphics->device, &graphics->directCmdList, graphics->frameIndex, "C:/Users/Noah Schierenbeck/Desktop/Test", "Level1");
+		}
+
+		static bool t = false;
+		if (!t)
+		{
+			if (input->KeyDown(DIK_N))
+			{
+				int id = graphics->materialManager.GetReferenceID<PhongMaterial>("otherMaterial");
+				graphics->scene->GetComponentForEntity<MaterialComponent>(graphics->scene->entities.at("Entity_0"))->materialID = id;
+				t = !t;
+			}
+		}
+		else
+		{
+			if (input->KeyDown(DIK_N))
+			{
+				int id = graphics->materialManager.GetReferenceID<PhongMaterial>("defaultMaterial");
+				graphics->scene->GetComponentForEntity<MaterialComponent>(graphics->scene->entities.at("Entity_0"))->materialID = id;
+				t = !t;
+			}
+		}
+		
 
 		// Rendering
 		graphics->Begin();

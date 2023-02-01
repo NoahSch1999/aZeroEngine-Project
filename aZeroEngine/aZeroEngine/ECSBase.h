@@ -15,6 +15,7 @@ Github: https://github.com/NoahSch1999
 #include <queue>
 #include "HelperFunctions.h"
 #include "VertexBuffer.h"
+#include "ConstantBuffer.h"
 
 // COMPONENTS
 /**
@@ -54,9 +55,40 @@ namespace COMPONENTENUM
 struct Transform
 {
 	Matrix worldMatrix;
+	ConstantBuffer cb;
 	Transform()
 	{
 		worldMatrix = Matrix::Identity;
+	}
+
+	Transform(ID3D12Device* _device, CommandList* _cmdList)
+	{
+		worldMatrix = Matrix::Identity;
+		cb.InitAsDynamic(_device, _cmdList, (void*)&worldMatrix, sizeof(Matrix), true);
+		//cb.InitAsCBV(_device);
+	}
+
+	// Used for non-trippleframed resources
+	void Update()
+	{
+		cb.Update((void*)&worldMatrix, sizeof(Matrix));
+	}
+
+	void Update(const Matrix& _matrix)
+	{
+		worldMatrix = _matrix;
+		cb.Update((void*)&worldMatrix, sizeof(Matrix));
+	}
+
+	void Update(CommandList* _cmdList, int _frameIndex)
+	{
+		cb.Update(_cmdList, (void*)&worldMatrix, sizeof(Matrix), _frameIndex);
+	}
+
+	void Update(CommandList* _cmdList, const Matrix& _matrix, int _frameIndex)
+	{
+		worldMatrix = _matrix;
+		cb.Update(_cmdList, (void*)&worldMatrix, sizeof(Matrix), _frameIndex);
 	}
 };
 
@@ -68,7 +100,7 @@ struct Mesh
 	// PROS WITH HAVING ONLY AN INDEX: 
 	//		LESS MEMORY CONSUMPTION
 	//		IF VERTEX BUFFER CHANGES MID-APPLICATION, THE CHANGE IS APPLIED TO EVERY MESH COMPONENT THAT HAS AN ID TO THE SAME VERTEX BUFFER
-	VertexBuffer vBuffer;
+	int vbIndex;
 };
 
 struct MaterialComponent

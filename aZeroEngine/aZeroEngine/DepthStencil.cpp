@@ -34,7 +34,7 @@ DepthStencil::DepthStencil(ID3D12Device* _device, HiddenDescriptorHeap* _heap, C
 		throw;
 
 	handle = _heap->GetNewSlot();
-	_device->CreateDepthStencilView(resource, nullptr, handle.cpuHandle);
+	_device->CreateDepthStencilView(resource, nullptr, handle.GetCPUHandle());
 
 	Transition(_cmdList->graphic, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }
@@ -73,7 +73,7 @@ void DepthStencil::ReInit(ID3D12Device* _device, CommandList* _cmdList, UINT _wi
 	if (FAILED(hr))
 		throw;
 
-	_device->CreateDepthStencilView(resource, nullptr, handle.cpuHandle);
+	_device->CreateDepthStencilView(resource, nullptr, handle.GetCPUHandle());
 
 	Transition(_cmdList->graphic, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }

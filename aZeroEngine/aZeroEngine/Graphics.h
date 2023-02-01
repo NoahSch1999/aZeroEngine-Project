@@ -7,7 +7,7 @@
 #include "DepthStencil.h"
 #include "PipelineState.h"
 
-// DEBUG
+// TESTING
 #include "ConstantBuffer.h"
 #include "VertexDefinitions.h"
 #include "Sampler.h"
@@ -19,6 +19,7 @@
 #include "ResourceManager.h"
 #include "MaterialManager.h"
 #include "Light.h"
+#include "Scene.h"
 
 #define FORWARD Vector3(0,0,1)
 #define VECRIGHT Vector3(1,0,0)
@@ -210,4 +211,7 @@ public:
 	LightManager* lManager;
 
 	int testIDMaterial = -1;
+
+	Scene* scene;
+	ECS* ecs;
 };

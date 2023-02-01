@@ -21,7 +21,7 @@ Sampler::Sampler(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _
 	desc.MaxLOD = _maxLod;
 
 	handle = _handle;
-	_device->CreateSampler(&desc, handle.cpuHandle);
+	_device->CreateSampler(&desc, handle.GetCPUHandle());
 }
 
 Sampler::Sampler(D3D12_FILTER _filter, int _shaderRegister, D3D12_SHADER_VISIBILITY _shaderVisibility, int _registerSpace, D3D12_TEXTURE_ADDRESS_MODE _addressModeU, D3D12_TEXTURE_ADDRESS_MODE _addressModeV, D3D12_TEXTURE_ADDRESS_MODE _addressModeW, D3D12_COMPARISON_FUNC _comparisonFunc, int _maxAnisotropy, Vector4 _borderColor, float _midLodBias, float _minLod, float _maxLod)

@@ -21,6 +21,7 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	scDesc.Width = _width;
 	scDesc.Height = _height;
 	scDesc.Stereo = false;
+	scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 	DEVMODEA devModeA;
 	devModeA.dmSize = sizeof(DEVMODE);
@@ -44,14 +45,14 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	for (int i = 0; i < _numBackBuffers; i++)
 	{
 		backBuffers[i] = new RenderTarget();
-		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->resource));
+		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->GetResource()));
 		if (FAILED(hr))
 			throw;
 
-		backBuffers[i]->handle = _heap->GetNewSlot();
-		_device->CreateRenderTargetView(backBuffers[i]->resource, NULL, backBuffers[i]->handle.cpuHandle);
+		backBuffers[i]->GetHandle() = _heap->GetNewSlot();
+		_device->CreateRenderTargetView(backBuffers[i]->GetResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
 		std::wstring name = L"Back Buffer " + i;
-		backBuffers[i]->resource->SetName(name.c_str());
+		backBuffers[i]->GetResource()->SetName(name.c_str());
 	}
 	rtvFormat = _rtvFormat;
 	dsvFormat = _dsvFormat;
@@ -72,7 +73,7 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	scissorRect.bottom = _height;
 
 	dsv = new DepthStencil(_device, _dsvHeap, _cmdList, _width, _height, dsvFormat);
-	dsv->resource->SetName(L"SwapChain DSV");
+	dsv->GetResource()->SetName(L"SwapChain DSV");
 }
 
 SwapChain::~SwapChain()
@@ -106,7 +107,7 @@ void SwapChain::OnResize(HWND _winHandle)
 
 	for (int i = 0; i < numBackBuffers; ++i)
 	{
-		backBuffers[i]->resource->Release();
+		backBuffers[i]->GetResource()->Release();
 	}
 
 	HRESULT hr = swapChain->ResizeBuffers(numBackBuffers, width, height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
@@ -115,9 +116,9 @@ void SwapChain::OnResize(HWND _winHandle)
 
 	for (int i = 0; i < numBackBuffers; ++i)
 	{
-		swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->resource));
-		device->CreateRenderTargetView(backBuffers[i]->resource, NULL, backBuffers[i]->handle.cpuHandle);
-		backBuffers[i]->state = D3D12_RESOURCE_STATE_COMMON;
+		swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->GetResource()));
+		device->CreateRenderTargetView(backBuffers[i]->GetResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
+		backBuffers[i]->SetState(D3D12_RESOURCE_STATE_COMMON);
 	}
 
 	// Resize depth stencil etc...

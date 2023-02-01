@@ -3,6 +3,8 @@
 #include "VertexDefinitions.h"
 #include "AppWindow.h"
 #include "VertexBuffer.h"
+#include <fstream>
+#include <type_traits>
 
 namespace Helper
 {
@@ -31,4 +33,41 @@ namespace Helper
 	void CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc);
 
 	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer*& _vBuffer);
+
+	template<typename T>
+	void WriteToFile(std::ofstream& _file, const T& _data);
+
+	template<typename T>
+	void ReadFromFile(std::ifstream& _file, T& _data);
+
+	template<typename T>
+	void WriteToFile(std::ofstream& _file, const T& _data)
+	{
+		if constexpr (std::is_same_v<T, std::string>)
+		{
+			int len = _data.length();
+			_file.write((char*)&len, sizeof(int));
+			_file.write(_data.c_str(), len);
+		}
+		else
+		{
+			static_assert(std::is_same_v<T, std::string>, "T is an invalid input.");
+		}
+	}
+
+	template<typename T>
+	void ReadFromFile(std::ifstream& _file, T& _data)
+	{
+		if constexpr (std::is_same_v<T, std::string>)
+		{
+			int len = -1;
+			_file.read((char*)&len, sizeof(int));
+			_data.resize(len);
+			_file.read(_data.data(), len);
+		}
+		else
+		{
+			static_assert(std::is_same_v<T, std::string>, "T is an invalid input.");
+		}
+	}
 }

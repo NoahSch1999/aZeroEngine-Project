@@ -55,7 +55,7 @@ float4 main(FragmentInput input) : SV_Target
 
         if (currentLight.range < length(lightDirection))
             continue;
-
+        
         normalize(lightDirection);
 
         float4 normal = normalize(float4(input.normal, 0.f));

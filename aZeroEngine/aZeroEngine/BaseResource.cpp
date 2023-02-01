@@ -7,7 +7,7 @@ BaseResource::BaseResource()
 
 BaseResource::~BaseResource()
 {
-	resource->Release();
+	//resource->Release();
 }
 
 void BaseResource::Transition(ID3D12GraphicsCommandList* _gCmdList, D3D12_RESOURCE_STATES _newState)

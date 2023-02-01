@@ -13,7 +13,7 @@
 class MaterialManager
 {
 private:
-	MappedVector<PhongMaterial*>phongMaterials; // Change from PhongMaterial* to PhongMaterial!!!!
+	MappedVector<PhongMaterial>phongMaterials; // Change from PhongMaterial* to PhongMaterial!!!!
 public:
 	MaterialManager() = default;
 
@@ -27,6 +27,9 @@ public:
 	*/
 	template<typename T>
 	void CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _materialName);
+
+	template<typename T>
+	void CreateMaterial(const T& _material);
 
 	/** Removes the material of the template specified type with the input name.
 	@param _materialName Name of the material to remove. Has to exist, otherwise there could be a potential crash
@@ -66,6 +69,11 @@ public:
 	*/
 	template<typename T>
 	void FreeReferenceID(int _ID);
+
+	bool Exists(const std::string& _name)
+	{
+		return phongMaterials.Exists(_name);
+	}
 };
 
 template<typename T>
@@ -73,7 +81,16 @@ inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList* 
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Add(_materialName, new PhongMaterial(_device, _cmdList, _textureCache));
+		phongMaterials.Add(_materialName, PhongMaterial(_device, _cmdList, _textureCache, _materialName));
+	}
+}
+
+template<typename T>
+inline void MaterialManager::CreateMaterial(const T& _material)
+{
+	if constexpr (std::is_same_v<T, PhongMaterial>)
+	{
+		phongMaterials.Add(_material.name, _material);
 	}
 }
 
@@ -82,8 +99,7 @@ inline void MaterialManager::RemoveMaterial(const std::string& _materialName, Re
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		_resourceManager->FreePassDescriptor(phongMaterials.Get(_materialName)->GetHandle().heapIndex);
-		delete phongMaterials.Get(_materialName);
+		_resourceManager->FreePassDescriptor(phongMaterials.Get(_materialName).GetHandle().heapIndex);
 		phongMaterials.Remove(_materialName);
 	}
 }
@@ -93,7 +109,7 @@ inline T* MaterialManager::GetMaterial(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		return phongMaterials.Get(_materialName);
+		return &phongMaterials.Get(_materialName);
 	}
 
 	return nullptr;
@@ -104,7 +120,7 @@ inline T* MaterialManager::GetMaterial(int _ID)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		return phongMaterials.Get(_ID);
+		return &phongMaterials.Get(_ID);
 	}
 
 	return nullptr;
@@ -115,7 +131,7 @@ inline int MaterialManager::GetReferenceID(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Get(_materialName)->referenceCount++;
+		phongMaterials.Get(_materialName).referenceCount++;
 		return phongMaterials.GetID(_materialName);
 	}
 
@@ -127,7 +143,7 @@ inline void MaterialManager::FreeReferenceID(int _ID)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		PhongMaterial* temp = phongMaterials.Get(_ID);
+		PhongMaterial* temp = &phongMaterials.Get(_ID);
 		if(temp->referenceCount > 0)
 			temp->referenceCount--;
 	}

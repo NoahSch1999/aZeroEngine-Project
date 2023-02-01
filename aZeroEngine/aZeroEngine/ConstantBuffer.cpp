@@ -45,12 +45,6 @@ void ConstantBuffer::InitAsDynamic(ID3D12Device* _device, CommandList* _cmdList,
 	sizePerSubresource = (_size + 255) & ~255; // size per buffer subresource
 	totalSize = sizePerSubresource;
 
-	//if (_trippleBuffering)
-	//{
-	//	totalSize *= 3;
-	//	isTrippleBuffered = true;
-	//}
-
 	D3D12_RESOURCE_DESC rDesc = {};
 	ZeroMemory(&rDesc, sizeof(rDesc));
 	rDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -74,39 +68,29 @@ void ConstantBuffer::InitAsDynamic(ID3D12Device* _device, CommandList* _cmdList,
 
 		Helper::CreateCommitedResourceStatic(_device, resource, rDesc, uploadBuffer, uDesc, _cmdList, _data, sizePerSubresource, sizePerSubresource);
 		uploadBuffer->Map(0, NULL, reinterpret_cast<void**>(&mappedBuffer));
+		//memcpy(mappedBuffer, _data, sizePerSubresource);
+		//memcpy((char*)mappedBuffer + sizePerSubresource, _data, sizePerSubresource);
+		//memcpy((char*)mappedBuffer + sizePerSubresource + sizePerSubresource, _data, sizePerSubresource);
 	}
 	else
 	{
 		Helper::CreateCommitedResourceDynamic(_device, resource, rDesc);
 		resource->Map(0, NULL, reinterpret_cast<void**>(&mappedBuffer));
-
+		//Update(_data, _size);
 	}
 
 
 	gpuAddress = resource->GetGPUVirtualAddress();
 	resource->SetName(_name.c_str());
-
-	
-
-	if (_trippleBuffering)
-	{
-		memcpy(mappedBuffer, _data, sizePerSubresource);
-		memcpy((char*)mappedBuffer + sizePerSubresource, _data, sizePerSubresource);
-		memcpy((char*)mappedBuffer + sizePerSubresource + sizePerSubresource, _data, sizePerSubresource);
-	}
-	else
-	{
-		Update(_data, _size);
-	}
-
 }
 
-void ConstantBuffer::InitAsCBV(ID3D12Device* _device)
+void ConstantBuffer::InitAsCBV(ID3D12Device* _device, const DescriptorHandle& _handle)
 {
+	handle = _handle;
 	D3D12_CONSTANT_BUFFER_VIEW_DESC view = {};
 	view.BufferLocation = resource->GetGPUVirtualAddress();
 	view.SizeInBytes = sizePerSubresource;
-	_device->CreateConstantBufferView(&view, handle.cpuHandle);
+	_device->CreateConstantBufferView(&view, handle.GetCPUHandle());
 }
 
 void ConstantBuffer::Update(const void* _data, int _size)
@@ -135,9 +119,4 @@ void ConstantBuffer::Update(CommandList* _cmdList, const void* _data, int _size,
 	D3D12_RESOURCE_BARRIER barrierTwo(CD3DX12_RESOURCE_BARRIER::Transition(uploadBuffer, uploadState, D3D12_RESOURCE_STATE_COMMON));
 	_cmdList->graphic->ResourceBarrier(1, &barrierTwo);
 	uploadState = D3D12_RESOURCE_STATE_COMMON;
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS ConstantBuffer::GetGPUAddress(int _frameIndex)
-{
-	return gpuAddress + sizePerSubresource * _frameIndex;
 }

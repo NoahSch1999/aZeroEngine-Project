@@ -11,7 +11,7 @@ PipelineState::~PipelineState()
 }
 
 // Only works for backbuffer as render target...
-void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, InputLayout* _inputLayout, RasterState* _rasterState, int _numRenderTargets, 
+void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, RasterState* _rasterState, int _numRenderTargets, 
 	DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat, const std::wstring& _vsPath, const std::wstring& _psPath, 
 	const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath,
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE _primitiveType)
@@ -42,11 +42,11 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, I
 	}
 
 
-	desc.InputLayout = { &_inputLayout->descs[0], 3 };
+	desc.InputLayout = { &_inputLayout.descs[0], 3 };
 	desc.pRootSignature = _rootSignature->signature;
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
 	desc.PS = { reinterpret_cast<BYTE*>(pShader->GetBufferPointer()), pShader->GetBufferSize() };
-	desc.RasterizerState = _rasterState->desc;
+	desc.RasterizerState = _rasterState->GetDesc();
 
 	//D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
 	//transparencyBlendDesc.BlendEnable = true;

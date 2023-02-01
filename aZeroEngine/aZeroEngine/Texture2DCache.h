@@ -7,7 +7,7 @@
 class Texture2DCache : public ResourceCache<Texture2D>
 {
 private:
-
+	std::unordered_map<int, std::string>indexToStr;
 public:
 	Texture2DCache();
 	~Texture2DCache();
@@ -37,5 +37,7 @@ public:
 	@return void
 	*/
 	virtual void RemoveResource(const std::string& _name) override;
+
+	const std::string GetTextureName(int _index) const { if (indexToStr.count(_index) > 0) { return indexToStr.at(_index); } }
 };
 

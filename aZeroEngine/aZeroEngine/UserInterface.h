@@ -45,7 +45,7 @@ public:
 		// Setup Platform/Renderer backends
 		ImGui_ImplWin32_Init(_wHandle);
 		heapHandle = _resourceManager->GetPassDescriptor();
-		ImGui_ImplDX12_Init(_device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, _resourceManager->GetResourceHeap(), heapHandle.cpuHandle, heapHandle.gpuHandle);
+		ImGui_ImplDX12_Init(_device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, _resourceManager->GetResourceHeap(), heapHandle.GetCPUHandle(), heapHandle.GetGPUHandle());
 
 		// Load Fonts
 		// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.

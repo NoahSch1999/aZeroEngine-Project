@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "HelperFunctions.h"
 #include <fstream>
 #include "..\Assimp\include\assimp\scene.h"
@@ -89,7 +90,7 @@ void Helper::CreateCommitedResourceStatic(ID3D12Device* _device, ID3D12Resource*
 	D3D12_HEAP_PROPERTIES heapProps = {};
 	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&_mainResource));
+	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&_mainResource));
 	if (FAILED(hr))
 		throw;
 

@@ -45,6 +45,8 @@ private:
 	StructuredBuffer lightsBuffer;
 	StructuredBuffer lightsIndicesBuffer;
 public:
+	// Add resize function
+
 	LightList(ID3D12Device* _device, CommandList* _cmdList, int _maxLights)
 	{
 		maxLights = _maxLights;
@@ -132,7 +134,7 @@ public:
 		sLightList(_device, _cmdList, _maxSpotLights)
 	{
 		numLightsCB.InitAsDynamic(_device, _cmdList, (void*)&numLights, sizeof(NumLights));
-		numLightsCB.resource->SetName(L"CB NUM LIGHTS");
+		numLightsCB.GetResource()->SetName(L"CB NUM LIGHTS");
 	}
 
 	template<typename T>

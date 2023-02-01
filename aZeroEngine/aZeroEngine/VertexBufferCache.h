@@ -11,11 +11,13 @@ public:
 	  VertexBufferCache() = default;
 	  ~VertexBufferCache();
 
-	  void LoadBuffer(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
+	  int LoadBuffer(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
 	  {
 		  VertexBuffer* temp = new VertexBuffer();
 		  Helper::LoadVertexDataFromFile(_device, _cmdList, "../meshes/" + _name, temp);
 		  vertexBuffers.Add(_name, temp);
+		  temp->SetFileName(_name);
+		  return vertexBuffers.GetID(_name);
 	  }
 
 	  void RemoveBuffer(const std::string& _name)
@@ -32,6 +34,11 @@ public:
 	  VertexBuffer* GetBuffer(const std::string& _name)
 	  {
 		  return vertexBuffers.Get(_name);
+	  }
+
+	  int GetBufferIndex(const std::string& _name)
+	  {
+		  return vertexBuffers.GetID(_name);
 	  }
 
 	  int GetReferenceID(const std::string& _name)
@@ -56,5 +63,12 @@ public:
 				  vertexBuffers.Remove(key);
 			  }
 		  }
+	  }
+
+	  bool Exists(const std::string& _name)
+	  {
+		  if (vertexBuffers.Exists(_name) > 0)
+			  return true;
+		  return false;
 	  }
 };

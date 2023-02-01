@@ -10,6 +10,7 @@ class ResourceCache
 protected:
 	/// \public
 	std::unordered_map<std::string, T*>resourceMap;
+
 public:
 	ResourceCache() = default;
 	/**Clears all the resources within the unordered map

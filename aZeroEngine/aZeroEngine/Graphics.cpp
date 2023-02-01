@@ -62,7 +62,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// num lights
 	bindlessSignature.Initialize(device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
-	pso.Init(device, &bindlessSignature, &layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
+	pso.Init(device, &bindlessSignature, layout, rasterState, swapChain->numBackBuffers, swapChain->rtvFormat, swapChain->dsvFormat,
 		L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
 		L"", L"", L"");
 
@@ -96,18 +96,41 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "defaultDiffuse.png");
 	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "goblintexture.png");
 
-	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "testMaterial");
+	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "defaultMaterial");
 	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
-	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("pylot.png")->handle.heapIndex;
-	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, 0);
-
-	testIDMaterial = materialManager.GetReferenceID<PhongMaterial>("otherMaterial");
-
-	testMeshID = vbCache->GetReferenceID("goblin");
+	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png")->GetHandle().GetHeapIndex();
+	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, frameIndex);
 
 	ui = new EditorUI(device, &resourceManager, _window->windowHandle);
 
 	lManager = new LightManager(device, &directCmdList, 1, 10, 1);
+
+	ecs = new ECS(100);
+	scene = new Scene(ecs, vbCache, &materialManager, textureCache);
+
+	/*for (int i = 0; i < 5; i++)
+	{
+		float xPos = i;
+		float zPos = 0;
+		if (i % 2 == 0)
+		{
+			xPos /= 2.f;
+			zPos = i;
+		}
+		Entity& tempEnt = scene->CreateEntity(device, &directCmdList);
+
+		Mesh mesh;
+		mesh.vbIndex = vbCache->GetReferenceID("goblin");
+		scene->AddComponentToEntity<Mesh>(tempEnt, mesh);
+
+		MaterialComponent mat;
+		mat.materialID = materialManager.GetReferenceID<PhongMaterial>("defaultMaterial");
+		scene->AddComponentToEntity<MaterialComponent>(tempEnt, mat);
+
+		ecs->GetComponentManager().GetComponent<Transform>(tempEnt)->cb.InitAsCBV(device, resourceManager.GetPassDescriptor());
+		Matrix x = Matrix::CreateTranslation(xPos, 0, zPos);
+		ecs->GetComponentManager().GetComponent<Transform>(tempEnt)->Update(&directCmdList, x, 0);
+	}*/
 
 	nextSignal = directCommandQueue->Execute(&directCmdList);
 	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
@@ -123,9 +146,9 @@ void Graphics::Begin()
 	directCmdList.graphic->RSSetScissorRects(1, &swapChain->scissorRect);
 	FLOAT x[4] = { 1,1,0,0 };
 	directCmdList.graphic->OMSetBlendFactor(x);
-	directCmdList.graphic->ClearRenderTargetView(currentBackBuffer->handle.cpuHandle, clearColor, 0, nullptr);
-	directCmdList.graphic->ClearDepthStencilView(swapChain->dsv->handle.cpuHandle, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
-	directCmdList.graphic->OMSetRenderTargets(1, &currentBackBuffer->handle.cpuHandle, true, &swapChain->dsv->handle.cpuHandle);
+	directCmdList.graphic->ClearRenderTargetView(currentBackBuffer->GetHandle().GetCPUHandle(), clearColor, 0, nullptr);
+	directCmdList.graphic->ClearDepthStencilView(swapChain->dsv->GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+	directCmdList.graphic->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapChain->dsv->GetHandle().GetCPUHandleRef());
 }
 
 void Graphics::Render(AppWindow* _window)
@@ -139,63 +162,39 @@ void Graphics::Render(AppWindow* _window)
 	//ui->Update();
 	//ui->Render(&directCmdList);
 
-	
-
-	directCmdList.graphic->SetPipelineState(pso.pipelineState);
+	directCmdList.graphic->SetPipelineState(pso.GetPipelineState());
 	directCmdList.graphic->SetGraphicsRootSignature(bindlessSignature.signature);
 	directCmdList.graphic->SetGraphicsRootDescriptorTable(0, resourceManager.GetTexture2DStartAddress());
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(3, camera->buffer->GetGPUAddress());
 	directCmdList.graphic->SetGraphicsRootShaderResourceView(5, lManager->pLightList.GetLightsBufferPtr()->GetGPUAddress());
 	directCmdList.graphic->SetGraphicsRootShaderResourceView(6, lManager->pLightList.GetLightsIndicesBufferPtr()->GetGPUAddress());
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(7, lManager->numLightsCB.GetGPUAddress());
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(1, materialManager.GetMaterial<PhongMaterial>(testIDMaterial)->GetGPUAddress());
 
-	directCmdList.graphic->SetGraphicsRootDescriptorTable(4, sampler->handle.gpuHandle);
-	Matrix x = Matrix::Identity;
-	static float temp = 0.f;
-	x = Matrix::CreateRotationX(temp);
-	static float pos = 0.f;
-	//x *= Matrix::CreateTranslation(0, 0, pos);
-	//testWorld.Update((void*)&x, sizeof(Matrix), frameIndex);
-	temp += 0.0001f;
-	static bool dir = false;
-
-	if (dir)
-	{
-		if (pos > 1)
-		{
-			dir = false;
-		}
-		pos += 0.0001f;
-	}
-	else
-	{
-		if (pos < -1)
-		{
-			dir = true;
-		}
-		pos -= 0.0001f;
-	}
-
-
-
-
-	//std::cout << pos << std::endl;
+	directCmdList.graphic->SetGraphicsRootDescriptorTable(4, sampler->GetHandle().GetGPUHandle());
 
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld.GetGPUAddress());
 
 	// draw
-	//directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(testMeshID)->GetView());
-	//directCmdList.graphic->IASetIndexBuffer(&vbCache->GetBuffer(testMeshID)->GetIndexBuffer()->GetView());
-	//directCmdList.graphic->DrawIndexedInstanced(vbCache->GetBuffer(testMeshID)->GetIndexBuffer()->numIndices, 1, 0, 0, 0);
-	directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(testMeshID)->GetNumVertices(), 1, 0, 0);
-	//
 
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld2.GetGPUAddress());
-	directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer("sphere")->GetView());
-	directCmdList.graphic->DrawInstanced(vbCache->GetBuffer("sphere")->GetNumVertices(), 1, 0, 0);
+	ComponentManager& cManager = ecs->GetComponentManager();
+	for (auto& [key, val] : scene->entities)
+	{
+		//cManager.GetComponent<Transform>(val)->worldMatrix *= Matrix::CreateRotationY(0.01f);
+		//ecs->GetComponentManager().GetComponent<Transform>(val)->Update(&directCmdList, frameIndex);
+		directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(cManager.GetComponent<Mesh>(val)->vbIndex)->GetView());
+		directCmdList.graphic->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(val)->cb.GetGPUAddress());
+		directCmdList.graphic->SetGraphicsRootConstantBufferView(1, materialManager.GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(val)->materialID)->GetGPUAddress());
+		directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(cManager.GetComponent<Mesh>(val)->vbIndex)->GetNumVertices(), 1, 0, 0);
+	}
+
+	//directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(testMeshID)->GetView());
+	//directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(testMeshID)->GetNumVertices(), 1, 0, 0);
+	////
+
+	//directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld2.GetGPUAddress());
+	//directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer("sphere")->GetView());
+	//directCmdList.graphic->DrawInstanced(vbCache->GetBuffer("sphere")->GetNumVertices(), 1, 0, 0);
 
 	ui->Update();
 	ui->Render(&directCmdList);
@@ -207,7 +206,7 @@ void Graphics::Present()
 	nextSyncSignal = directCommandQueue->Execute(&directCmdList);
 
 	// might enqueue work on gpu...
-	swapChain->swapChain->Present(0, 0);
+	swapChain->swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 	
 	if (frameCount % 3 == 0)
 	{

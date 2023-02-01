@@ -3,6 +3,10 @@
 
 class RootParameters
 {
+private:
+	std::vector<D3D12_ROOT_PARAMETER>parameters;
+	D3D12_DESCRIPTOR_RANGE ranges[100];
+	int num = 0;
 public:
 	RootParameters() = default;
 
@@ -10,9 +14,8 @@ public:
 
 	}
 
-	std::vector<D3D12_ROOT_PARAMETER>parameters;
-	D3D12_DESCRIPTOR_RANGE ranges[100];
-	int num = 0;
+	D3D12_ROOT_PARAMETER* GetParameterData() { return parameters.data(); }
+	int GetParameterNum() { return parameters.size(); }
 
 	void AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE _rangeType, UINT _baseShaderRegister, UINT _numDescriptors = 1, D3D12_SHADER_VISIBILITY _shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT _offsetFromStart = 0, UINT _registerSpace = 0)
 	{

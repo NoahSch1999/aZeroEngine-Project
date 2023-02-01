@@ -9,5 +9,5 @@ RenderTarget::RenderTarget(ID3D12Device* _device, HiddenDescriptorHeap* _heap, U
 	desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	desc.Buffer = { 0, _width * _height };
 	desc.Texture2D = { 0, 0 };
-	_device->CreateRenderTargetView(resource, &desc, handle.cpuHandle);
+	_device->CreateRenderTargetView(resource, &desc, handle.GetCPUHandle());
 }
