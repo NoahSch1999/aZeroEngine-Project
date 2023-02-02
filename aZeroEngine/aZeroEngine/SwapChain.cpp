@@ -85,45 +85,45 @@ SwapChain::~SwapChain()
 
 void SwapChain::OnResize(HWND _winHandle)
 {
-	queue->queue->Signal(queue->fence, queue->nextFenceValue);
-	queue->Flush(queue->nextFenceValue);
-	queue->nextFenceValue++;
+	//queue->queue->Signal(queue->fence, queue->nextFenceValue);
+	//queue->Flush(queue->nextFenceValue);
+	//queue->nextFenceValue++;
 
-	UINT width, height;
-	Helper::GetWindowDimensions(&width, &height); // doesnt set the appwindow variables...
-	viewport.Width = (FLOAT)width;
-	viewport.Height = (FLOAT)height;
-	scissorRect.right = width;
-	scissorRect.bottom = height;
+	//UINT width, height;
+	//Helper::GetWindowDimensions(&width, &height); // doesnt set the appwindow variables...
+	//viewport.Width = (FLOAT)width;
+	//viewport.Height = (FLOAT)height;
+	//scissorRect.right = width;
+	//scissorRect.bottom = height;
 
-	DXGI_MODE_DESC desc = {};
-	ZeroMemory(&desc, sizeof(desc));
-	desc.Width = width;
-	desc.Height = height;
-	desc.RefreshRate.Numerator = refreshRate;
-	desc.RefreshRate.Denominator = 1;
-	desc.Format = rtvFormat;
-	desc.Scaling = DXGI_MODE_SCALING_STRETCHED;
+	//DXGI_MODE_DESC desc = {};
+	//ZeroMemory(&desc, sizeof(desc));
+	//desc.Width = width;
+	//desc.Height = height;
+	//desc.RefreshRate.Numerator = refreshRate;
+	//desc.RefreshRate.Denominator = 1;
+	//desc.Format = rtvFormat;
+	//desc.Scaling = DXGI_MODE_SCALING_STRETCHED;
 
-	for (int i = 0; i < numBackBuffers; ++i)
-	{
-		backBuffers[i]->GetResource()->Release();
-	}
+	//for (int i = 0; i < numBackBuffers; ++i)
+	//{
+	//	backBuffers[i]->GetResource()->Release();
+	//}
 
-	HRESULT hr = swapChain->ResizeBuffers(numBackBuffers, width, height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
-	if (FAILED(hr))
-		throw;
+	//HRESULT hr = swapChain->ResizeBuffers(numBackBuffers, width, height, rtvFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+	//if (FAILED(hr))
+	//	throw;
 
-	for (int i = 0; i < numBackBuffers; ++i)
-	{
-		swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->GetResource()));
-		device->CreateRenderTargetView(backBuffers[i]->GetResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
-		backBuffers[i]->SetState(D3D12_RESOURCE_STATE_COMMON);
-	}
+	//for (int i = 0; i < numBackBuffers; ++i)
+	//{
+	//	swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->GetResource()));
+	//	device->CreateRenderTargetView(backBuffers[i]->GetResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
+	//	backBuffers[i]->SetState(D3D12_RESOURCE_STATE_COMMON);
+	//}
 
-	// Resize depth stencil etc...
-	//dsv->ReInit(device, cmdList, width, height, dsvFormat);
+	//// Resize depth stencil etc...
+	////dsv->ReInit(device, cmdList, width, height, dsvFormat);
 
-	int next = queue->Execute(cmdList);
-	queue->Flush(next);
+	//int next = queue->Execute(cmdList);
+	//queue->Flush(next);
 }

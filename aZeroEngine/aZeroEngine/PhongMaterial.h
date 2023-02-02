@@ -15,10 +15,10 @@ class PhongMaterial : public Material<PhongMaterialInformation>
 public:
 	PhongMaterial() = default;
 
-	PhongMaterial(ID3D12Device* _device, CommandList* _cmdList, const std::string& _fileDirectory, const std::string& _name, Texture2DCache* _textureCache)
+	PhongMaterial(ID3D12Device* _device, ResourceManager* _rManager, CommandList* _cmdList, const std::string& _fileDirectory, const std::string& _name, Texture2DCache* _textureCache)
 		:Material()
 	{
-		Load(_device, _cmdList, _fileDirectory, _name, _textureCache);
+		Load(_device, _cmdList, _rManager, _fileDirectory, _name, _textureCache);
 	}
 
 	PhongMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string& _name)
@@ -31,7 +31,7 @@ public:
 	~PhongMaterial() = default;
 
 	// Inherited via Material
-	virtual void Save(const std::string& _fileDirectory, const std::string& _name, const Texture2DCache* _textureCache) override
+	virtual void Save(const std::string& _fileDirectory, const std::string& _name, const Texture2DCache* _textureCache, bool _debugASCII = false) override
 	{
 		std::string textureName = _textureCache->GetTextureName(info.diffuseTextureID);
 		int numBytes = sizeof(int) + textureName.length() + sizeof(Vector3) + sizeof(Vector3) + sizeof(float);
@@ -44,9 +44,20 @@ public:
 		file.write((char*)&info.specularShine, sizeof(float));
 
 		file.close();
+
+		if (_debugASCII)
+		{
+			std::ofstream file(_fileDirectory + "/" + _name + "_ASCII.txt", std::ios::trunc | std::ios::out);
+			file << "Type: Phong\n";
+			file << "Diffuse Texture Name: " << textureName << "\n";
+			file << "Ambient Absorbation: [" << info.ambientAbsorbation.x << ":" << info.ambientAbsorbation.y << ":" << info.ambientAbsorbation.z << "]\n";
+			file << "Specular Absorbation: [" << info.specularAbsorbation.x << ":" << info.specularAbsorbation.y << ":" << info.specularAbsorbation.z << "]\n";
+			file << "Specular Shininess Exponent: " << info.specularShine << "\n";
+			file.close();
+		}
 	}
 
-	virtual void Load(ID3D12Device* _device, CommandList* _cmdList, const std::string& _fileDirectory, const std::string& _name, Texture2DCache* _textureCache) override
+	virtual void Load(ID3D12Device* _device, CommandList* _cmdList, ResourceManager* _rManager, const std::string& _fileDirectory, const std::string& _name, Texture2DCache* _textureCache) override
 	{
 		std::ifstream file(_fileDirectory + "/" + _name + ".azm", std::ios::in | std::ios::binary);
 
@@ -61,12 +72,12 @@ public:
 
 		if (_textureCache->Exists(_name))
 		{
-			info.diffuseTextureID = _textureCache->GetResource(_name)->GetHandle().GetHeapIndex();
+			info.diffuseTextureID = _textureCache->GetResource(textureName)->GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 		else
 		{
-			_textureCache->LoadResource(_device, _cmdList, _name);
-			info.diffuseTextureID = _textureCache->GetResource(_name)->GetHandle().GetHeapIndex();
+			_textureCache->LoadResource(_device, _rManager->GetTexture2DDescriptor(), _cmdList, textureName); // _name -> textureName
+			info.diffuseTextureID = _textureCache->GetResource(textureName)->GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 
 		buffer.InitAsDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), true);

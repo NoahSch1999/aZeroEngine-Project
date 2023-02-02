@@ -1,7 +1,7 @@
 #pragma once
 #include "Texture2DCache.h"
 #include "ConstantBuffer.h"
-
+#include "ResourceManager.h"
 
 template<typename T>
 class Material
@@ -25,6 +25,7 @@ public:
 	int referenceCount = 0;
 	std::string name;
 
-	virtual void Save(const std::string& _fileDirectory, const std::string& _name, const Texture2DCache* _textureCache) = 0;
-	virtual void Load(ID3D12Device* _device, CommandList* _cmdList, const std::string& _fileDirectory, const std::string& _name, Texture2DCache* _textureCache) = 0;
+	virtual void Save(const std::string& _fileDirectory, const std::string& _name, const Texture2DCache* _textureCache, bool _debugASCII = false) = 0;
+	// Nytt med rmanager inp
+	virtual void Load(ID3D12Device* _device, CommandList* _cmdList, ResourceManager* _rManager, const std::string& _fileDirectory, const std::string& _name, Texture2DCache* _textureCache) = 0;
 };

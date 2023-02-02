@@ -212,6 +212,6 @@ public:
 
 	int testIDMaterial = -1;
 
-	Scene* scene;
+	Scene* scene = nullptr;
 	ECS* ecs;
 };

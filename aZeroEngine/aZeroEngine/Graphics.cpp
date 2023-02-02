@@ -84,53 +84,64 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	swapChain->cmdList = &directCmdList;
 
 	vbCache = new VertexBufferCache();
-	vbCache->LoadBuffer(device, &directCmdList, "cube");
-	vbCache->LoadBuffer(device, &directCmdList, "sphere");
-	vbCache->LoadBuffer(device, &directCmdList, "goblin");
-	//vbCache->LoadBuffer(device, &directCmdList, "Wa");
-
 	textureCache = new Texture2DCache();
-	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "pylot.png");
-	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "sadcat.png");
-	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "brickAlbedo.png");
-	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "defaultDiffuse.png");
-	textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "goblintexture.png");
 
-	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "defaultMaterial");
-	materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
-	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png")->GetHandle().GetHeapIndex();
-	materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, frameIndex);
+	bool debug = true;
 
-	ui = new EditorUI(device, &resourceManager, _window->windowHandle);
-
-	lManager = new LightManager(device, &directCmdList, 1, 10, 1);
-
-	ecs = new ECS(100);
-	scene = new Scene(ecs, vbCache, &materialManager, textureCache);
-
-	/*for (int i = 0; i < 5; i++)
+	if (debug)
 	{
-		float xPos = i;
-		float zPos = 0;
-		if (i % 2 == 0)
+		vbCache->LoadBuffer(device, &directCmdList, "goblin");
+
+		textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "defaultDiffuse.png");
+		textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "goblintexture.png");
+
+		materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "defaultMaterial");
+		materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
+		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png")->GetHandle().GetHeapIndex();
+		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, frameIndex);
+
+		ui = new EditorUI(device, &resourceManager, _window->windowHandle);
+
+		lManager = new LightManager(device, &directCmdList, 1, 10, 1);
+
+		ecs = new ECS(100);
+		scene = new Scene(ecs, vbCache, &materialManager, &resourceManager, textureCache); // Nytt med rManager inp
+
+		for (int i = 0; i < 5; i++)
 		{
-			xPos /= 2.f;
-			zPos = i;
+			float xPos = i;
+			float zPos = 0;
+			if (i % 2 == 0)
+			{
+				xPos /= 2.f;
+				zPos = i;
+			}
+			Entity& tempEnt = scene->CreateEntity(device, &directCmdList);
+
+			Mesh mesh;
+			mesh.vbIndex = vbCache->GetReferenceID("goblin");
+			scene->AddComponentToEntity<Mesh>(tempEnt, mesh);
+
+			MaterialComponent mat;
+			mat.materialID = materialManager.GetReferenceID<PhongMaterial>("defaultMaterial");
+			scene->AddComponentToEntity<MaterialComponent>(tempEnt, mat);
+
+			ecs->GetComponentManager().GetComponent<Transform>(tempEnt)->cb.InitAsCBV(device, resourceManager.GetPassDescriptor());
+			Matrix x = Matrix::CreateTranslation(xPos, 0, zPos);
+			ecs->GetComponentManager().GetComponent<Transform>(tempEnt)->Update(&directCmdList, x, 0);
 		}
-		Entity& tempEnt = scene->CreateEntity(device, &directCmdList);
+	}
+	else
+	{
+		ui = new EditorUI(device, &resourceManager, _window->windowHandle);
 
-		Mesh mesh;
-		mesh.vbIndex = vbCache->GetReferenceID("goblin");
-		scene->AddComponentToEntity<Mesh>(tempEnt, mesh);
+		lManager = new LightManager(device, &directCmdList, 1, 10, 1);
 
-		MaterialComponent mat;
-		mat.materialID = materialManager.GetReferenceID<PhongMaterial>("defaultMaterial");
-		scene->AddComponentToEntity<MaterialComponent>(tempEnt, mat);
+		ecs = new ECS(100);
+		scene = new Scene(ecs, vbCache, &materialManager, &resourceManager, textureCache);
 
-		ecs->GetComponentManager().GetComponent<Transform>(tempEnt)->cb.InitAsCBV(device, resourceManager.GetPassDescriptor());
-		Matrix x = Matrix::CreateTranslation(xPos, 0, zPos);
-		ecs->GetComponentManager().GetComponent<Transform>(tempEnt)->Update(&directCmdList, x, 0);
-	}*/
+		//scene->Load(device, &directCmdList, frameIndex, "C:/Users/Noah Schierenbeck/Desktop/Test", "Level1");
+	}
 
 	nextSignal = directCommandQueue->Execute(&directCmdList);
 	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
@@ -153,15 +164,8 @@ void Graphics::Begin()
 
 void Graphics::Render(AppWindow* _window)
 {
-	// Per frame
 	ID3D12DescriptorHeap* heap[] = { resourceManager.GetResourceHeap(), resourceManager.GetSamplerHeap() };
 	directCmdList.graphic->SetDescriptorHeaps(2, heap);
-	
-	// Why does this result in the scene being rendered to the rtv of the imgui?
-	//ui->BeginFrame();
-	//ui->Update();
-	//ui->Render(&directCmdList);
-
 	directCmdList.graphic->SetPipelineState(pso.GetPipelineState());
 	directCmdList.graphic->SetGraphicsRootSignature(bindlessSignature.signature);
 	directCmdList.graphic->SetGraphicsRootDescriptorTable(0, resourceManager.GetTexture2DStartAddress());
@@ -169,32 +173,17 @@ void Graphics::Render(AppWindow* _window)
 	directCmdList.graphic->SetGraphicsRootShaderResourceView(5, lManager->pLightList.GetLightsBufferPtr()->GetGPUAddress());
 	directCmdList.graphic->SetGraphicsRootShaderResourceView(6, lManager->pLightList.GetLightsIndicesBufferPtr()->GetGPUAddress());
 	directCmdList.graphic->SetGraphicsRootConstantBufferView(7, lManager->numLightsCB.GetGPUAddress());
-
 	directCmdList.graphic->SetGraphicsRootDescriptorTable(4, sampler->GetHandle().GetGPUHandle());
-
-	directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld.GetGPUAddress());
-
-	// draw
 	directCmdList.graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	ComponentManager& cManager = ecs->GetComponentManager();
-	for (auto& [key, val] : scene->entities)
+	for (const Entity& ent : scene->entities.GetObjects())
 	{
-		//cManager.GetComponent<Transform>(val)->worldMatrix *= Matrix::CreateRotationY(0.01f);
-		//ecs->GetComponentManager().GetComponent<Transform>(val)->Update(&directCmdList, frameIndex);
-		directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(cManager.GetComponent<Mesh>(val)->vbIndex)->GetView());
-		directCmdList.graphic->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(val)->cb.GetGPUAddress());
-		directCmdList.graphic->SetGraphicsRootConstantBufferView(1, materialManager.GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(val)->materialID)->GetGPUAddress());
-		directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(cManager.GetComponent<Mesh>(val)->vbIndex)->GetNumVertices(), 1, 0, 0);
+		directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetView());
+		directCmdList.graphic->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(ent)->cb.GetGPUAddress());
+		directCmdList.graphic->SetGraphicsRootConstantBufferView(1, materialManager.GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(ent)->materialID)->GetGPUAddress());
+		directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetNumVertices(), 1, 0, 0);
 	}
-
-	//directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(testMeshID)->GetView());
-	//directCmdList.graphic->DrawInstanced(vbCache->GetBuffer(testMeshID)->GetNumVertices(), 1, 0, 0);
-	////
-
-	//directCmdList.graphic->SetGraphicsRootConstantBufferView(2, testWorld2.GetGPUAddress());
-	//directCmdList.graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer("sphere")->GetView());
-	//directCmdList.graphic->DrawInstanced(vbCache->GetBuffer("sphere")->GetNumVertices(), 1, 0, 0);
 
 	ui->Update();
 	ui->Render(&directCmdList);

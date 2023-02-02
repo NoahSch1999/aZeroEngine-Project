@@ -59,6 +59,11 @@ public:
 			return true;
 		return false;
 	}
+
+	/** Returns a reference to the internal vector containing the actual objects.
+	@return std::vector<T>&
+	*/
+	std::vector<T>& GetObjects();
 };
 
 template<typename T>
@@ -110,4 +115,10 @@ template<typename T>
 inline T& MappedVector<T>::Get(int _ID)
 {
 	return objects[_ID];
+}
+
+template<typename T>
+inline std::vector<T>& MappedVector<T>::GetObjects()
+{
+	return objects;
 }

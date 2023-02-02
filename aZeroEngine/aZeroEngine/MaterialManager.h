@@ -29,6 +29,9 @@ public:
 	void CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _materialName);
 
 	template<typename T>
+	void CreateMaterial(ID3D12Device* _device, ResourceManager* _rManager, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _fileDirectory, const std::string _materialName);
+
+	template<typename T>
 	void CreateMaterial(const T& _material);
 
 	/** Removes the material of the template specified type with the input name.
@@ -82,6 +85,15 @@ inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList* 
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
 		phongMaterials.Add(_materialName, PhongMaterial(_device, _cmdList, _textureCache, _materialName));
+	}
+}
+
+template<typename T>
+inline void MaterialManager::CreateMaterial(ID3D12Device* _device, ResourceManager* _rManager, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _fileDirectory, const std::string _materialName)
+{
+	if constexpr (std::is_same_v<T, PhongMaterial>)
+	{
+		phongMaterials.Add(_materialName, PhongMaterial(_device, _rManager, _cmdList, _fileDirectory, _materialName, _textureCache));
 	}
 }
 

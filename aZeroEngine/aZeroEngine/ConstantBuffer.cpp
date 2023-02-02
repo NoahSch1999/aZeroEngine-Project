@@ -8,8 +8,8 @@ ConstantBuffer::ConstantBuffer()
 
 ConstantBuffer::~ConstantBuffer()
 {
-	if (isStatic)
-		uploadBuffer->Release();
+	/*if (isStatic)
+		uploadBuffer->Release();*/
 }
 
 void ConstantBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _size, const std::wstring& _name)

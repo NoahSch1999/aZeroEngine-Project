@@ -39,19 +39,10 @@ private:
 
 	Texture2DCache* textureCache;
 
-	void InitMainVariables(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager)
-	{
-		ecs = _ecs;
-		vbCache = _vbCache;
-		mManager = _mManager;
-		eManager = &ecs->GetEntityManager();
-		cManager = &ecs->GetComponentManager();
-	}
+	ResourceManager* rManager;
 
 public:
-
-	// Have these in a mapped vector instead to enable more efficient iteration
-	std::unordered_map<std::string, Entity>entities;
+	MappedVector<Entity>entities;
 
 	Scene() = default;
 
@@ -59,101 +50,93 @@ public:
 	@param _ecs Pointer to the ECS instance that should be used within its member functions
 	@param _vbCache Pointer to the VertexBufferCache instance that should be used within its member functions
 	*/
-	Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, Texture2DCache* _textureCache)
+	Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, ResourceManager* _rManager, Texture2DCache* _textureCache)
 	{
-		InitMainVariables(_ecs, _vbCache, _mManager);
+		ecs = _ecs;
+		vbCache = _vbCache;
+		mManager = _mManager;
+		eManager = &ecs->GetEntityManager();
+		cManager = &ecs->GetComponentManager();
+		rManager = _rManager;
 		textureCache = _textureCache;
-
 	}
-
-	//Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, const std::string& _scenePath)
-	//{
-	//	InitMainVariables(_ecs, _vbCache, _mManager);
-
-	//	// Load scene from file...
-
-	//}
 
 	/**Removes all the Entity objects within Scene::entities using ECS::ObliterateEntity()
 	*/
 	~Scene()
 	{
-		for (auto& [str, entity] : entities)
+		std::vector<Entity>& ents = entities.GetObjects();
+		for (Entity& ent : ents)
 		{
 			// Free vb ref id?
 
-			ecs->ObliterateEntity(entity);
+			ecs->ObliterateEntity(ent);
 		}
-
-		entities.clear();
-		//entToStr.clear();
 	}
 
-	void Save(const std::string& _fileDirectory, const std::string& _fileName, bool _binary = true)
+	void Save(const std::string& _fileDirectory, const std::string& _fileName, bool _debugASCII = false)
 	{
-		// Save scene to file...
+		std::vector<Entity>& ents = entities.GetObjects();
 
-		if (_binary)
+		std::ofstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios_base::trunc | std::ios::out | std::ios::binary);
+
+		bool yes = true;
+		bool no = false;
+
+
+		int size = (int)ents.size();
+		file.write((char*)&size, sizeof(int));
+		for (const auto [name, id] : entities.GetStringToIndexMap())
 		{
-			std::ofstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios_base::trunc | std::ios::out | std::ios::binary);
+			const Entity entity = entities.Get(id);
 
-			bool yes = true;
-			bool no = false;
+			Helper::WriteToFile(file, name);
 
-			int size = (int)entities.size();
-			file.write((char*)&size, sizeof(int));
-			for (auto& [str, entity] : entities)
+			Matrix tf = cManager->GetComponent<Transform>(entity)->worldMatrix;
+			file.write((char*)&tf, sizeof(Matrix));
+
+			Mesh* mesh = cManager->GetComponent<Mesh>(entity);
+			if (mesh != nullptr)
 			{
-				Helper::WriteToFile(file, str);
+				file.write((char*)&yes, sizeof(bool));
+				std::string fileName = vbCache->GetBuffer(mesh->vbIndex)->GetFileName();
+				Helper::WriteToFile(file, fileName);
+			}
+			else
+			{
+				file.write((char*)&no, sizeof(bool));
+			}
 
-				Matrix tf = cManager->GetComponent<Transform>(entity)->worldMatrix;
-				file.write((char*)&tf, sizeof(Matrix));
+			MaterialComponent* matComp = cManager->GetComponent<MaterialComponent>(entity);
+			if (matComp != nullptr)
+			{
+				file.write((char*)&yes, sizeof(bool));
 
-				Mesh* mesh = cManager->GetComponent<Mesh>(entity);
-				if (mesh != nullptr)
-				{
-					file.write((char*)&yes, sizeof(bool));
-					std::string fileName = vbCache->GetBuffer(mesh->vbIndex)->GetFileName();
-					Helper::WriteToFile(file, fileName);
-				}
-				else
-				{
-					file.write((char*)&no, sizeof(bool));
-				}
+				// Handle for different type of materials by writing material enum type
 
-				MaterialComponent* matComp = cManager->GetComponent<MaterialComponent>(entity);
-				if (matComp != nullptr)
-				{
-					file.write((char*)&yes, sizeof(bool));
+				// Avoid copy of material to be written
 
-					// Handle for different type of materials
+				PhongMaterial* phong = mManager->GetMaterial<PhongMaterial>(matComp->materialID);
+				Helper::WriteToFile(file, phong->name);
 
-					PhongMaterial* phong = mManager->GetMaterial<PhongMaterial>(matComp->materialID);
-					Helper::WriteToFile(file, phong->name);
-
-					phong->Save(_fileDirectory, phong->name, textureCache);
-					/*Helper::WriteToFile(file, phong->name);
-
-					PhongMaterialInformation* info = phong->GetInfoPtr();
-					std::string fileName = textureCache->GetTextureName(info->diffuseTextureID);
-					Helper::WriteToFile(file, fileName);
-					file.write((char*)&info->ambientAbsorbation, sizeof(PhongMaterialInformation) - sizeof(int));*/
-				}
-				else
-				{
-					file.write((char*)&no, sizeof(bool));
-				}
+				phong->Save(_fileDirectory, phong->name, textureCache, _debugASCII);
+			}
+			else
+			{
+				file.write((char*)&no, sizeof(bool));
 			}
 		}
-		else
+
+		if(_debugASCII)
 		{
-			std::ofstream file(_fileDirectory + "/" + _fileName + ".txt", std::ios_base::trunc);
+			std::ofstream file(_fileDirectory + "/" + _fileName + "_ASCII.txt", std::ios_base::trunc);
 
-
-			for (auto& [str, entity] : entities)
+			for (const auto [name, id] : entities.GetStringToIndexMap())
 			{
+				const Entity entity = entities.Get(id);
+
 				file << "--------------------------------------------------------------------\n";
-				file << "Entity Name: " + str << std::endl;
+				file << "Entity Name: " + name << std::endl;
 				file << "|---------Transform Data--------|\n";
 				Transform* tf = cManager->GetComponent<Transform>(entity);
 				file << tf->worldMatrix._11 << " ";
@@ -184,13 +167,14 @@ public:
 				if (material != nullptr)
 				{
 					// Check material type and act accordingly. Store file names for textures which are then loaded (or not) using the texture2dcache
-					file << "\n|---------Material Data---------|\n";
 					PhongMaterial* phongMat = mManager->GetMaterial<PhongMaterial>(material->materialID);
-					PhongMaterialInformation* info = phongMat->GetInfoPtr();
-					file << "Diffuse Texture Filename: " << textureCache->GetTextureName(info->diffuseTextureID) << "\n";
+					//PhongMaterialInformation* info = phongMat->GetInfoPtr();
+					file << "\n|---------Material Data-------------|\n";
+					file << "Material Name: " << phongMat->name << "\n";
+					/*file << "Diffuse Texture Filename: " << textureCache->GetTextureName(info->diffuseTextureID) << "\n";
 					file << "Ambient RGB: [" << info->ambientAbsorbation.x << ":" << info->ambientAbsorbation.y << ":" << info->ambientAbsorbation.z << "]\n";
 					file << "Specular RGB: [" << info->specularAbsorbation.x << ":" << info->specularAbsorbation.y << ":" << info->specularAbsorbation.z << "]\n";
-					file << "Specular Exponent: " << info->specularShine << "\n";
+					file << "Specular Exponent: " << info->specularShine << "\n";*/
 				}
 
 			}
@@ -199,143 +183,93 @@ public:
 		}
 	}
 
-	void Load(ID3D12Device* _device, CommandList* _cmdList, int _frameIndex, const std::string& _fileDirectory, const std::string& _fileName, bool _binary = true)
+	void Load(ID3D12Device* _device, CommandList* _cmdList, int _frameIndex, const std::string& _fileDirectory, const std::string& _fileName)
 	{
-		if (_binary)
+		std::ifstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios::in | std::ios::binary);
+		int numEntities = -1;
+		file.read((char*)&numEntities, sizeof(int));
+		std::cout << "Num entities: " << numEntities << std::endl;
+
+		for (int i = 0; i < numEntities; i++)
 		{
-			std::ifstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios::in | std::ios::binary);
-			int numEntities = -1;
-			file.read((char*)&numEntities, sizeof(int));
-			std::cout << "Num entities: " << numEntities << std::endl;
+			std::cout << "|---------------------------------New entity---------------------------------|\n";
 
-			for (int i = 0; i < numEntities; i++)
+			std::string entityName;
+			Helper::ReadFromFile(file, entityName);
+			std::cout << "Entity Name: " << entityName << std::endl;
+
+			// Create entity with name
+			Entity& tempEnt = CreateEntity(_device, _cmdList, entityName);
+
+			Matrix mat;
+			file.read((char*)&mat, sizeof(Matrix));
+			std::cout << "Matrix: \n";
+			std::cout << mat._11 << " ";
+			std::cout << mat._12 << " ";
+			std::cout << mat._13 << " ";
+			std::cout << mat._14 << "\n";
+			std::cout << mat._21 << " ";
+			std::cout << mat._22 << " ";
+			std::cout << mat._23 << " ";
+			std::cout << mat._24 << "\n";
+			std::cout << mat._31 << " ";
+			std::cout << mat._32 << " ";
+			std::cout << mat._33 << " ";
+			std::cout << mat._34 << "\n";
+			std::cout << mat._41 << " ";
+			std::cout << mat._42 << " ";
+			std::cout << mat._43 << " ";
+			std::cout << mat._44 << "\n";
+
+			// Create transform component
+			GetComponentForEntity<Transform>(tempEnt)->Update(_cmdList, mat, _frameIndex);
+
+			bool tempCheck = false;
+			file.read((char*)&tempCheck, sizeof(bool));
+			if (tempCheck)
 			{
-				std::cout << "|---------------------------------New entity---------------------------------|\n";
+				std::string name;
+				Helper::ReadFromFile(file, name);
+				std::cout << "Mesh Name: " << name << std::endl;
 
-				std::string entityName;
-				Helper::ReadFromFile(file, entityName);
-				std::cout << "Entity Name: " << entityName << std::endl;
+				Mesh tempMesh;
 
-				// Create entity with name
-				Entity& tempEnt = CreateEntity(_device, _cmdList, entityName);
-
-				Matrix mat;
-				file.read((char*)&mat, sizeof(Matrix));
-				std::cout << "Matrix: \n";
-				std::cout << mat._11 << " ";
-				std::cout << mat._12 << " ";
-				std::cout << mat._13 << " ";
-				std::cout << mat._14 << "\n";
-				std::cout << mat._21 << " ";
-				std::cout << mat._22 << " ";
-				std::cout << mat._23 << " ";
-				std::cout << mat._24 << "\n";
-				std::cout << mat._31 << " ";
-				std::cout << mat._32 << " ";
-				std::cout << mat._33 << " ";
-				std::cout << mat._34 << "\n";
-				std::cout << mat._41 << " ";
-				std::cout << mat._42 << " ";
-				std::cout << mat._43 << " ";
-				std::cout << mat._44 << "\n";
-
-				// Create transform component
-				GetComponentForEntity<Transform>(tempEnt)->Update(_cmdList, mat, _frameIndex);
-
-				bool tempCheck = false;
-				file.read((char*)&tempCheck, sizeof(bool));
-				if (tempCheck)
+				if (vbCache->Exists(name))
 				{
-					std::string name;
-					Helper::ReadFromFile(file, name);
-					std::cout << "Mesh Name: " << name << std::endl;
-
-					Mesh tempMesh;
-
-					if (vbCache->Exists(name))
-					{
-						tempMesh.vbIndex = vbCache->GetReferenceID(name);
-					}
-					else
-					{
-						tempMesh.vbIndex = vbCache->LoadBuffer(_device, _cmdList, name);
-					}
-					AddComponentToEntity<Mesh>(tempEnt, tempMesh);
-
+					tempMesh.vbIndex = vbCache->GetReferenceID(name);
 				}
-
-				file.read((char*)&tempCheck, sizeof(bool));
-				if (tempCheck)
+				else
 				{
-					// Somehow textures doesnt save...
-					
-					// Handle for different type of materials
-					std::string matName;
-					Helper::ReadFromFile(file, matName);
-
-					/*
-					std::string name;
-					Helper::ReadFromFile(file, name);
-					std::cout << "Texture Name: " << name << std::endl;
-					if (textureCache->Exists(name))
-					{
-						textureCache->LoadResource(_device, _cmdList, name);
-					}
-
-					PhongMaterialInformation info; 
-					file.read((char*)&info.ambientAbsorbation, sizeof(PhongMaterialInformation) - sizeof(int));
-					info.diffuseTextureID = textureCache->GetResource(name)->GetHandle().GetHeapIndex();*/
-
-					MaterialComponent matComp;
-					if (mManager->Exists(matName))
-					{
-						matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
-						AddComponentToEntity<MaterialComponent>(tempEnt, matComp);
-					}
-					else
-					{
-						mManager->CreateMaterial<PhongMaterial>(PhongMaterial(_device, _cmdList, _fileDirectory, matName, textureCache));
-						PhongMaterial phongMat = *mManager->GetMaterial<PhongMaterial>(matName);
-						std::cout << "Ambient RGB: [" << phongMat.GetInfoPtr()->ambientAbsorbation.x << ":" << phongMat.GetInfoPtr()->ambientAbsorbation.y << ":" << phongMat.GetInfoPtr()->ambientAbsorbation.z << "]\n";
-						std::cout << "Specular RGB: [" << phongMat.GetInfoPtr()->specularAbsorbation.x << ":" << phongMat.GetInfoPtr()->specularAbsorbation.y << ":" << phongMat.GetInfoPtr()->specularAbsorbation.z << "]\n";
-						std::cout << "Specular Exponent: " << phongMat.GetInfoPtr()->specularShine << "\n";
-						matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
-					}
-
-					AddComponentToEntity<MaterialComponent>(tempEnt, matComp);
-					
-					
-
-
-					// Use info to load / get texture id
-					//matName = "defaultMaterial";
-					/*if (mManager->Exists(matName))
-					{
-						matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
-						AddComponentToEntity<MaterialComponent>(tempEnt, matComp);
-					}
-					else
-					{
-						
-						matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
-						PhongMaterial* tempPhong = mManager->GetMaterial<PhongMaterial>(matComp.materialID);
-						*tempPhong->GetInfoPtr() = info;
-						mManager->GetMaterial<PhongMaterial>(matComp.materialID)->Update(_cmdList, _frameIndex);
-						
-					}*/
-
-					// Create material component with texture id and info
-
-
+					tempMesh.vbIndex = vbCache->LoadBuffer(_device, _cmdList, name);
 				}
+				AddComponentToEntity<Mesh>(tempEnt, tempMesh);
+
 			}
 
-			file.close();
-		}
-		else
-		{
+			file.read((char*)&tempCheck, sizeof(bool));
+			if (tempCheck)
+			{
+				// Handle for different type of materials by checking material enum type
 
+				std::string matName;
+				Helper::ReadFromFile(file, matName);
+
+				MaterialComponent matComp;
+				if (mManager->Exists(matName))
+				{
+					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
+				}
+				else
+				{
+					mManager->CreateMaterial<PhongMaterial>(_device, rManager, _cmdList, textureCache, _fileDirectory, matName);
+					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
+				}
+
+				AddComponentToEntity<MaterialComponent>(tempEnt, matComp);
+			}
 		}
+
+		file.close();
 	}
 
 	/**Creates an Entity and inserts it into Scene::entities with a unique name and registers a Transform component with default values.
@@ -345,34 +279,34 @@ public:
 	{
 		Entity tempEnt = eManager->CreateEntity();
 		std::string name("Entity_" + std::to_string(tempEnt.id));
-		entities.emplace(name, tempEnt);
-		Entity& entity = entities.at(name);
+		entities.Add(name, tempEnt);
+		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
 		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetResource()->SetName(wName.c_str());
 
 		// Find unique name...
 
-		return entities.at(name);
+		return entities.Get(name);
 	}
 
 	Entity& CreateEntity(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
 	{
 		Entity tempEnt = eManager->CreateEntity();
-		entities.emplace(_name, tempEnt);
-		Entity& entity = entities.at(_name);
+		entities.Add(_name, tempEnt);
+		Entity& entity = entities.Get(_name);
 		std::wstring wName;
 		wName.assign(_name.begin(), _name.end());
 		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetResource()->SetName(wName.c_str());
 
 		// Find unique name...
 
-		return entities.at(_name);
+		return entities.Get(_name);
 	}
 
 	Entity& GetEntity(const std::string& _name)
 	{
-		return entities.at(_name);
+		return entities.Get(_name);
 	}
 
 	/**Registers a default Mesh component for the specified Entity object and binds the Entity to the appropriate systems.
