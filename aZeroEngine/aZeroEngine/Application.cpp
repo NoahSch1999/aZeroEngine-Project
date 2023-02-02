@@ -59,6 +59,7 @@ void Application::Run()
 		{
 			if (graphics->scene != nullptr)
 			{
+				graphics->WaitForGPU();
 				delete graphics->scene;
 			}
 			graphics->scene = new Scene(graphics->ecs, graphics->vbCache, &graphics->materialManager, &graphics->resourceManager, graphics->textureCache);
@@ -80,4 +81,5 @@ Application::~Application()
 {
 	delete window;
 	delete graphics;
+	delete input;
 }

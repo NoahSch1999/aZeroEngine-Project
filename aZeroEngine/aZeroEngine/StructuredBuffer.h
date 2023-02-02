@@ -32,7 +32,7 @@ public:
 
 	~StructuredBuffer()
 	{
-		uploadBuffer->Release();
+		//uploadBuffer->Release();
 	}
 
 	/**Initiates as a dynamic structured buffer.

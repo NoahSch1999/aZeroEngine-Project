@@ -236,7 +236,7 @@ public:
 
 				if (vbCache->Exists(name))
 				{
-					tempMesh.vbIndex = vbCache->GetReferenceID(name);
+					tempMesh.vbIndex = vbCache->GetBufferIndex(name);
 				}
 				else
 				{

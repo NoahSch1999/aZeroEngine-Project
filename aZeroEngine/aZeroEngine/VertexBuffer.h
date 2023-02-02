@@ -31,11 +31,10 @@ class VertexBuffer : public BaseResource
 {
 private:
 	D3D12_VERTEX_BUFFER_VIEW view;
-	ID3D12Resource* uploadBuffer;
-	IndexBuffer indexBuffer;
 	int numVertices;
 	std::string fileName;
 public:
+	ID3D12Resource* uploadBuffer;
 	VertexBuffer();
 
 	/**Initiates as a static vertex buffer.
@@ -64,7 +63,6 @@ public:
 	@return D3D12_VERTEX_BUFFER_VIEW&
 	*/
 	D3D12_VERTEX_BUFFER_VIEW& GetView() { return view; }
-	IndexBuffer* GetIndexBuffer() { return &indexBuffer; }
 
 	/** Get the number of vertices within the buffer.
 	@return int

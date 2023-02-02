@@ -52,7 +52,6 @@ struct Camera
 		proj = Matrix::CreatePerspectiveFieldOfView(fov, (float)_width / (float)_height, 0.1f, 1000.f);
 		view.Transpose();
 		proj.Transpose();
-
 		buffer = new ConstantBuffer();
 		buffer->InitAsDynamic(_device, _cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), L"Camera");
 
@@ -146,16 +145,7 @@ struct Camera
 		}
 
 		buffer->Update(_cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), _frameIndex);
-
-
 	}
-};
-
-struct TF
-{
-	Matrix world;
-	Vector3 pos;
-	ConstantBuffer* buffer;
 };
 
 class Graphics
@@ -170,8 +160,13 @@ public:
 	void Render(AppWindow* _window);
 	void Present();
 
+	void WaitForGPU();
+
 	ID3D12Device* device;
 	CommandQueue* directCommandQueue;
+
+	HiddenDescriptorHeap* rtvHeap;
+	HiddenDescriptorHeap* dsvHeap;
 
 	// temp
 	CommandList directCmdList;
@@ -184,18 +179,10 @@ public:
 	int frameIndex;
 	int frameCount;
 
-	// Heaps
-	HiddenDescriptorHeap* rtvHeap;
-	HiddenDescriptorHeap* dsvHeap;
-
 	// DEBUG
 	PipelineState pso;
 	RootSignature bindlessSignature;
 
-	ConstantBuffer* testBindlessCB;
-	ConstantBuffer testWorld;
-	ConstantBuffer testWorld2;
-	int testMeshID;
 	EditorUI* ui;
 
 	RasterState* rasterState;
@@ -209,8 +196,6 @@ public:
 	ResourceManager resourceManager;
 	MaterialManager materialManager;
 	LightManager* lManager;
-
-	int testIDMaterial = -1;
 
 	Scene* scene = nullptr;
 	ECS* ecs;

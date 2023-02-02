@@ -32,7 +32,7 @@ namespace Helper
 
 	void CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc);
 
-	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer*& _vBuffer);
+	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer& _vBuffer);
 
 	template<typename T>
 	void WriteToFile(std::ofstream& _file, const T& _data);

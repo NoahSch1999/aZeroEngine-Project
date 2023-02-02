@@ -11,10 +11,10 @@ class Texture2D : public BaseResource
 private:
 	std::string fileName;
 	DXGI_FORMAT format;
-	ID3D12Resource* uploadBuffer;
 	void InitSRV(ID3D12Device* _device, D3D12_RESOURCE_DESC _desc);
 
 public:
+	ID3D12Resource* uploadBuffer;
 	Texture2D();
 
 	~Texture2D();

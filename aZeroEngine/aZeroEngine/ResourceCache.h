@@ -9,7 +9,7 @@ class ResourceCache
 {
 protected:
 	/// \public
-	std::unordered_map<std::string, T*>resourceMap;
+	std::unordered_map<std::string, T>resourceMap;
 
 public:
 	ResourceCache() = default;
@@ -17,10 +17,6 @@ public:
 	*/
 	virtual ~ResourceCache() 
 	{ 
-		for (auto& [str, obj] : resourceMap)
-		{
-			delete obj;
-		}
 		resourceMap.clear(); 
 	}
 	/**Loads resource by filename.
@@ -52,7 +48,7 @@ public:
 	@param _name Name of the resource to get
 	@return T
 	*/
-	T* GetResource(const std::string& _name)
+	T& GetResource(const std::string& _name)
 	{
 		return resourceMap.at(_name);
 	}

@@ -25,7 +25,7 @@ public:
 		:Material()
 	{
 		name = _name;
-		info.diffuseTextureID = _textureCache->GetResource("defaultDiffuse.png")->GetHandle().GetHeapIndex();
+		info.diffuseTextureID = _textureCache->GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex();
 		buffer.InitAsDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), true);
 	}
 	~PhongMaterial() = default;
@@ -72,12 +72,12 @@ public:
 
 		if (_textureCache->Exists(_name))
 		{
-			info.diffuseTextureID = _textureCache->GetResource(textureName)->GetHandle().GetHeapIndex(); // _name -> textureName
+			info.diffuseTextureID = _textureCache->GetResource(textureName).GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 		else
 		{
 			_textureCache->LoadResource(_device, _rManager->GetTexture2DDescriptor(), _cmdList, textureName); // _name -> textureName
-			info.diffuseTextureID = _textureCache->GetResource(textureName)->GetHandle().GetHeapIndex(); // _name -> textureName
+			info.diffuseTextureID = _textureCache->GetResource(textureName).GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 
 		buffer.InitAsDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), true);

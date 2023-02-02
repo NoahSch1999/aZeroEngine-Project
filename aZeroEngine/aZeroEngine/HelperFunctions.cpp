@@ -121,11 +121,10 @@ void Helper::CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource
 		throw;
 }
 
-void Helper::LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer*& _vBuffer)
+void Helper::LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer& _vBuffer)
 {
 	Helper::BasicVertexListInfo vertexInfo;
 	Helper::LoadVertexListFromFile(&vertexInfo, _path);
-	_vBuffer->InitStatic(_device, _cmdList, vertexInfo.verticeData.data(), (int)vertexInfo.verticeData.size(), sizeof(BasicVertex));
-	_vBuffer->SetNumVertices((int)vertexInfo.verticeData.size());
-	_vBuffer->GetIndexBuffer()->InitStatic(_device, _cmdList, vertexInfo.indexData.data(), vertexInfo.indexData.size());
+	_vBuffer.InitStatic(_device, _cmdList, vertexInfo.verticeData.data(), (int)vertexInfo.verticeData.size(), sizeof(BasicVertex));
+	_vBuffer.SetNumVertices((int)vertexInfo.verticeData.size());
 }

@@ -9,17 +9,32 @@ Graphics::Graphics(AppWindow* _window, HINSTANCE _instance)
 
 Graphics::~Graphics()
 {
-	directCommandQueue->Flush(nextSyncSignal);
-	allocator->allocator->Reset();
-	directCmdList.graphic->Reset(allocator->allocator, nullptr);
+	WaitForGPU();
+	/*allocator->allocator->Reset();
+	directCmdList.graphic->Reset(allocator->allocator, nullptr);*/
 
 	delete directCommandQueue;
 	delete swapChain;
 	delete rasterState;
 	device->Release();
-	delete rtvHeap, dsvHeap;
 	delete allocator;
+
+	delete rtvHeap;
+	delete dsvHeap;
+
+	camera->diMouseDevice->Release();
+	camera->buffer->GetResource()->Release();
+	camera->buffer->uploadBuffer->Release();
 	delete camera->buffer;
+
+	delete ui;
+	delete sampler;
+	delete vbCache;
+
+	delete textureCache;
+	delete lManager;
+	delete scene;
+	delete ecs;
 }
 
 void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
@@ -72,12 +87,6 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	//
 	camera = new Camera(device, &directCmdList, _window->width, _window->height, _instance, _window->windowHandle);
 
-	Matrix x = Matrix::Identity;
-	x = Matrix::CreateTranslation(0, 0, 0);
-	testWorld.InitAsDynamic(device, &directCmdList, (void*)&x, sizeof(Matrix), true, L"testWorld");
-	x = Matrix::CreateTranslation(1, 0, 0);
-	testWorld2.InitAsDynamic(device, &directCmdList, (void*)&x, sizeof(Matrix), true, L"testWorld2");
-
 	swapChain->queue = directCommandQueue;
 	swapChain->syncValue = &nextSyncSignal;
 	swapChain->device = device;
@@ -97,7 +106,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 		materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "defaultMaterial");
 		materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
-		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png")->GetHandle().GetHeapIndex();
+		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png").GetHandle().GetHeapIndex();
 		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, frameIndex);
 
 		ui = new EditorUI(device, &resourceManager, _window->windowHandle);
@@ -105,7 +114,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 		lManager = new LightManager(device, &directCmdList, 1, 10, 1);
 
 		ecs = new ECS(100);
-		scene = new Scene(ecs, vbCache, &materialManager, &resourceManager, textureCache); // Nytt med rManager inp
+		scene = new Scene(ecs, vbCache, &materialManager, &resourceManager, textureCache);
 
 		for (int i = 0; i < 5; i++)
 		{
@@ -119,7 +128,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 			Entity& tempEnt = scene->CreateEntity(device, &directCmdList);
 
 			Mesh mesh;
-			mesh.vbIndex = vbCache->GetReferenceID("goblin");
+			mesh.vbIndex = vbCache->GetBufferIndex("goblin");
 			scene->AddComponentToEntity<Mesh>(tempEnt, mesh);
 
 			MaterialComponent mat;
@@ -206,4 +215,10 @@ void Graphics::Present()
 	directCmdList.graphic->Reset(allocator->allocator, nullptr);
 
 	frameCount++;
+}
+
+void Graphics::WaitForGPU()
+{
+	int nextSignal = directCommandQueue->Execute(&directCmdList);
+	directCommandQueue->Flush(nextSignal, allocator, directCmdList.graphic);
 }

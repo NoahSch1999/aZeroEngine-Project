@@ -411,8 +411,17 @@ public:
 		// Call for each ECSystem
 		//tSystem.UnBind(_entity); // Works regardless if it's bound or not
 
+		Transform* tf = componentManager.GetComponent<Transform>(_entity);
+		if (tf != nullptr)
+		{
+			tf->cb.uploadBuffer->Release();
+			tf->cb.GetResource()->Release();
+		}
+
 		componentManager.RemoveComponent<Transform>(_entity);
+
 		componentManager.RemoveComponent<Mesh>(_entity);
+
 		componentManager.RemoveComponent<MaterialComponent>(_entity);
 
 		entityManager.RemoveEntity(_entity);

@@ -10,7 +10,6 @@ Can be either static or dynamic (single or tripple-buffered).
 class ConstantBuffer : public BaseResource
 {
 private:
-	ID3D12Resource* uploadBuffer;
 	D3D12_RESOURCE_STATES uploadState = D3D12_RESOURCE_STATE_COMMON;
 	int totalSize;
 	bool isStatic;
@@ -18,6 +17,8 @@ private:
 	int sizePerSubresource;
 	void* mappedBuffer;
 public:
+	ID3D12Resource* uploadBuffer;
+
 	ConstantBuffer();
 	~ConstantBuffer();
 
