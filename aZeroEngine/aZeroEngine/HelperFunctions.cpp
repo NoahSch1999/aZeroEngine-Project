@@ -60,14 +60,14 @@ bool Helper::GetDisplaySettings(DEVMODEA* _devMode)
 	return EnumDisplaySettingsA(NULL, iModeNum, _devMode);
 }
 
-void Helper::GetWindowDimensions(AppWindow* _window)
-{
-	RECT desktop;
-	HWND desktopHandle = GetDesktopWindow();
-	GetWindowRect(desktopHandle, &desktop);
-	_window->width = desktop.right;
-	_window->height = desktop.bottom;
-}
+//void Helper::GetWindowDimensions(AppWindow* _window)
+//{
+//	RECT desktop;
+//	HWND desktopHandle = GetDesktopWindow();
+//	GetWindowRect(desktopHandle, &desktop);
+//	_window->width = desktop.right;
+//	_window->height = desktop.bottom;
+//}
 
 void Helper::GetWindowDimensions(UINT* _width, UINT* _height)
 {
@@ -119,12 +119,4 @@ void Helper::CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource
 	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_mainResource));
 	if (FAILED(hr))
 		throw;
-}
-
-void Helper::LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer& _vBuffer)
-{
-	Helper::BasicVertexListInfo vertexInfo;
-	Helper::LoadVertexListFromFile(&vertexInfo, _path);
-	_vBuffer.InitStatic(_device, _cmdList, vertexInfo.verticeData.data(), (int)vertexInfo.verticeData.size(), sizeof(BasicVertex));
-	_vBuffer.SetNumVertices((int)vertexInfo.verticeData.size());
 }

@@ -10,7 +10,15 @@ private:
 	std::unordered_map<int, std::string>indexToStr;
 public:
 	Texture2DCache();
-	~Texture2DCache();
+
+	virtual ~Texture2DCache()
+	{
+		std::vector<Texture2D>& textures = resourceMVec.GetObjects();
+		for (int i = 0; i < textures.size(); i++)
+		{
+			textures[i].GetMainResource()->Release();
+		}
+	}
 
 	/**Loads a 2D texture from the disk.
 	* Inherited via ResourceCache
@@ -38,6 +46,10 @@ public:
 	*/
 	virtual void RemoveResource(const std::string& _name) override;
 
+	/**Returns the filename of the input index.
+	@param _index Index to get the matching filename for.
+	@return const std::string
+	*/
 	const std::string GetTextureName(int _index) const { if (indexToStr.count(_index) > 0) { return indexToStr.at(_index); } }
 };
 

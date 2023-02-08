@@ -11,6 +11,15 @@ public:
 	// Note - Continue on this!
 	void ReInit(ID3D12Device* _device, CommandList* _cmdList, UINT _width, UINT _height, DXGI_FORMAT _format);
 
-	~DepthStencil();
+	virtual ~DepthStencil();
+
+
+
+	// Inherited via BaseResource
+
+	// Both have to be defined
+	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName) override;
+	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
+
 };
 

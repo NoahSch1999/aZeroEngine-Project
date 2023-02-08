@@ -29,19 +29,19 @@ DepthStencil::DepthStencil(ID3D12Device* _device, HiddenDescriptorHeap* _heap, C
 
 	// how to avoid creating implicit descriptor heap? replace with placeresource... or atleast provide that option
 	HRESULT hr = _device->CreateCommittedResource(&properties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-		&rDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&resource));
+		&rDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&mainResource));
 	if (FAILED(hr))
 		throw;
 
 	handle = _heap->GetNewSlot();
-	_device->CreateDepthStencilView(resource, nullptr, handle.GetCPUHandle());
+	_device->CreateDepthStencilView(mainResource, nullptr, handle.GetCPUHandle());
 
-	Transition(_cmdList->graphic, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }
 
 void DepthStencil::ReInit(ID3D12Device* _device, CommandList* _cmdList, UINT _width, UINT _height, DXGI_FORMAT _format)
 {
-	resource->Release();
+	mainResource->Release();
 
 	D3D12_RESOURCE_DESC rDesc = {};
 	rDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -69,15 +69,25 @@ void DepthStencil::ReInit(ID3D12Device* _device, CommandList* _cmdList, UINT _wi
 
 	// how to avoid creating implicit descriptor heap? replace with placeresource... or atleast provide that option
 	HRESULT hr = _device->CreateCommittedResource(&properties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-		&rDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&resource));
+		&rDesc, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COMMON, &clearValue, IID_PPV_ARGS(&mainResource));
 	if (FAILED(hr))
 		throw;
 
-	_device->CreateDepthStencilView(resource, nullptr, handle.GetCPUHandle());
+	_device->CreateDepthStencilView(mainResource, nullptr, handle.GetCPUHandle());
 
-	Transition(_cmdList->graphic, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }
 
 DepthStencil::~DepthStencil()
 {
+}
+
+void DepthStencil::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName)
+{
+	throw; // Not implemented yet
+}
+
+void DepthStencil::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName)
+{
+	throw; // Not implemented yet
 }

@@ -26,7 +26,7 @@ public:
 	{
 		name = _name;
 		info.diffuseTextureID = _textureCache->GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex();
-		buffer.InitAsDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), true);
+		buffer.InitDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), 1, true, L"Default Material Buffer");
 	}
 	~PhongMaterial() = default;
 
@@ -80,6 +80,7 @@ public:
 			info.diffuseTextureID = _textureCache->GetResource(textureName).GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 
-		buffer.InitAsDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), true);
+		std::wstring tempName(_name.begin(), _name.end());
+		buffer.InitDynamic(_device, _cmdList, (void*)&info, sizeof(PhongMaterialInformation), 1, true, tempName + L" Material Buffer");
 	}
 };

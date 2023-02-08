@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include "HelperFunctions.h"
+#include "MappedVector.h"
 
 /** @brief Virtual base class for storing and handeling loaded resources within an unordered map.
 */
@@ -8,17 +9,26 @@ template<typename T>
 class ResourceCache
 {
 protected:
-	/// \public
-	std::unordered_map<std::string, T>resourceMap;
-
+	std::vector<ID3D12Resource*>intermediateResources;
+	MappedVector<T>resourceMVec;
 public:
 	ResourceCache() = default;
 	/**Clears all the resources within the unordered map
 	*/
 	virtual ~ResourceCache() 
-	{ 
-		resourceMap.clear(); 
+	{
+		for (auto& resource : intermediateResources)
+			resource->Release();
 	}
+
+	/**Returns a reference to the internal resource vector
+	@param _device Device used to create the resource
+	@param _cmdList CommandList used to create the resource
+	@param _name Name of the resource
+	@return void
+	*/
+	std::vector<T>& GetAllResources() { return resourceMVec.GetObjects(); }
+
 	/**Loads resource by filename.
 	@param _device Device used to create the resource
 	@param _cmdList CommandList used to create the resource
@@ -39,17 +49,39 @@ public:
 	*/
 	bool Exists(const std::string& _name)
 	{
-		if (resourceMap.count(_name) > 0)
+		if (resourceMVec.Exists(_name) > 0)
 			return true;
 		return false;
 	}
 
-	/**Return a pointer to a resource within the unordered map
+	/**Return a pointer to a resource within the MappedVector
 	@param _name Name of the resource to get
 	@return T
 	*/
 	T& GetResource(const std::string& _name)
 	{
-		return resourceMap.at(_name);
+		return resourceMVec.Get(_name);
+	}
+
+
+	/**Return a pointer to a resource within the MappedVector
+	@param _id ID of the resource to get
+	@return T
+	*/
+	T& GetResource(int _id)
+	{
+		return resourceMVec.Get(_id);
+	}
+
+	/** Releases the intermediate resource for all static resources.
+	@return void
+	*/
+	void ReleaseIntermediateResources()
+	{
+		for (int i = 0; i < intermediateResources.size(); i++)
+		{
+			intermediateResources[i]->Release();
+		}
+		intermediateResources.resize(0);
 	}
 };

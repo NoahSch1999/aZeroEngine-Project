@@ -9,5 +9,15 @@ RenderTarget::RenderTarget(ID3D12Device* _device, HiddenDescriptorHeap* _heap, U
 	desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	desc.Buffer = { 0, _width * _height };
 	desc.Texture2D = { 0, 0 };
-	_device->CreateRenderTargetView(resource, &desc, handle.GetCPUHandle());
+	_device->CreateRenderTargetView(mainResource, &desc, handle.GetCPUHandle());
+}
+
+void RenderTarget::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName)
+{
+	throw; // Not implemented yet
+}
+
+void RenderTarget::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName)
+{
+	throw; // Not implemented yet
 }

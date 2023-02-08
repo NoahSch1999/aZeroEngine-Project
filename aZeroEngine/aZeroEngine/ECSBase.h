@@ -64,8 +64,7 @@ struct Transform
 	Transform(ID3D12Device* _device, CommandList* _cmdList)
 	{
 		worldMatrix = Matrix::Identity;
-		cb.InitAsDynamic(_device, _cmdList, (void*)&worldMatrix, sizeof(Matrix), true);
-		//cb.InitAsCBV(_device);
+		cb.InitDynamic(_device, _cmdList, (void*)&worldMatrix, sizeof(Matrix), 1, true, L"");
 	}
 
 	// Used for non-trippleframed resources
@@ -144,7 +143,7 @@ struct BiDirectionalMap
 */
 class ECSystem
 {
-private:
+protected:
 	BiDirectionalMap<Entity>entityIDMap; /**< A bi-directional map containing an internal std::vector of copies of bound Entity objects.*/
 public:
 
@@ -327,8 +326,7 @@ public:
 		Entity entity;
 		if (freeIDs.empty())
 		{
-			entity.id = -1;
-			return entity;
+			throw;
 		}
 		entity.id = freeIDs.front();
 		freeIDs.pop();
@@ -414,8 +412,9 @@ public:
 		Transform* tf = componentManager.GetComponent<Transform>(_entity);
 		if (tf != nullptr)
 		{
-			tf->cb.uploadBuffer->Release();
-			tf->cb.GetResource()->Release();
+			if(tf->cb.GetIntermediateResource()!= nullptr)
+				tf->cb.GetIntermediateResource()->Release();
+			tf->cb.GetMainResource()->Release();
 		}
 
 		componentManager.RemoveComponent<Transform>(_entity);

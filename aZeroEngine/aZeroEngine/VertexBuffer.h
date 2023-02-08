@@ -1,29 +1,28 @@
 #pragma once
 #include "BaseResource.h"
-#include "CommandList.h"
 
-class IndexBuffer : public BaseResource
-{
-private:
-	D3D12_INDEX_BUFFER_VIEW view;
-	ID3D12Resource* uploadBuffer;
-public:
-	IndexBuffer()
-		:BaseResource()
-	{
-
-	}
-
-	~IndexBuffer()
-	{
-		uploadBuffer->Release();
-	}
-
-	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _numIndices, const std::wstring& _name = L"");
-
-	D3D12_INDEX_BUFFER_VIEW& GetView() { return view; }
-	int numIndices = 0;
-};
+//class IndexBuffer : public BaseResource
+//{
+//private:
+//	D3D12_INDEX_BUFFER_VIEW view;
+//	ID3D12Resource* uploadBuffer;
+//public:
+//	IndexBuffer()
+//		:BaseResource()
+//	{
+//
+//	}
+//
+//	~IndexBuffer()
+//	{
+//		uploadBuffer->Release();
+//	}
+//
+//	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _numIndices, const std::wstring& _name = L"");
+//
+//	D3D12_INDEX_BUFFER_VIEW& GetView() { return view; }
+//	int numIndices = 0;
+//};
 
 /** @brief Encapsulates a vertex buffer.
 */
@@ -34,7 +33,6 @@ private:
 	int numVertices;
 	std::string fileName;
 public:
-	ID3D12Resource* uploadBuffer;
 	VertexBuffer();
 
 	/**Initiates as a static vertex buffer.
@@ -45,17 +43,6 @@ public:
 	@param _stride Size of each vertex within the resource.
 	*/
 	VertexBuffer(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _size, int _stride);
-
-	/**Initiates as a static vertex buffer.
-	@param _device Device to use when creating the D3D12 resources.
-	@param _cmdList CommandList to execute the resource initiation commands on.
-	@param _data Data to initiate the buffer with.
-	@param _size Size of the data to initiate with.
-	@param _stride Size of each vertex within the resource.
-	@param _name Optional name of the internal ID3D12Resource* object.
-	@return void
-	*/
-	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _size, int _stride, const std::wstring& _name = L"");
 
 	~VertexBuffer();
 
@@ -85,5 +72,10 @@ public:
 	@return void
 	*/
 	void SetFileName(const std::string& _fileName) { fileName = _fileName; }
+
+	// Inherited via BaseResource
+	// Dynamic has to be defined
+	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName) override;
+	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
 };
 

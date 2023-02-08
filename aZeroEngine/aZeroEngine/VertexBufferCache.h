@@ -1,41 +1,46 @@
 #pragma once
 #include "VertexBuffer.h"
-#include "MappedVector.h"
 #include "HelperFunctions.h"
+#include "ResourceCache.h"
 
 /** @brief Functions as a vertex buffer cache. Is used to load, store, and retrieve vertex buffers from.
 * By using VertexBufferCache::GetBufferIndex() you can retrieve an index. This index can then be used with VertexBufferCache::GetBuffer(int) to get the actual resource in constant time.
 */
-class VertexBufferCache
+class VertexBufferCache : public ResourceCache<VertexBuffer>
 {
 private:
-	MappedVector<VertexBuffer>vertexBuffers;
+
+	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer);
+
 public:
 	VertexBufferCache() = default;
 
-	~VertexBufferCache()
+	virtual ~VertexBufferCache()
 	{
-		std::vector<VertexBuffer>& vbs = vertexBuffers.GetObjects();
+		std::vector<VertexBuffer>& vbs = resourceMVec.GetObjects();
 		for (int i = 0; i < vbs.size(); i++)
 		{
-			vbs[i].uploadBuffer->Release();
-			vbs[i].GetResource()->Release();
+			vbs[i].GetMainResource()->Release();
 		}
 	}
 
-	/** Loads an fbx file with the specified name into a vertex buffer which in turn is stored inside this class.
-	@param _device Device to use when creating the D3D12 resources
-	@param _cmdList CommandList to record the necessary D3D12 command on
-	@param _name Filename of the fbx file to load
-	@return int That can be used to retrieve the buffer with VertexBufferCache::GetBuffer(int)
-	*/
-	int LoadBuffer(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
+	virtual void LoadResource(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name) override
 	{
-	  VertexBuffer temp;
-	  Helper::LoadVertexDataFromFile(_device, _cmdList, "../meshes/" + _name, temp);
-	  temp.SetFileName(_name);
-	  vertexBuffers.Add(_name, temp);
-		  return vertexBuffers.GetID(_name);
+		VertexBuffer temp;
+		ID3D12Resource* intermediateResource;
+		LoadVertexDataFromFile(_device, _cmdList, intermediateResource, "../meshes/" + _name, temp);
+		temp.SetFileName(_name);
+		resourceMVec.Add(_name, temp);
+		intermediateResources.emplace_back(intermediateResource);
+		//return resourceMVec.GetID(_name);
+	}
+
+	virtual void RemoveResource(const std::string& _name) override
+	{
+		if (resourceMVec.Exists(_name) > 0)
+		{
+			resourceMVec.Remove(_name);
+		}
 	}
 
 	/** Removes the buffer with the specified name.
@@ -44,7 +49,7 @@ public:
 	*/
 	void RemoveBuffer(const std::string& _name)
 	{
-		vertexBuffers.Remove(_name);
+		resourceMVec.Remove(_name);
 	}
 
 	/** Returns a pointer to the vertex buffer that corresponds to the input index/ID.
@@ -53,7 +58,7 @@ public:
 	*/
 	VertexBuffer* GetBuffer(int _ID)
 	{
-		return &vertexBuffers.Get(_ID);
+		return &resourceMVec.Get(_ID);
 	}
 
 	/** Returns a pointer to the vertex buffer that corresponds to the input name.
@@ -62,7 +67,7 @@ public:
 	*/
 	VertexBuffer* GetBuffer(const std::string& _name)
 	{
-		return &vertexBuffers.Get(_name);
+		return &resourceMVec.Get(_name);
 	}
 
 	/** Returns the index of the buffer with the input name.
@@ -71,7 +76,7 @@ public:
 	*/
 	int GetBufferIndex(const std::string& _name)
 	{
-		return vertexBuffers.GetID(_name);
+		return resourceMVec.GetID(_name);
 	}
 
 	/** Returns whether or not the buffer with the specified name is loaded.
@@ -80,7 +85,7 @@ public:
 	*/
 	bool Exists(const std::string& _name)
 	{
-		if (vertexBuffers.Exists(_name) > 0)
+		if (resourceMVec.Exists(_name) > 0)
 			return true;
 		return false;
 	}

@@ -45,14 +45,14 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	for (int i = 0; i < _numBackBuffers; i++)
 	{
 		backBuffers[i] = new RenderTarget();
-		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->GetResource()));
+		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i]->GetMainResource()));
 		if (FAILED(hr))
 			throw;
 
 		backBuffers[i]->GetHandle() = _heap->GetNewSlot();
-		_device->CreateRenderTargetView(backBuffers[i]->GetResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
+		_device->CreateRenderTargetView(backBuffers[i]->GetMainResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
 		std::wstring name = L"Back Buffer " + i;
-		backBuffers[i]->GetResource()->SetName(name.c_str());
+		backBuffers[i]->GetMainResource()->SetName(name.c_str());
 	}
 	rtvFormat = _rtvFormat;
 	dsvFormat = _dsvFormat;
@@ -73,7 +73,7 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	scissorRect.bottom = _height;
 
 	dsv = new DepthStencil(_device, _dsvHeap, _cmdList, _width, _height, dsvFormat);
-	dsv->GetResource()->SetName(L"SwapChain DSV");
+	dsv->GetMainResource()->SetName(L"SwapChain DSV");
 }
 
 SwapChain::~SwapChain()

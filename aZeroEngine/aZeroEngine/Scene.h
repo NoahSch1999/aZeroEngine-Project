@@ -44,6 +44,10 @@ private:
 public:
 	MappedVector<Entity>entities;
 
+	EntityManager* GetEntityManager() { return eManager; }
+	VertexBufferCache* GetVertexBufferCache() { return vbCache; }
+	MaterialManager* GetMaterialManager() { return mManager; }
+
 	Scene() = default;
 
 	/**Initiates the private member variables.
@@ -188,38 +192,38 @@ public:
 		std::ifstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios::in | std::ios::binary);
 		int numEntities = -1;
 		file.read((char*)&numEntities, sizeof(int));
-		std::cout << "Num entities: " << numEntities << std::endl;
+		//std::cout << "Num entities: " << numEntities << std::endl;
 
 		for (int i = 0; i < numEntities; i++)
 		{
-			std::cout << "|---------------------------------New entity---------------------------------|\n";
+			//std::cout << "|---------------------------------New entity---------------------------------|\n";
 
 			std::string entityName;
 			Helper::ReadFromFile(file, entityName);
-			std::cout << "Entity Name: " << entityName << std::endl;
+			//std::cout << "Entity Name: " << entityName << std::endl;
 
 			// Create entity with name
 			Entity& tempEnt = CreateEntity(_device, _cmdList, entityName);
 
 			Matrix mat;
 			file.read((char*)&mat, sizeof(Matrix));
-			std::cout << "Matrix: \n";
-			std::cout << mat._11 << " ";
-			std::cout << mat._12 << " ";
-			std::cout << mat._13 << " ";
-			std::cout << mat._14 << "\n";
-			std::cout << mat._21 << " ";
-			std::cout << mat._22 << " ";
-			std::cout << mat._23 << " ";
-			std::cout << mat._24 << "\n";
-			std::cout << mat._31 << " ";
-			std::cout << mat._32 << " ";
-			std::cout << mat._33 << " ";
-			std::cout << mat._34 << "\n";
-			std::cout << mat._41 << " ";
-			std::cout << mat._42 << " ";
-			std::cout << mat._43 << " ";
-			std::cout << mat._44 << "\n";
+			//std::cout << "Matrix: \n";
+			//std::cout << mat._11 << " ";
+			//std::cout << mat._12 << " ";
+			//std::cout << mat._13 << " ";
+			//std::cout << mat._14 << "\n";
+			//std::cout << mat._21 << " ";
+			//std::cout << mat._22 << " ";
+			//std::cout << mat._23 << " ";
+			//std::cout << mat._24 << "\n";
+			//std::cout << mat._31 << " ";
+			//std::cout << mat._32 << " ";
+			//std::cout << mat._33 << " ";
+			//std::cout << mat._34 << "\n";
+			//std::cout << mat._41 << " ";
+			//std::cout << mat._42 << " ";
+			//std::cout << mat._43 << " ";
+			//std::cout << mat._44 << "\n";
 
 			// Create transform component
 			GetComponentForEntity<Transform>(tempEnt)->Update(_cmdList, mat, _frameIndex);
@@ -230,7 +234,7 @@ public:
 			{
 				std::string name;
 				Helper::ReadFromFile(file, name);
-				std::cout << "Mesh Name: " << name << std::endl;
+				//std::cout << "Mesh Name: " << name << std::endl;
 
 				Mesh tempMesh;
 
@@ -240,7 +244,8 @@ public:
 				}
 				else
 				{
-					tempMesh.vbIndex = vbCache->LoadBuffer(_device, _cmdList, name);
+					vbCache->LoadResource(_device, _cmdList, name);
+					tempMesh.vbIndex = vbCache->GetBufferIndex(name);
 				}
 				AddComponentToEntity<Mesh>(tempEnt, tempMesh);
 
@@ -272,32 +277,61 @@ public:
 		file.close();
 	}
 
+	int FindRec(int _num)
+	{
+		if (entities.Exists("Entity_" + std::to_string(_num)))
+		{
+			_num += 1;
+			_num = FindRec(_num);
+		}
+
+		return _num;
+	}
+
 	/**Creates an Entity and inserts it into Scene::entities with a unique name and registers a Transform component with default values.
 	@return void
 	*/
 	Entity& CreateEntity(ID3D12Device* _device, CommandList* _cmdList)
 	{
 		Entity tempEnt = eManager->CreateEntity();
-		std::string name("Entity_" + std::to_string(tempEnt.id));
+		int num = tempEnt.id;
+		const std::string name = CheckName("Entity_" + std::to_string(num));
+		/*if (entities.Exists("Entity_" + std::to_string(num)))
+		{
+			num = FindRec(num);
+		}*/
+		//std::string name("Entity_" + std::to_string(num));
 		entities.Add(name, tempEnt);
 		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
-		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetResource()->SetName(wName.c_str());
+		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
 
 		// Find unique name...
 
-		return entities.Get(name);
+		return entity;
+	}
+
+	std::string CheckName(const std::string _name)
+	{
+		if (entities.Exists(_name))
+		{
+			return CheckName(_name + ".");
+		}
+		return std::string(_name);
 	}
 
 	Entity& CreateEntity(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
 	{
 		Entity tempEnt = eManager->CreateEntity();
-		entities.Add(_name, tempEnt);
-		Entity& entity = entities.Get(_name);
+
+		const std::string name = CheckName(_name);
+
+		entities.Add(name, tempEnt);
+		Entity& entity = entities.Get(name);
 		std::wstring wName;
-		wName.assign(_name.begin(), _name.end());
-		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetResource()->SetName(wName.c_str());
+		wName.assign(name.begin(), name.end());
+		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
 
 		// Find unique name...
 

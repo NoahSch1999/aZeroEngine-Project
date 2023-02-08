@@ -30,8 +30,14 @@
     <Filter Include="Random">
       <UniqueIdentifier>{cc9c5012-9a7e-4510-8bb7-98bebbd4a36f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="RenderObjects">
-      <UniqueIdentifier>{2ec56bfa-e99e-4ca6-97c3-1c86fe0b15b2}</UniqueIdentifier>
+    <Filter Include="D3D12 Core\Shader Materials">
+      <UniqueIdentifier>{a244e172-1715-473f-8319-59cf4e43d9f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12 Core\Resource Management">
+      <UniqueIdentifier>{fb2d9368-a1c5-447f-880f-c7c1a7719e55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{ab7cb659-243a-4944-8463-3cac9304a831}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -47,17 +53,11 @@
     <ClCompile Include="CommandList.cpp">
       <Filter>D3D12 Core\Command Handling</Filter>
     </ClCompile>
-    <ClCompile Include="DescriptorHeap.cpp">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
-    </ClCompile>
     <ClCompile Include="PipelineState.cpp">
       <Filter>D3D12 Core\Pipeline Functionality</Filter>
     </ClCompile>
     <ClCompile Include="RootSignature.cpp">
       <Filter>D3D12 Core\Pipeline Functionality</Filter>
-    </ClCompile>
-    <ClCompile Include="BaseResource.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
     <ClCompile Include="ShaderDescriptorHeap.cpp">
       <Filter>D3D12 Core\Descriptor Handling</Filter>
@@ -68,16 +68,13 @@
     <ClCompile Include="RenderTarget.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="HiddenDescriptorHeap.cpp">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
-    </ClCompile>
     <ClCompile Include="DepthStencil.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
     <ClCompile Include="VertexBuffer.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="ShaderResource.cpp">
+    <ClCompile Include="Texture2D.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Application.cpp">
@@ -95,23 +92,59 @@
     <ClCompile Include="stbiHack.cpp">
       <Filter>Random</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp">
-      <Filter>RenderObjects</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture2D.cpp">
-      <Filter>RenderObjects</Filter>
-    </ClCompile>
     <ClCompile Include="ConstantBuffer.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Sampler.cpp">
       <Filter>D3D12 Core\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="..\DirectXTex\DDSTextureLoader\DDSTextureLoader12.cpp">
-      <Filter>Random</Filter>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Engine Core</Filter>
     </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Random</Filter>
+    <ClCompile Include="Texture2DCache.cpp">
+      <Filter>D3D12 Core\Resource Management</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexBufferCache.cpp">
+      <Filter>D3D12 Core\Resource Management</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\backends\imgui_impl_dx12.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\backends\imgui_impl_win32.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="UserInterface.cpp">
+      <Filter>Engine Core</Filter>
+    </ClCompile>
+    <ClCompile Include="StructuredBuffer.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PhongMaterial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BaseResource.cpp">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderSystem.cpp">
+      <Filter>Engine Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -123,9 +156,6 @@
     </ClInclude>
     <ClInclude Include="CommandList.h">
       <Filter>D3D12 Core\Command Handling</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorHeap.h">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorHandle.h">
       <Filter>D3D12 Core\Descriptor Handling</Filter>
@@ -157,16 +187,13 @@
     <ClInclude Include="RenderTarget.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="HiddenDescriptorHeap.h">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
-    </ClInclude>
     <ClInclude Include="DepthStencil.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
     <ClInclude Include="VertexBuffer.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderResource.h">
+    <ClInclude Include="Texture2D.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
     <ClInclude Include="Application.h">
@@ -196,26 +223,11 @@
     <ClInclude Include="stbiHack.h">
       <Filter>Random</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
-      <Filter>RenderObjects</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture2D.h">
-      <Filter>RenderObjects</Filter>
-    </ClInclude>
     <ClInclude Include="ConstantBuffer.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
     <ClInclude Include="Sampler.h">
       <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>D3D12 Core</Filter>
-    </ClInclude>
-    <ClInclude Include="resource1.h">
-      <Filter>D3D12 Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DirectXTex\DDSTextureLoader\DDSTextureLoader12.h">
-      <Filter>Random</Filter>
     </ClInclude>
     <ClInclude Include="Timer.h">
       <Filter>Random</Filter>
@@ -223,8 +235,80 @@
     <ClInclude Include="Input.h">
       <Filter>Random</Filter>
     </ClInclude>
-    <ClInclude Include="HiddenDescHeap.h">
+    <ClInclude Include="HiddenDescriptorHeap.h">
       <Filter>D3D12 Core\Descriptor Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="ECSBase.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="PhongMaterial.h">
+      <Filter>D3D12 Core\Shader Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialManager.h">
+      <Filter>D3D12 Core\Shader Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture2DCache.h">
+      <Filter>D3D12 Core\Resource Management</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexBufferCache.h">
+      <Filter>D3D12 Core\Resource Management</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceCache.h">
+      <Filter>D3D12 Core\Resource Management</Filter>
+    </ClInclude>
+    <ClInclude Include="UserInterface.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imconfig.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imgui.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\backends\imgui_impl_dx12.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\backends\imgui_impl_win32.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imgui_internal.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imstb_rectpack.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imstb_textedit.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imstb_truetype.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="FreeList.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="MappedVector.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>D3D12 Core\Shader Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="StructuredBuffer.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderSystem.h">
+      <Filter>Engine Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -236,9 +320,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="aZeroEngine.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\sprites\snowflake.PNG" />
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

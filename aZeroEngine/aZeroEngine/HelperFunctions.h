@@ -1,8 +1,8 @@
 #pragma once
 #include "D3D12Include.h"
 #include "VertexDefinitions.h"
-#include "AppWindow.h"
-#include "VertexBuffer.h"
+//#include "AppWindow.h"
+#include "CommandList.h"
 #include <fstream>
 #include <type_traits>
 
@@ -20,7 +20,7 @@ namespace Helper
 
 	bool GetDisplaySettings(DEVMODEA* _devMode);
 
-	void GetWindowDimensions(AppWindow* _window);
+	/*void GetWindowDimensions(AppWindow* _window);*/
 
 	void GetWindowDimensions(UINT* _width, UINT* _height);
 
@@ -31,8 +31,6 @@ namespace Helper
 		CommandList* _cmdList, const void* _initData, int _rowPitch, int _slicePitch);
 
 	void CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc);
-
-	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, const std::string& _path, VertexBuffer& _vBuffer);
 
 	template<typename T>
 	void WriteToFile(std::ofstream& _file, const T& _data);

@@ -2,9 +2,12 @@
 #include <Windows.h>
 #include <string>
 #include "SwapChain.h"
+#include "imgui.h"
 
 class AppWindow
 {
+private:
+	HCURSOR cursor;
 public:
 	HWND windowHandle;
 	HINSTANCE instance;
@@ -25,14 +28,20 @@ public:
 		const std::wstring& _smallIconPath, const std::wstring& _bigIconPath);
 	bool Update();
 
+	HCURSOR& GetCursor() { return cursor; }
 };
 
 static SwapChain* sc = nullptr;
 static AppWindow* win = nullptr;
 static bool init = false;
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 static inline LRESULT CALLBACK WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(_hWnd, _msg, _wParam, _lParam))
+		return true;
+
 	switch (_msg)
 	{
 		case WM_KEYDOWN:
@@ -85,7 +94,8 @@ inline void AppWindow::Initialize(T* _wndProc, HINSTANCE _instance, int _width, 
 	wc.hInstance = _instance;
 	//wc.hIcon = LoadIcon(_instance, MAKEINTRESOURCE(path.c_str()));
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hCursor = LoadCursor(_instance, IDC_ARROW);
+	cursor = LoadCursor(_instance, IDC_ARROW);
+	wc.hCursor = cursor;
 	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	wc.lpszMenuName = 0;
 

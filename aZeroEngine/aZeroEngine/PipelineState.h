@@ -32,7 +32,7 @@ public:
 	@param _gsPath Path for the geometry shader.
 	@param _primitiveType Primitive topology type to be used.
 	*/
-	void Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, RasterState* _rasterState, int _numRenderTargets, DXGI_FORMAT _rtvFormat,
+	void Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, const RasterState& _rasterState, int _numRenderTargets, DXGI_FORMAT _rtvFormat,
 		DXGI_FORMAT _dsvFormat, const std::wstring& _vsPath, const std::wstring& _psPath,
 		const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE _primitiveType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);

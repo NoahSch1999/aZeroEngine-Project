@@ -1,11 +1,204 @@
 #pragma once
 #include <dinput.h>
 #include <iostream>
+#include <GameInput.h>
 
 namespace MouseButtons
 {
 	enum BUTTON { LEFT, RIGHT, MIDDLE, SIDE };
 }
+
+enum InpButtons { NONE, LEFT, RIGHT, MIDDLE, BTN4, BTN5 };
+
+class GameInput
+{
+private:
+	IGameInput* gameInput = nullptr;
+	IGameInputDevice* keyboardDevice = nullptr;
+
+	IGameInputDevice* mouseDevice = nullptr;
+	GameInputMouseState mouseState;
+	bool lastDownMouse[5];
+	bool downMouse[5];
+	int lastMouseWheelDir = 0;
+	int mouseWheelDir = 0;
+
+	int mouseXDir = 0;
+	int lastMouseXDir = 0;
+	int mouseYDir = 0;
+	int lastMouseYDir = 0;
+	int rawMouseX = 0;
+	int rawMouseY = 0;
+	float vSensitivity = 1.f;
+	float hSensitivity = 1.f;
+
+public:
+
+	int GetMouseWheelDirection() { return mouseWheelDir; }
+
+	Vector2 GetMouseDirections() { return Vector2(mouseXDir, mouseYDir); }
+	Vector2 GetRawMouseDirections() { return Vector2(rawMouseX, rawMouseY); }
+
+	void SetVerticalSensitivity(float _newSens) { vSensitivity = _newSens; }
+	float GetVerticalSensitivity() { return vSensitivity; }
+
+	void SetHorizontalSensitivity(float _newSens) { hSensitivity = _newSens; }
+	float GetHorizontalSensitivity() { return hSensitivity; }
+
+	GameInput()
+	{
+		HRESULT hr = GameInputCreate(&gameInput);
+		if (FAILED(hr))
+			throw;
+	}
+
+	~GameInput()
+	{
+		if (gameInput != nullptr)
+			gameInput->Release();
+
+		if (keyboardDevice != nullptr)
+			keyboardDevice->Release();
+
+		if (mouseDevice != nullptr)
+			mouseDevice->Release();
+	}
+
+	bool IsMouseButtonDown(InpButtons _btn)
+	{
+		if (downMouse[_btn])
+		{
+			if (!lastDownMouse[_btn])
+				return true;
+		}
+
+		return false;
+	}
+
+	void PrepNextFrame()
+	{
+		lastMouseWheelDir = mouseState.wheelY;
+		memcpy(lastDownMouse, downMouse, sizeof(downMouse));
+	}
+
+	void PollInputs()
+	{
+		IGameInputReading* reading;
+
+		if (SUCCEEDED(gameInput->GetCurrentReading(GameInputKindMouse, mouseDevice, &reading)))
+		{
+			if (!mouseDevice)
+				reading->GetDevice(&mouseDevice);
+
+			
+			reading->GetMouseState(&mouseState);
+			reading->Release();
+
+			if (mouseState.wheelY > lastMouseWheelDir)
+			{
+				mouseWheelDir = 1;
+			}
+			else if (mouseState.wheelY < lastMouseWheelDir)
+			{
+				mouseWheelDir = -1;
+			}
+			else
+			{
+				mouseWheelDir = 0;
+			}
+
+			if (mouseState.positionX > lastMouseXDir)
+			{
+				mouseXDir = 1;
+				rawMouseX = mouseState.positionX - lastMouseXDir;
+			}
+			else if (mouseState.positionX < lastMouseXDir)
+			{
+				mouseXDir = -1;
+				rawMouseX = mouseState.positionX - lastMouseXDir;
+			}
+			else
+			{
+				mouseXDir = 0;
+				rawMouseX = 0;
+			}
+
+			if (mouseState.positionY > lastMouseYDir)
+			{
+				mouseYDir = 1;
+				rawMouseY = mouseState.positionY - lastMouseYDir;
+			}
+			else if (mouseState.positionY < lastMouseYDir)
+			{
+				mouseYDir = -1;
+				rawMouseY = mouseState.positionY - lastMouseYDir;
+			}
+			else
+			{
+				mouseYDir = 0;
+				rawMouseY = 0;
+			}
+
+			/*if (rawMouseY != 0)
+			{
+				std::cout << rawMouseY << std::endl;
+			}*/
+
+			lastMouseXDir = mouseState.positionX;
+			lastMouseYDir = mouseState.positionY;
+
+			if (mouseState.buttons == GameInputMouseNone)
+				downMouse[0] = true;
+			else
+				downMouse[0] = false;
+
+			if (mouseState.buttons == GameInputMouseLeftButton)
+				downMouse[1] = true;
+			else
+				downMouse[1] = false;
+
+			if (mouseState.buttons == GameInputMouseRightButton)
+				downMouse[2] = true;
+			else
+				downMouse[2] = false;
+
+			if (mouseState.buttons == GameInputMouseMiddleButton)
+				downMouse[3] = true;
+			else
+				downMouse[3] = false;
+
+			if (mouseState.buttons == GameInputMouseButton4)
+				downMouse[4] = true;
+			else
+				downMouse[4] = false;
+
+			if (mouseState.buttons == GameInputMouseButton5)
+				downMouse[5] = true;
+			else
+				downMouse[5] = false;
+		}
+
+		if (SUCCEEDED(gameInput->GetCurrentReading(GameInputKindKeyboard, keyboardDevice, &reading)))
+		{
+			if (!keyboardDevice)
+				reading->GetDevice(&keyboardDevice);
+
+			/*uint32_t keyCount;
+			GameInputKeyState state;
+			reading->GetKeyState(keyCount, &state);
+			reading->Release();*/
+
+			// use state...
+
+			//
+		}
+		else
+		{
+			keyboardDevice->Release();
+			keyboardDevice = nullptr;
+		}
+	}
+};
 
 class Input
 {
@@ -60,13 +253,25 @@ public:
 		hr = keyboardDevice->SetDataFormat(&c_dfDIKeyboard);
 		if (FAILED(hr))
 			throw;
+
+		ShowCursor(true);
+	}
+
+	void AcquireDevices()
+	{
+		mouseDevice->Acquire();
+		keyboardDevice->Acquire();
+	}
+
+	void UnacquireDevices()
+	{
+		mouseDevice->Unacquire();
+		keyboardDevice->Unacquire();
 	}
 
 	void Update()
 	{
-		mouseDevice->Acquire();
-		keyboardDevice->Acquire();
-
+		AcquireDevices();
 		keyboardDevice->GetDeviceState(sizeof(diKeys), (LPVOID)&diKeys);
 
 		mouseDevice->GetDeviceState(sizeof(DIMOUSESTATE), (LPVOID)&currentState);
