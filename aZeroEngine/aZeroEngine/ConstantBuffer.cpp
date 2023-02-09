@@ -37,7 +37,7 @@ void ConstantBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, vo
 	rDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	rDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	Init<ResourceType::StaticResource>(_device, _cmdList, rDesc, rDesc, _initData);
+	Init<RESOURCETYPE::STATIC>(_device, _cmdList, rDesc, rDesc, _initData);
 	mainResource->SetName(_mainResourceName.c_str());
 
 	// clear intermediate somehow
@@ -63,7 +63,7 @@ void ConstantBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, v
 
 	isTrippleBuffered = _trippleBuffered;
 
-	Init<ResourceType::DynamicResource>(_device, _cmdList, rDesc, rDesc, _initData);
+	Init<RESOURCETYPE::DYNAMIC>(_device, _cmdList, rDesc, rDesc, _initData);
 
 	mainResource->SetName(_mainResourceName.c_str());
 	_mainResourceName + L".Intermediate";

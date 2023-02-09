@@ -73,6 +73,8 @@ public:
 	template<typename T>
 	void FreeReferenceID(int _ID);
 
+	std::vector<PhongMaterial>& GetPhongMaterials() { return phongMaterials.GetObjects(); }
+
 	bool Exists(const std::string& _name)
 	{
 		return phongMaterials.Exists(_name);
@@ -93,6 +95,8 @@ inline void MaterialManager::CreateMaterial(ID3D12Device* _device, ResourceManag
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
+		if (phongMaterials.Exists(_materialName))
+			return;
 		phongMaterials.Add(_materialName, PhongMaterial(_device, _rManager, _cmdList, _fileDirectory, _materialName, _textureCache));
 	}
 }

@@ -40,5 +40,5 @@ void StructuredBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList,
 
 	//D3D12_RESOURCE_DESC iDesc = rDesc;
 
-	Init<ResourceType::DynamicResource>(_device, _cmdList, rDesc, rDesc, nullptr);
+	Init<RESOURCETYPE::DYNAMIC>(_device, _cmdList, rDesc, rDesc, nullptr);
 }

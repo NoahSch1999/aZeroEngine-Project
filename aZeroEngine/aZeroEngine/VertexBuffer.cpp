@@ -97,7 +97,7 @@ void VertexBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void
 	rDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	rDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	Init<ResourceType::StaticResource>(_device, _cmdList, rDesc, rDesc, _initData);
+	Init<RESOURCETYPE::STATIC>(_device, _cmdList, rDesc, rDesc, _initData);
 
 	view.BufferLocation = mainResource->GetGPUVirtualAddress();
 	view.SizeInBytes = sizePerSubresource;

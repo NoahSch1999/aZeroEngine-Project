@@ -72,10 +72,10 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 		textureCache->LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "goblintexture.png");
 
 		materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "defaultMaterial");
-		materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
-		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png").GetHandle().GetHeapIndex();
-		//materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetBufferPtr()->SetState(D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
-		materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, frameIndex);
+		//materialManager.CreateMaterial<PhongMaterial>(device, &directCmdList, textureCache, "otherMaterial");
+		//materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetInfoPtr()->diffuseTextureID = textureCache->GetResource("goblintexture.png").GetHandle().GetHeapIndex();
+		////materialManager.GetMaterial<PhongMaterial>("otherMaterial")->GetBufferPtr()->SetState(D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_COPY_DEST);
+		//materialManager.GetMaterial<PhongMaterial>("otherMaterial")->Update(&directCmdList, frameIndex);
 
 		lManager = new LightManager(device, &directCmdList, 1, 10, 1);
 

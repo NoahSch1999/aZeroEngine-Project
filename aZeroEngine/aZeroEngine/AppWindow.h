@@ -99,6 +99,8 @@ inline void AppWindow::Initialize(T* _wndProc, HINSTANCE _instance, int _width, 
 	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	wc.lpszMenuName = 0;
 
+	instance = _instance;
+
 	// Register the window to the OS
 	if (!RegisterClass(&wc))
 		throw;

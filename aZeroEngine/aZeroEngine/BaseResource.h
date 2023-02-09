@@ -4,17 +4,9 @@
 #include <type_traits>
 #include "HelperFunctions.h"
 
-namespace ResourceType {
-	struct StaticResource
-	{
-		char x;
-	};
-
-	struct DynamicResource
-	{
-		char x;
-	};
-}
+/** @brief Enumeration to be used in conjunction with the BaseResource::Init() method to specify what type of resource to initialize.
+*/
+enum class RESOURCETYPE { DYNAMIC, STATIC };
 
 /** @brief The base class for all resources.
 */
@@ -34,7 +26,7 @@ protected:
 	void* mappedBuffer = nullptr;
 	bool isInitiated = false;
 
-	template<typename T>
+	template<RESOURCETYPE ResourceType>
 	void Init(ID3D12Device* _device, CommandList* _cmdList, const D3D12_RESOURCE_DESC& _mDesc, D3D12_RESOURCE_DESC _iDesc, void* _initData);
 
 public:
@@ -158,10 +150,10 @@ public:
 	void Update(CommandList* _cmdList, const void* _data, int _numBytes, int _frameIndex, int _offset = 0);
 };
 
-template<typename T>
+template<RESOURCETYPE ResourceType>
 inline void BaseResource::Init(ID3D12Device* _device, CommandList* _cmdList, const D3D12_RESOURCE_DESC& _mDesc, D3D12_RESOURCE_DESC _iDesc, void* _initData)
 {
-	if constexpr (std::is_same_v<T, ResourceType::StaticResource>)
+	if constexpr (ResourceType == RESOURCETYPE::STATIC)
 	{
 		isStatic = true;
 		isInitiated = true;
@@ -170,7 +162,7 @@ inline void BaseResource::Init(ID3D12Device* _device, CommandList* _cmdList, con
 		mainResourceState = D3D12_RESOURCE_STATE_COPY_DEST;
 		TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATE_GENERIC_READ);
 	}
-	else if constexpr (std::is_same_v<T, ResourceType::DynamicResource>)
+	else if constexpr (ResourceType == RESOURCETYPE::DYNAMIC)
 	{
 		isStatic = false;
 		isInitiated = true;
@@ -190,7 +182,7 @@ inline void BaseResource::Init(ID3D12Device* _device, CommandList* _cmdList, con
 	}
 	else
 	{
-		static_assert(std::is_same_v<T, ResourceType::StaticResource> || std::is_same_v<T, ResourceType::DynamicResource>, "T is an invalid input.");
+		static_assert(ResourceType != RESOURCETYPE::STATIC || ResourceType != RESOURCETYPE::DYNAMIC, "T is an invalid input.");
 	}
 
 	gpuAddress = mainResource->GetGPUVirtualAddress();

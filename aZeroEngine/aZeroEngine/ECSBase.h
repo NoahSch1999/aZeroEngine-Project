@@ -118,6 +118,7 @@ struct Entity
 	Entity() = default;
 	int id = -1; /**<Unique ID mapped to a component within the ComponentManager class that the component was registered for using ComponentManager::RegisterComponent(Entity& _entity, const T& _initValue)*/
 	std::bitset<MAXCOMPONENTS> componentMask; /**<Describes what type of components that the instance of the Entity has registered*/
+	bool disabled = false;
 };
 
 /// \private

@@ -36,7 +36,7 @@ public:
 		std::string textureName = _textureCache->GetTextureName(info.diffuseTextureID);
 		int numBytes = sizeof(int) + textureName.length() + sizeof(Vector3) + sizeof(Vector3) + sizeof(float);
 
-		std::ofstream file(_fileDirectory + "/" + _name + ".azm", std::ios::trunc | std::ios::out | std::ios::binary);
+		std::ofstream file(_fileDirectory + _name + ".azm", std::ios::trunc | std::ios::out | std::ios::binary);
 
 		Helper::WriteToFile(file, textureName);
 		file.write((char*)&info.ambientAbsorbation, sizeof(Vector3));
@@ -47,7 +47,7 @@ public:
 
 		if (_debugASCII)
 		{
-			std::ofstream file(_fileDirectory + "/" + _name + "_ASCII.txt", std::ios::trunc | std::ios::out);
+			std::ofstream file(_fileDirectory + _name + "_ASCII.txt", std::ios::trunc | std::ios::out);
 			file << "Type: Phong\n";
 			file << "Diffuse Texture Name: " << textureName << "\n";
 			file << "Ambient Absorbation: [" << info.ambientAbsorbation.x << ":" << info.ambientAbsorbation.y << ":" << info.ambientAbsorbation.z << "]\n";

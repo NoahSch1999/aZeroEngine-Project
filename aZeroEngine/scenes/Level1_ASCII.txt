@@ -1,0 +1,78 @@
+--------------------------------------------------------------------
+Entity Name: Entity_0
+|---------Transform Data--------|
+1 0 0 0
+0 1 0 0
+0 0 1 0
+0 1 0 1
+
+|---------Mesh Data-------------|
+Filename: demoCube
+
+|---------Material Data-------------|
+Material Name: noah
+--------------------------------------------------------------------
+Entity Name: Entity_1
+|---------Transform Data--------|
+1 0 0 0
+0 1 0 0
+0 0 1 0
+1 0 0 1
+
+|---------Mesh Data-------------|
+Filename: goblin
+
+|---------Material Data-------------|
+Material Name: noah
+--------------------------------------------------------------------
+Entity Name: Entity_2
+|---------Transform Data--------|
+1 0 0 0
+0 1 0 0
+0 0 1 0
+1 0 2 1
+
+|---------Mesh Data-------------|
+Filename: goblin
+
+|---------Material Data-------------|
+Material Name: hej
+--------------------------------------------------------------------
+Entity Name: Entity_3
+|---------Transform Data--------|
+1 0 0 0
+0 1 0 0
+0 0 1 0
+3 0 0 1
+
+|---------Mesh Data-------------|
+Filename: goblin
+
+|---------Material Data-------------|
+Material Name: hej
+--------------------------------------------------------------------
+Entity Name: Entity_4
+|---------Transform Data--------|
+1 0 0 0
+0 1 0 0
+0 0 1 0
+2 0 4 1
+
+|---------Mesh Data-------------|
+Filename: goblin
+
+|---------Material Data-------------|
+Material Name: noah
+--------------------------------------------------------------------
+Entity Name: Entity_10
+|---------Transform Data--------|
+1 0 0 0
+0 1 0 0
+0 0 1 0
+0 0 0 1
+
+|---------Mesh Data-------------|
+Filename: demoCube
+
+|---------Material Data-------------|
+Material Name: noah

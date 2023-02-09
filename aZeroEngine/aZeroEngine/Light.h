@@ -50,8 +50,8 @@ public:
 	LightList(ID3D12Device* _device, CommandList* _cmdList, int _maxLights)
 	{
 		maxLights = _maxLights;
-		lightsBuffer.Init(_device, _cmdList, maxLights, sizeof(T));
-		lightsIndicesBuffer.Init(_device, _cmdList, maxLights, sizeof(int));
+		lightsBuffer.InitDynamic(_device, _cmdList, nullptr, sizeof(T) * maxLights, maxLights, false, L"");
+		lightsIndicesBuffer.InitDynamic(_device, _cmdList, nullptr, sizeof(int) * maxLights, maxLights, false, L"");
 
 		for (int i = 0; i < maxLights; i++)
 		{
@@ -133,63 +133,15 @@ public:
 		pLightList(_device, _cmdList, _maxPointLights),
 		sLightList(_device, _cmdList, _maxSpotLights)
 	{
-		numLightsCB.InitAsDynamic(_device, _cmdList, (void*)&numLights, sizeof(NumLights));
-		numLightsCB.GetResource()->SetName(L"CB NUM LIGHTS");
+		numLightsCB.InitDynamic(_device, _cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
+		numLightsCB.GetMainResource()->SetName(L"CB NUM LIGHTS");
 	}
 
 	template<typename T>
 	void AddLight(const T& _light, int& _index);
-	//{
-	//	
-	//	//if (freeIndices.empty())
-	//	//	return;
-
-	//	//_index = freeIndices.front();
-	//	//freeIndices.pop_front();
-
-	//	//usedIndices.push_back(_index);
-	//	//
-	//	//int tempSize = usedIndices.size();
-	//	//std::vector<int>tempIndices(tempSize);
-	//	//for (int i = 0; i < tempSize; i++)
-	//	//{
-	//	//	tempIndices[i] = usedIndices.at(i);
-	//	//}
-
-	//	//pointLightIndicesSRV.Update(0, tempIndices.data(), sizeof(int) * tempSize);
-
-	//	//pointLightSRV.Update(_index, (void*)&_pointLight, sizeof(PointLight));
-
-	//	//numLights.numPointLights = tempSize;
-	//	//cb.Update((void*)&numLights, sizeof(NumLights));
-	//}
 
 	template<typename T>
 	void RemoveLight(int _index);
-	//{
-	//	//int tempSize = usedIndices.size();
-	//	//for (int i = 0; i < usedIndices.size(); i++)
-	//	//{
-	//	//	if (usedIndices.at(i) == _index)
-	//	//	{
-	//	//		freeIndices.push_front(_index);
-	//	//		usedIndices.erase(usedIndices.begin() + i);
-
-	//	//		tempSize--;
-	//	//		std::vector<int>tempIndices(tempSize);
-	//	//		for (int i = 0; i < tempSize; i++)
-	//	//		{
-	//	//			tempIndices[i] = usedIndices.at(i);
-	//	//		}
-
-	//	//		pointLightIndicesSRV.Update(0, tempIndices.data(), sizeof(int) * tempSize);
-	//	//		numLights.numPointLights = tempSize;
-	//	//		cb.Update((void*)&numLights, sizeof(NumLights));
-
-	//	//		return;
-	//	//	}
-	//	//}
-	//}
 
 	void UpdateLight(const PointLight& _pointLight, int _index)
 	{

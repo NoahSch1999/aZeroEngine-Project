@@ -41,6 +41,7 @@ private:
 
 	ResourceManager* rManager;
 
+	std::unordered_map<int, std::string>entityIdToName;
 public:
 	MappedVector<Entity>entities;
 
@@ -123,7 +124,7 @@ public:
 				PhongMaterial* phong = mManager->GetMaterial<PhongMaterial>(matComp->materialID);
 				Helper::WriteToFile(file, phong->name);
 
-				phong->Save(_fileDirectory, phong->name, textureCache, _debugASCII);
+				phong->Save("..\\materials\\", phong->name, textureCache, _debugASCII);
 			}
 			else
 			{
@@ -266,7 +267,7 @@ public:
 				}
 				else
 				{
-					mManager->CreateMaterial<PhongMaterial>(_device, rManager, _cmdList, textureCache, _fileDirectory, matName);
+					mManager->CreateMaterial<PhongMaterial>(_device, rManager, _cmdList, textureCache, "..\\materials\\", matName);
 					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
 				}
 
@@ -296,17 +297,12 @@ public:
 		Entity tempEnt = eManager->CreateEntity();
 		int num = tempEnt.id;
 		const std::string name = CheckName("Entity_" + std::to_string(num));
-		/*if (entities.Exists("Entity_" + std::to_string(num)))
-		{
-			num = FindRec(num);
-		}*/
-		//std::string name("Entity_" + std::to_string(num));
 		entities.Add(name, tempEnt);
 		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
 		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
-
+		entityIdToName.emplace(tempEnt.id, name);
 		// Find unique name...
 
 		return entity;
@@ -332,7 +328,7 @@ public:
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
 		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
-
+		entityIdToName.emplace(tempEnt.id, name);
 		// Find unique name...
 
 		return entities.Get(_name);
@@ -341,6 +337,11 @@ public:
 	Entity& GetEntity(const std::string& _name)
 	{
 		return entities.Get(_name);
+	}
+
+	const std::string GetEntityName(const Entity& _entity) const
+	{
+		return entityIdToName.at(_entity.id);
 	}
 
 	/**Registers a default Mesh component for the specified Entity object and binds the Entity to the appropriate systems.
@@ -376,9 +377,6 @@ inline void Scene::AddComponentToEntity(Entity& _entity, const T& _data)
 	{
 		cManager->RegisterComponent<MaterialComponent>(_entity, _data);
 	}
-	
-
-	// Add to systems...?
 }
 
 template<typename T>
@@ -392,10 +390,6 @@ inline void Scene::RemoveComponentFromEntity(Entity& _entity)
 	{
 		cManager->RegisterComponent<Mesh>(_entity);
 	}
-
-	// Unregister from all systems using the Mesh component...
-
-	// ...
 }
 
 template<typename T>

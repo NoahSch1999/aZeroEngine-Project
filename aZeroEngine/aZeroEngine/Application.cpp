@@ -15,7 +15,7 @@ void Application::Initialize(HINSTANCE _instance, int _width, int _height)
 	sc = graphics->swapChain;
 	win = window;
 	init = true;
-	ui = new EditorUI(graphics, window->windowHandle);
+	ui = new EditorUI(graphics, window);
 }
 
 void Application::Run()
@@ -72,7 +72,7 @@ void Application::Run()
 
 		if (input->KeyDown(DIK_V))
 		{
-			graphics->scene->Save("C:/Users/Noah Schierenbeck/Desktop/Test", "Level1", true);
+			graphics->scene->Save("..\\scenes\\", "Level1", true);
 		}
 		if (input->KeyDown(DIK_B) )
 		{
@@ -86,7 +86,7 @@ void Application::Run()
 				delete graphics->scene;
 			}
 			graphics->scene = new Scene(graphics->ecs, graphics->vbCache, &graphics->materialManager, &graphics->resourceManager, graphics->textureCache);
-			graphics->scene->Load(graphics->device, &graphics->directCmdList, graphics->frameIndex, "C:/Users/Noah Schierenbeck/Desktop/Test", "Level1");
+			graphics->scene->Load(graphics->device, &graphics->directCmdList, graphics->frameIndex, "..\\scenes\\", "Level1");
 			for (const auto& ent : graphics->scene->entities.GetObjects())
 			{
 				graphics->renderSystem->Bind(ent);

@@ -1,0 +1,5 @@
+Type: Phong
+Diffuse Texture Name: sadcat.png
+Ambient Absorbation: [1:1:1]
+Specular Absorbation: [32:1:1]
+Specular Shininess Exponent: 1

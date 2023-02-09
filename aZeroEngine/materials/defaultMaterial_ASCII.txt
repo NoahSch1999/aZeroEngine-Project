@@ -1,0 +1,5 @@
+Type: Phong
+Diffuse Texture Name: defaultDiffuse.png
+Ambient Absorbation: [1:1:1]
+Specular Absorbation: [1:1:1]
+Specular Shininess Exponent: 1

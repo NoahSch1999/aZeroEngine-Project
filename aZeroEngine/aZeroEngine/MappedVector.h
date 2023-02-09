@@ -17,15 +17,23 @@ private:
 public:
 	MappedVector() = default;
 
+	/** Returns a reference to the std::unordered_map that contains the hash keys corresponding to the internal std::vector indices.
+	@return std::unordered_map<std::string, int>&
+	*/
 	std::unordered_map<std::string, int>& GetStringToIndexMap() { return strToIndex; }
 
 	/** Adds the input object to the internal vector and maps the index to the input string value.
+	* Doesn't check for already existing objects with the same key. It is up to the developer to check this by for example calling MappedVector::Exists().
+	* In case of the key already existing, it will replace so that the key refers to the new object instead, which will make the old object inaccessible by the key value.
 	@param _name Key value which gets mapped to the objects' index within the internal vector
 	@param _object Object that gets copied to the internal vector
 	@return void
 	*/
 	void Add(const std::string& _name, const T& _object);
+
 	/** Frees up the index/space for the object that matches the input key value
+	* Doesn't check if an object with the input key actually exists. It is up to the developer to check this by for example calling MappedVector::Exists().
+	* Since it will call std::unordered_map::Erase() on a non-existing hash key, it will throw an exception.
 	@param _name Key value which is mapped to the objects index which will get open for reuse.
 	@return void
 	*/
@@ -38,12 +46,14 @@ public:
 	int GetID(const std::string& _name);
 
 	/** Returns a reference to the object within the internal vector.
+	* The reference may be invalidated if an object is added or removed by for example calling MappedVector::Add() or MappedVector::Remove().
 	@param _name Key value which is mapped with the object returned
 	@return void
 	*/
 	T& Get(const std::string& _name);
 
 	/** Returns a reference to the object within the internal vector.
+	* The reference may be invalidated if an object is added or removed by for example calling MappedVector::Add() or MappedVector::Remove().
 	@param _ID Internal vector index to the object returned. Index can be retrieved using MappedVector::Get(int)
 	@return void
 	*/
@@ -61,6 +71,7 @@ public:
 	}
 
 	/** Returns a reference to the internal vector containing the actual objects.
+	* The reference may be invalidated if an object is added or removed by for example calling MappedVector::Add() or MappedVector::Remove().
 	@return std::vector<T>&
 	*/
 	std::vector<T>& GetObjects();
@@ -69,9 +80,6 @@ public:
 template<typename T>
 inline void MappedVector<T>::Add(const std::string& _name, const T& _object)
 {
-	if (strToIndex.count(_name) > 0)
-		return;
-
 	int newIndex = -1;
 	if (freeIndices.empty())
 	{
@@ -91,9 +99,6 @@ inline void MappedVector<T>::Add(const std::string& _name, const T& _object)
 template<typename T>
 inline void MappedVector<T>::Remove(const std::string& _name)
 {
-	if (strToIndex.count(_name) == 0)
-		return;
-
 	int freeIndex = strToIndex.at(_name);
 	strToIndex.erase(_name);
 	freeIndices.push_back(freeIndex);

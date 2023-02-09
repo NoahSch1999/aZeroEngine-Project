@@ -68,6 +68,8 @@ float4 main(FragmentInput input) : SV_Target
         float3 tempColor = currentLight.color * lightAffectDir;
 
         color += float4(tempColor, 0.f);
+        
+        color *= float4(ambientAbsorbation, 1.f);
     }
     return color;
 
