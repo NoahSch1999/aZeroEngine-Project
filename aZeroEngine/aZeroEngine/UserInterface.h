@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include <Psapi.h>
 #include <filesystem>
+#include "ImGuizmo.h"
 //#include <ShObjIdl_core.h>
 
 #ifdef _DEBUG
@@ -30,15 +31,14 @@ private:
 	DescriptorHandle heapHandle;
 	ImGuiIO io;
 protected:
-	Graphics* graphics;
-	AppWindow* window;
+	Graphics& graphics;
+	AppWindow& window;
 	ImVec4 clearColor;
 
 public:
-	UserInterface(Graphics* _graphics, AppWindow* _window)
+	UserInterface(Graphics& _graphics, AppWindow& _window)
+		:graphics(_graphics), window(_window)
 	{
-		graphics = _graphics;
-		window = _window;
 
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
@@ -49,9 +49,9 @@ public:
 		ImGui::StyleColorsDark();
 
 		// Setup Platform/Renderer backends
-		ImGui_ImplWin32_Init(_window->windowHandle);
-		heapHandle = _graphics->resourceManager.GetPassDescriptor();
-		ImGui_ImplDX12_Init(_graphics->device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, _graphics->resourceManager.GetResourceHeap(), heapHandle.GetCPUHandle(), heapHandle.GetGPUHandle());
+		ImGui_ImplWin32_Init(_window.windowHandle);
+		heapHandle = _graphics.resourceManager.GetPassDescriptor();
+		ImGui_ImplDX12_Init(_graphics.device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, _graphics.resourceManager.GetResourceHeap(), heapHandle.GetCPUHandle(), heapHandle.GetGPUHandle());
 
 		clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	}
@@ -61,12 +61,13 @@ public:
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	void Render(CommandList* _cmdList)
 	{
 		ImGui::Render();
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _cmdList->graphic);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _cmdList->GetGraphicList());
 	}
 
 };
@@ -87,7 +88,7 @@ public:
 	std::string selectedMaterialStr = "";
 	int selectedMaterialID = -1;
 
-	EditorUI(Graphics* _graphics, AppWindow* _window)
+	EditorUI(Graphics& _graphics, AppWindow& _window)
 		:UserInterface(_graphics, _window)
 	{
 

@@ -1,6 +1,8 @@
 #pragma once
-#include "ShaderDescriptorHeap.h"
-#include "BaseResource.h"
+#include "DescriptorHandle.h"
+#include "VertexDefinitions.h"
+
+class DescriptorHandle;
 
 class Sampler
 {

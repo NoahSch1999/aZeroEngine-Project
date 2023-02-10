@@ -146,6 +146,9 @@
     <ClCompile Include="RenderSystem.cpp">
       <Filter>Engine Core</Filter>
     </ClCompile>
+    <ClCompile Include="..\ImGui\ImGuizmo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommandAllocator.h">
@@ -309,6 +312,9 @@
     </ClInclude>
     <ClInclude Include="RenderSystem.h">
       <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\ImGuizmo.h">
+      <Filter>ImGui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

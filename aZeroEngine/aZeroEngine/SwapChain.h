@@ -1,11 +1,8 @@
 #pragma once
-#include "D3D12Include.h"
 #include "CommandQueue.h"
 #include <vector>
 #include "RenderTarget.h"
-#include "HiddenDescriptorHeap.h"
 #include "DepthStencil.h"
-#include "CommandQueue.h"
 
 class SwapChain
 {

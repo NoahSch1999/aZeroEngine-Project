@@ -107,7 +107,7 @@ void Helper::CreateCommitedResourceStatic(ID3D12Device* _device, ID3D12Resource*
 	sData.RowPitch = _rowPitch;
 	sData.SlicePitch = _slicePitch;
 
-	UpdateSubresources(_cmdList->graphic, _mainResource, _interResource, 0, 0, 1, &sData);
+	UpdateSubresources(_cmdList->GetGraphicList(), _mainResource, _interResource, 0, 0, 1, &sData);
 
 }
 

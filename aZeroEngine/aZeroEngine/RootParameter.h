@@ -4,7 +4,7 @@
 class RootParameters
 {
 private:
-	std::vector<D3D12_ROOT_PARAMETER>parameters;
+	std::vector<D3D12_ROOT_PARAMETER> parameters;
 	D3D12_DESCRIPTOR_RANGE ranges[100];
 	int num = 0;
 public:

@@ -1,7 +1,9 @@
 #pragma once
 #include "BaseResource.h"
 #include "ShaderDescriptorHeap.h"
-#include "CommandList.h"
+
+class BaseResource;
+class ShaderDescriptorHeap;
 
 /*
 I HAVE TO FIX SO THIS USES REAL TRIPPLE BUFFERING INSTEAD OF MEMCPY STUFF (WITH THIS I MEAN THE SAME WAY THAT THE CONSTANT BUFFER IS IMPLEMENTED).

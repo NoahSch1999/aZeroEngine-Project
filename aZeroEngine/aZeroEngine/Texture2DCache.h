@@ -7,7 +7,7 @@
 class Texture2DCache : public ResourceCache<Texture2D>
 {
 private:
-	std::unordered_map<int, std::string>indexToStr;
+	std::unordered_map<int, std::string> indexToStr;
 public:
 	Texture2DCache();
 

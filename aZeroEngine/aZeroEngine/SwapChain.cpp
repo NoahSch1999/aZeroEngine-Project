@@ -35,7 +35,7 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	fullScreenDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
 	fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 
-	hr = dxgiFactory->CreateSwapChainForHwnd(_cmdQueue->queue, _winHandle, &scDesc, nullptr, 0, &swapChain);
+	hr = dxgiFactory->CreateSwapChainForHwnd(_cmdQueue->GetQueue(), _winHandle, &scDesc, nullptr, 0, &swapChain);
 	if (FAILED(hr))
 		throw;
 

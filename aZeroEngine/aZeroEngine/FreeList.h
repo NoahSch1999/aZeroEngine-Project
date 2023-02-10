@@ -5,7 +5,7 @@
 class FreeList
 {
 private:
-	std::deque<int>queue;
+	std::deque<int> queue;
 	int maxValues = -1;
 	std::mutex mutex;
 public:

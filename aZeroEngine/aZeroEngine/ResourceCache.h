@@ -9,8 +9,8 @@ template<typename T>
 class ResourceCache
 {
 protected:
-	std::vector<ID3D12Resource*>intermediateResources;
-	MappedVector<T>resourceMVec;
+	std::vector<ID3D12Resource*> intermediateResources;
+	MappedVector<T> resourceMVec;
 public:
 	ResourceCache() = default;
 	/**Clears all the resources within the unordered map

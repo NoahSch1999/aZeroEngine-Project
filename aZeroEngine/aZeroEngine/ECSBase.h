@@ -13,9 +13,12 @@ Github: https://github.com/NoahSch1999
 #include <bitset>
 #include <type_traits>
 #include <queue>
-#include "HelperFunctions.h"
 #include "VertexBuffer.h"
 #include "ConstantBuffer.h"
+
+class BaseResource;
+class VertexBuffer;
+class ConstantBuffer;
 
 // COMPONENTS
 /**
@@ -125,9 +128,9 @@ struct Entity
 template<typename T>
 struct BiDirectionalMap
 {
-	std::unordered_map<int, int>idToIndex;
-	std::unordered_map<int, int>indexToId;
-	std::vector<T>objects;
+	std::unordered_map<int, int> idToIndex;
+	std::unordered_map<int, int> indexToId;
+	std::vector<T> objects;
 
 	BiDirectionalMap() = default;
 
@@ -137,7 +140,7 @@ struct BiDirectionalMap
 
 	void Clear();
 
-	T* GetObjectByID(int _id);
+	T* GetObjectByID(int _id){ return &objects[idToIndex.at(_id)]; }
 };
 
 /** @brief An abstract base class for systems used within the ECS framework. New systems should inherit from this and implement appropriate functionality for the ECSystem::Update() pure virtual method.
@@ -145,7 +148,7 @@ struct BiDirectionalMap
 class ECSystem
 {
 protected:
-	BiDirectionalMap<Entity>entityIDMap; /**< A bi-directional map containing an internal std::vector of copies of bound Entity objects.*/
+	BiDirectionalMap<Entity> entityIDMap; /**< A bi-directional map containing an internal std::vector of copies of bound Entity objects.*/
 public:
 
 	std::bitset<MAXCOMPONENTS> componentMask; /**<Describes what type of components a bound Entity should have registered. This should be overwritten in the constructor of an inheriting class.*/
@@ -247,9 +250,9 @@ private:
 	//BiDirectionalMap<Comp2>comp2Map;
 	//BiDirectionalMap<Comp3>comp3Map;
 	// ---------------------------------------------------------------
-	BiDirectionalMap<Transform>transformMap;
-	BiDirectionalMap<Mesh>meshMap;
-	BiDirectionalMap<MaterialComponent>materialMap;
+	BiDirectionalMap<Transform> transformMap;
+	BiDirectionalMap<Mesh> meshMap;
+	BiDirectionalMap<MaterialComponent> materialMap;
 
 public:
 	ComponentManager() = default;
@@ -303,7 +306,7 @@ class EntityManager
 {
 private:
 	unsigned int maxEntities;
-	std::queue<int>freeIDs;
+	std::queue<int> freeIDs;
 public:
 	/** Initiates free Entity object IDs.
 	@param _maxEntities Specifies how many Entity IDs that will be generated.
@@ -464,12 +467,6 @@ inline void BiDirectionalMap<T>::Clear()
 	indexToId.clear();
 	objects.clear();
 	objects.resize(0);
-}
-
-template<typename T>
-inline T* BiDirectionalMap<T>::GetObjectByID(int _id)
-{
-	return &objects[idToIndex.at(_id)];
 }
 
 template<typename T>

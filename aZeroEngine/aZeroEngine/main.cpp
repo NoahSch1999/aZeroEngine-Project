@@ -8,10 +8,12 @@ extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 608; }
 
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
-static Application* app = nullptr;
+//static Application* app = nullptr;
+#ifdef _DEBUG
 ID3D12Debug* d3d12Debug;
 IDXGIDebug* idxgiDebug;
-enum class XS { HEJ , HI};
+#endif // DEBUG
+
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int showCommand)
 {
 
@@ -21,14 +23,15 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int s
 	DXGIGetDebugInterface1(0, IID_PPV_ARGS(&idxgiDebug));
 #endif // DEBUG
 
-	app = new Application(instance, 1920, 1080/*800, 600*/);
+	{
+		Application app(instance, 1920, 1080/*800, 600*/);
+		//app = new Application
 
-	app->Run();
-
-	delete app;
-	HRESULT  hr = idxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-
+		app.Run();
+	}
+	//delete app;
 #ifdef _DEBUG
+	HRESULT  hr = idxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
 	d3d12Debug->Release();
 	idxgiDebug->Release();
 #endif // DEBUG

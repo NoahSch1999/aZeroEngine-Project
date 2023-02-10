@@ -1,8 +1,6 @@
 #pragma once
 #include "PhongMaterial.h"
-#include "MappedVector.h"
-#include "ResourceManager.h"
-
+class PhongMaterial;
 
 /** @brief Manages materials.
 * All the functions can be used to create, remove, or get a material.
@@ -13,9 +11,19 @@
 class MaterialManager
 {
 private:
-	MappedVector<PhongMaterial>phongMaterials; // Change from PhongMaterial* to PhongMaterial!!!!
+	MappedVector<PhongMaterial>phongMaterials;
+	ResourceManager* rManager;
 public:
 	MaterialManager() = default;
+
+	void Init(ResourceManager* _rManager) { rManager = _rManager; }
+
+	~MaterialManager() {
+		for (auto& mat : phongMaterials.GetObjects())
+		{
+			RemoveMaterial<PhongMaterial>(mat.GetName());
+		}
+	}
 
 	/** Creates a new material and adds it to the internal MappedVector for the template specified material type.
 	@param _device The main ID3D12Device instance used
@@ -26,10 +34,10 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _materialName);
+	void CreateMaterial(ID3D12Device* _device, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _materialName);
 
 	template<typename T>
-	void CreateMaterial(ID3D12Device* _device, ResourceManager* _rManager, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _fileDirectory, const std::string _materialName);
+	void CreateMaterial(ID3D12Device* _device, ResourceManager& _rManager, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _fileDirectory, const std::string _materialName);
 
 	template<typename T>
 	void CreateMaterial(const T& _material);
@@ -40,7 +48,7 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void RemoveMaterial(const std::string& _materialName, ResourceManager* _resourceManager);
+	void RemoveMaterial(const std::string& _materialName);
 
 	/** Returns a pointer to the material specified with template arguments and unique name.
 	@param _materialName Name of the material to retrieve. Has to exist, otherwise there could be a potential crash
@@ -82,7 +90,7 @@ public:
 };
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _materialName)
+inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
@@ -91,7 +99,7 @@ inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList* 
 }
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* _device, ResourceManager* _rManager, CommandList* _cmdList, Texture2DCache* _textureCache, const std::string _fileDirectory, const std::string _materialName)
+inline void MaterialManager::CreateMaterial(ID3D12Device* _device, ResourceManager& _rManager, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _fileDirectory, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
@@ -111,11 +119,13 @@ inline void MaterialManager::CreateMaterial(const T& _material)
 }
 
 template<typename T>
-inline void MaterialManager::RemoveMaterial(const std::string& _materialName, ResourceManager* _resourceManager)
+inline void MaterialManager::RemoveMaterial(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		_resourceManager->FreePassDescriptor(phongMaterials.Get(_materialName).GetHandle().heapIndex);
+		phongMaterials.Get(_materialName).GetBufferPtr().ReleaseMain();
+		phongMaterials.Get(_materialName).GetBufferPtr().ReleaseIntermediate();
+		rManager->FreePassDescriptor(phongMaterials.Get(_materialName).GetHandle().GetHeapIndex());
 		phongMaterials.Remove(_materialName);
 	}
 }

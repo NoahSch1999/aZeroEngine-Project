@@ -1,7 +1,5 @@
 #pragma once
 #include "DescriptorHandle.h"
-#include "CommandList.h"
-#include <type_traits>
 #include "HelperFunctions.h"
 
 /** @brief Enumeration to be used in conjunction with the BaseResource::Init() method to specify what type of resource to initialize.
@@ -38,6 +36,11 @@ public:
 	*/
 	bool GetIsStatic() { return isStatic; }
 
+	/**Releases the main resource.
+	@return void
+	*/
+	void ReleaseMain();
+
 	/**Releases the intermediate resource.
 	@return void
 	*/
@@ -60,7 +63,7 @@ public:
 	/**Return the GPU virtual address.
 	@return D3D12_GPU_VIRTUAL_ADDRESS
 	*/
-	virtual D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() { return gpuAddress; }
+	virtual D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const { return gpuAddress; }
 
 	/**Sets the GPU virtual address.
 	@param _gpuAddress The new virtual GPU address.
@@ -160,7 +163,7 @@ inline void BaseResource::Init(ID3D12Device* _device, CommandList* _cmdList, con
 		Helper::CreateCommitedResourceStatic(_device, mainResource, _mDesc, intermediateResource, _iDesc, _cmdList, _initData, sizePerSubresource, sizePerSubresource);
 		gpuAddress = mainResource->GetGPUVirtualAddress();
 		mainResourceState = D3D12_RESOURCE_STATE_COPY_DEST;
-		TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATE_GENERIC_READ);
+		TransitionMain(_cmdList->GetGraphicList(), D3D12_RESOURCE_STATE_GENERIC_READ);
 	}
 	else if constexpr (ResourceType == RESOURCETYPE::DYNAMIC)
 	{

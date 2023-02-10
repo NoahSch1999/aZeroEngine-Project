@@ -1,20 +1,8 @@
 #pragma once
 #include <iostream>
 #include "SwapChain.h"
-#include "ShaderDescriptorHeap.h"
-#include "HiddenDescriptorHeap.h"
-#include "DepthStencil.h"
-#include "VertexBufferCache.h"
-#include "MaterialManager.h"
 #include "RenderSystem.h"
-#include "ResourceManager.h"
-
-// TESTING
-#include "ConstantBuffer.h"
-#include "VertexDefinitions.h"
-
 #include "Scene.h"
-#include "RenderSystem.h"
 
 class Graphics
 {
@@ -31,14 +19,14 @@ public:
 	void WaitForGPU();
 
 	ID3D12Device* device;
-	CommandQueue* directCommandQueue;
+	CommandQueue directCommandQueue;
 
 	HiddenDescriptorHeap* rtvHeap;
 	HiddenDescriptorHeap* dsvHeap;
 
 	// temp
 	CommandList directCmdList;
-	CommandAllocator* allocator;
+	CommandAllocator allocator;
 
 	// Presenting and culling
 	SwapChain* swapChain;
@@ -47,14 +35,14 @@ public:
 	int frameIndex;
 	int frameCount;
 
-	VertexBufferCache* vbCache;
-	Texture2DCache* textureCache;
+	VertexBufferCache vbCache;
+	Texture2DCache textureCache;
 	ResourceManager resourceManager;
 	MaterialManager materialManager;
-	LightManager* lManager;
+	LightManager lManager;
 
 	Scene* scene = nullptr;
-	ECS* ecs;
+	ECS ecs;
 
 	BasicRendererSystem* renderSystem;
 };

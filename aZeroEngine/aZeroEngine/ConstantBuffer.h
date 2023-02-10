@@ -1,8 +1,6 @@
 #pragma once
 #include "BaseResource.h"
 #include "ShaderDescriptorHeap.h"
-#include "HiddenDescriptorHeap.h"
-#include "CommandList.h"
 
 /** @brief Encapsulates a constant buffer.
 Can be either static or dynamic (single or tripple-buffered).

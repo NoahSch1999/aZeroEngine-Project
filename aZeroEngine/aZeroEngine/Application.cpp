@@ -15,7 +15,7 @@ void Application::Initialize(HINSTANCE _instance, int _width, int _height)
 	sc = graphics->swapChain;
 	win = window;
 	init = true;
-	ui = new EditorUI(graphics, window);
+	ui = new EditorUI(*graphics, *window);
 }
 
 void Application::Run()
@@ -46,7 +46,7 @@ void Application::Run()
 		if (!window->Update())
 			break;
 
-		if (input->KeyDown(DIK_ESCAPE))
+		if (input->KeyDown(DIK_LALT))
 		{
 			break;
 		}
@@ -56,7 +56,7 @@ void Application::Run()
 		if(!editorMode)
 			input->Update();
 
-		if (GetAsyncKeyState(0x45))
+		if (GetAsyncKeyState(VK_ESCAPE))
 		{
 			input->UnacquireDevices();
 			if (editorMode)
@@ -85,22 +85,27 @@ void Application::Run()
 				}
 				delete graphics->scene;
 			}
-			graphics->scene = new Scene(graphics->ecs, graphics->vbCache, &graphics->materialManager, &graphics->resourceManager, graphics->textureCache);
-			graphics->scene->Load(graphics->device, &graphics->directCmdList, graphics->frameIndex, "..\\scenes\\", "Level1");
+			graphics->scene = new Scene(graphics->ecs, graphics->vbCache, graphics->materialManager, graphics->resourceManager, graphics->textureCache);
+			graphics->scene->Load(graphics->device, graphics->directCmdList, graphics->frameIndex, "..\\scenes\\", "Level1");
 			for (const auto& ent : graphics->scene->entities.GetObjects())
 			{
 				graphics->renderSystem->Bind(ent);
 			}
 		}
-		ui->BeginFrame();
-		ui->Update();
+
+		if (editorMode)
+		{
+			ui->BeginFrame();
+			ui->Update();
+		}
 
 		// Rendering
 		graphics->Begin();
 
 		graphics->Render(window);
 
-		ui->Render(&graphics->directCmdList);
+		if (editorMode)
+			ui->Render(&graphics->directCmdList);
 
 		graphics->Present();
 

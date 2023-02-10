@@ -27,27 +27,31 @@ class Scene
 {
 private:
 	/// \public
-	ECS* ecs; /**< Pointer to the ECS instance used within its member functions.*/
-	/// \public
-	EntityManager* eManager; /**< Pointer to the EntityManager instance used within its member functions.*/
-	/// \public
-	ComponentManager* cManager; /**< Pointer to the ComponentManager instance used within its member functions.*/
-	/// \public
-	VertexBufferCache* vbCache; /**< Pointer to the VertexBufferCache instance used within its member functions.*/
+	ECS& ecs; /**< Pointer to the ECS instance used within its member functions.*/
+	///// \public
+	//EntityManager* eManager; /**< Pointer to the EntityManager instance used within its member functions.*/
+	///// \public
+	//ComponentManager* cManager; /**< Pointer to the ComponentManager instance used within its member functions.*/
+	///// \public
+	VertexBufferCache& vbCache; /**< Pointer to the VertexBufferCache instance used within its member functions.*/
 
-	MaterialManager* mManager;
+	MaterialManager& mManager;
 
-	Texture2DCache* textureCache;
+	Texture2DCache& textureCache;
 
-	ResourceManager* rManager;
+	ResourceManager& rManager;
 
-	std::unordered_map<int, std::string>entityIdToName;
+	std::unordered_map<int, std::string> entityIdToName;
+
+	std::string name = "";
 public:
-	MappedVector<Entity>entities;
+	MappedVector<Entity> entities;
 
-	EntityManager* GetEntityManager() { return eManager; }
-	VertexBufferCache* GetVertexBufferCache() { return vbCache; }
-	MaterialManager* GetMaterialManager() { return mManager; }
+	EntityManager& GetEntityManager() { return ecs.GetEntityManager(); }
+	VertexBufferCache& GetVertexBufferCache() { return vbCache; }
+	MaterialManager& GetMaterialManager() { return mManager; }
+	const std::string GetName() const { return name; }
+	void SetName(const std::string& _name) { name = _name; }
 
 	Scene() = default;
 
@@ -55,15 +59,9 @@ public:
 	@param _ecs Pointer to the ECS instance that should be used within its member functions
 	@param _vbCache Pointer to the VertexBufferCache instance that should be used within its member functions
 	*/
-	Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, ResourceManager* _rManager, Texture2DCache* _textureCache)
+	Scene(ECS& _ecs, VertexBufferCache& _vbCache, MaterialManager& _mManager, ResourceManager& _rManager, Texture2DCache& _textureCache)
+		:ecs(_ecs), vbCache(_vbCache), textureCache(_textureCache), mManager(_mManager), rManager(_rManager)
 	{
-		ecs = _ecs;
-		vbCache = _vbCache;
-		mManager = _mManager;
-		eManager = &ecs->GetEntityManager();
-		cManager = &ecs->GetComponentManager();
-		rManager = _rManager;
-		textureCache = _textureCache;
 	}
 
 	/**Removes all the Entity objects within Scene::entities using ECS::ObliterateEntity()
@@ -75,7 +73,7 @@ public:
 		{
 			// Free vb ref id?
 
-			ecs->ObliterateEntity(ent);
+			ecs.ObliterateEntity(ent);
 		}
 	}
 
@@ -83,13 +81,16 @@ public:
 	{
 		std::vector<Entity>& ents = entities.GetObjects();
 
+		int size = (int)ents.size();
+
+		if (size == 0)
+			return;
+
 		std::ofstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios_base::trunc | std::ios::out | std::ios::binary);
 
 		bool yes = true;
 		bool no = false;
 
-
-		int size = (int)ents.size();
 		file.write((char*)&size, sizeof(int));
 		for (const auto [name, id] : entities.GetStringToIndexMap())
 		{
@@ -97,14 +98,14 @@ public:
 
 			Helper::WriteToFile(file, name);
 
-			Matrix tf = cManager->GetComponent<Transform>(entity)->worldMatrix;
+			Matrix tf = ecs.GetComponentManager().GetComponent<Transform>(entity)->worldMatrix;
 			file.write((char*)&tf, sizeof(Matrix));
 
-			Mesh* mesh = cManager->GetComponent<Mesh>(entity);
+			Mesh* mesh = ecs.GetComponentManager().GetComponent<Mesh>(entity);
 			if (mesh != nullptr)
 			{
 				file.write((char*)&yes, sizeof(bool));
-				std::string fileName = vbCache->GetBuffer(mesh->vbIndex)->GetFileName();
+				std::string fileName = vbCache.GetBuffer(mesh->vbIndex)->GetFileName();
 				Helper::WriteToFile(file, fileName);
 			}
 			else
@@ -112,7 +113,7 @@ public:
 				file.write((char*)&no, sizeof(bool));
 			}
 
-			MaterialComponent* matComp = cManager->GetComponent<MaterialComponent>(entity);
+			MaterialComponent* matComp = ecs.GetComponentManager().GetComponent<MaterialComponent>(entity);
 			if (matComp != nullptr)
 			{
 				file.write((char*)&yes, sizeof(bool));
@@ -121,10 +122,10 @@ public:
 
 				// Avoid copy of material to be written
 
-				PhongMaterial* phong = mManager->GetMaterial<PhongMaterial>(matComp->materialID);
-				Helper::WriteToFile(file, phong->name);
+				PhongMaterial* phong = mManager.GetMaterial<PhongMaterial>(matComp->materialID);
+				Helper::WriteToFile(file, phong->GetName());
 
-				phong->Save("..\\materials\\", phong->name, textureCache, _debugASCII);
+				phong->Save("..\\materials\\", phong->GetName(), textureCache, _debugASCII);
 			}
 			else
 			{
@@ -143,7 +144,7 @@ public:
 				file << "--------------------------------------------------------------------\n";
 				file << "Entity Name: " + name << std::endl;
 				file << "|---------Transform Data--------|\n";
-				Transform* tf = cManager->GetComponent<Transform>(entity);
+				Transform* tf = ecs.GetComponentManager().GetComponent<Transform>(entity);
 				file << tf->worldMatrix._11 << " ";
 				file << tf->worldMatrix._12 << " ";
 				file << tf->worldMatrix._13 << " ";
@@ -161,21 +162,21 @@ public:
 				file << tf->worldMatrix._43 << " ";
 				file << tf->worldMatrix._44 << "\n";
 
-				Mesh* mesh = cManager->GetComponent<Mesh>(entity);
+				Mesh* mesh = ecs.GetComponentManager().GetComponent<Mesh>(entity);
 				if (mesh != nullptr)
 				{
 					file << "\n|---------Mesh Data-------------|\n";
-					file << "Filename: " << vbCache->GetBuffer(mesh->vbIndex)->GetFileName() << std::endl;
+					file << "Filename: " << vbCache.GetBuffer(mesh->vbIndex)->GetFileName() << std::endl;
 				}
 
-				MaterialComponent* material = cManager->GetComponent<MaterialComponent>(entity);
+				MaterialComponent* material = ecs.GetComponentManager().GetComponent<MaterialComponent>(entity);
 				if (material != nullptr)
 				{
 					// Check material type and act accordingly. Store file names for textures which are then loaded (or not) using the texture2dcache
-					PhongMaterial* phongMat = mManager->GetMaterial<PhongMaterial>(material->materialID);
+					PhongMaterial* phongMat = mManager.GetMaterial<PhongMaterial>(material->materialID);
 					//PhongMaterialInformation* info = phongMat->GetInfoPtr();
 					file << "\n|---------Material Data-------------|\n";
-					file << "Material Name: " << phongMat->name << "\n";
+					file << "Material Name: " << phongMat->GetName() << "\n";
 					/*file << "Diffuse Texture Filename: " << textureCache->GetTextureName(info->diffuseTextureID) << "\n";
 					file << "Ambient RGB: [" << info->ambientAbsorbation.x << ":" << info->ambientAbsorbation.y << ":" << info->ambientAbsorbation.z << "]\n";
 					file << "Specular RGB: [" << info->specularAbsorbation.x << ":" << info->specularAbsorbation.y << ":" << info->specularAbsorbation.z << "]\n";
@@ -188,12 +189,12 @@ public:
 		}
 	}
 
-	void Load(ID3D12Device* _device, CommandList* _cmdList, int _frameIndex, const std::string& _fileDirectory, const std::string& _fileName)
+	void Load(ID3D12Device* _device, CommandList& _cmdList, int _frameIndex, const std::string& _fileDirectory, const std::string& _fileName)
 	{
 		std::ifstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios::in | std::ios::binary);
 		int numEntities = -1;
 		file.read((char*)&numEntities, sizeof(int));
-		//std::cout << "Num entities: " << numEntities << std::endl;
+		name = _fileName;
 
 		for (int i = 0; i < numEntities; i++)
 		{
@@ -204,7 +205,7 @@ public:
 			//std::cout << "Entity Name: " << entityName << std::endl;
 
 			// Create entity with name
-			Entity& tempEnt = CreateEntity(_device, _cmdList, entityName);
+			Entity& tempEnt = CreateEntity(_device, &_cmdList, entityName);
 
 			Matrix mat;
 			file.read((char*)&mat, sizeof(Matrix));
@@ -227,7 +228,7 @@ public:
 			//std::cout << mat._44 << "\n";
 
 			// Create transform component
-			GetComponentForEntity<Transform>(tempEnt)->Update(_cmdList, mat, _frameIndex);
+			GetComponentForEntity<Transform>(tempEnt)->Update(&_cmdList, mat, _frameIndex);
 
 			bool tempCheck = false;
 			file.read((char*)&tempCheck, sizeof(bool));
@@ -239,14 +240,14 @@ public:
 
 				Mesh tempMesh;
 
-				if (vbCache->Exists(name))
+				if (vbCache.Exists(name))
 				{
-					tempMesh.vbIndex = vbCache->GetBufferIndex(name);
+					tempMesh.vbIndex = vbCache.GetBufferIndex(name);
 				}
 				else
 				{
-					vbCache->LoadResource(_device, _cmdList, name);
-					tempMesh.vbIndex = vbCache->GetBufferIndex(name);
+					vbCache.LoadResource(_device, &_cmdList, name);
+					tempMesh.vbIndex = vbCache.GetBufferIndex(name);
 				}
 				AddComponentToEntity<Mesh>(tempEnt, tempMesh);
 
@@ -261,14 +262,14 @@ public:
 				Helper::ReadFromFile(file, matName);
 
 				MaterialComponent matComp;
-				if (mManager->Exists(matName))
+				if (mManager.Exists(matName))
 				{
-					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
+					matComp.materialID = mManager.GetReferenceID<PhongMaterial>(matName);
 				}
 				else
 				{
-					mManager->CreateMaterial<PhongMaterial>(_device, rManager, _cmdList, textureCache, "..\\materials\\", matName);
-					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
+					mManager.CreateMaterial<PhongMaterial>(_device, rManager, _cmdList, textureCache, "..\\materials\\", matName);
+					matComp.materialID = mManager.GetReferenceID<PhongMaterial>(matName);
 				}
 
 				AddComponentToEntity<MaterialComponent>(tempEnt, matComp);
@@ -294,14 +295,14 @@ public:
 	*/
 	Entity& CreateEntity(ID3D12Device* _device, CommandList* _cmdList)
 	{
-		Entity tempEnt = eManager->CreateEntity();
+		Entity tempEnt = ecs.GetEntityManager().CreateEntity();
 		int num = tempEnt.id;
 		const std::string name = CheckName("Entity_" + std::to_string(num));
 		entities.Add(name, tempEnt);
 		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
-		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
+		ecs.GetComponentManager().RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
 		entityIdToName.emplace(tempEnt.id, name);
 		// Find unique name...
 
@@ -319,7 +320,7 @@ public:
 
 	Entity& CreateEntity(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name)
 	{
-		Entity tempEnt = eManager->CreateEntity();
+		Entity tempEnt = ecs.GetEntityManager().CreateEntity();
 
 		const std::string name = CheckName(_name);
 
@@ -327,7 +328,7 @@ public:
 		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
-		cManager->RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
+		ecs.GetComponentManager().RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
 		entityIdToName.emplace(tempEnt.id, name);
 		// Find unique name...
 
@@ -371,11 +372,11 @@ inline void Scene::AddComponentToEntity(Entity& _entity, const T& _data)
 {
 	if constexpr (std::is_same_v<T, Mesh>)
 	{
-		cManager->RegisterComponent<Mesh>(_entity, _data);
+		ecs.GetComponentManager().RegisterComponent<Mesh>(_entity, _data);
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
-		cManager->RegisterComponent<MaterialComponent>(_entity, _data);
+		ecs.GetComponentManager().RegisterComponent<MaterialComponent>(_entity, _data);
 	}
 }
 
@@ -384,11 +385,11 @@ inline void Scene::RemoveComponentFromEntity(Entity& _entity)
 {
 	if constexpr (std::is_same_v<T, Mesh>)
 	{
-		cManager->RemoveComponent<Mesh>(_entity);
+		ecs.GetComponentManager().RemoveComponent<Mesh>(_entity);
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
-		cManager->RegisterComponent<Mesh>(_entity);
+		ecs.GetComponentManager().RegisterComponent<Mesh>(_entity);
 	}
 }
 
@@ -397,15 +398,15 @@ inline void Scene::UpdateComponentForEntity(Entity _entity, const T& _data)
 {
 	if constexpr (std::is_same_v<T, Transform>)
 	{
-		*cManager->GetComponent<Transform>(_entity) = _data;
+		*ecs.GetComponentManager().GetComponent<Transform>(_entity) = _data;
 	}
 	else if constexpr (std::is_same_v<T, Mesh>)
 	{
-		*cManager->GetComponent<Mesh>(_entity) = _data;
+		*ecs.GetComponentManager().GetComponent<Mesh>(_entity) = _data;
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
-		*cManager->GetComponent<MaterialComponent>(_entity) = _data;
+		*ecs.GetComponentManager().GetComponent<MaterialComponent>(_entity) = _data;
 	}
 }
 
@@ -414,15 +415,15 @@ inline T* Scene::GetComponentForEntity(Entity _entity)
 {
 	if constexpr (std::is_same_v<T, Transform>)
 	{
-		return cManager->GetComponent<Transform>(_entity);
+		return ecs.GetComponentManager().GetComponent<Transform>(_entity);
 	}
 	else if constexpr (std::is_same_v<T, Mesh>)
 	{
-		return cManager->GetComponent<Mesh>(_entity);
+		return ecs.GetComponentManager().GetComponent<Mesh>(_entity);
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
-		return cManager->GetComponent<MaterialComponent>(_entity);
+		return ecs.GetComponentManager().GetComponent<MaterialComponent>(_entity);
 	}
 
 	return nullptr;

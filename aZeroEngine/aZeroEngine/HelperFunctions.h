@@ -1,7 +1,6 @@
 #pragma once
 #include "D3D12Include.h"
 #include "VertexDefinitions.h"
-//#include "AppWindow.h"
 #include "CommandList.h"
 #include <fstream>
 #include <type_traits>
@@ -12,8 +11,8 @@ namespace Helper
 
 	struct BasicVertexListInfo
 	{
-		std::vector<BasicVertex>verticeData;
-		std::vector<int>indexData;
+		std::vector<BasicVertex> verticeData;
+		std::vector<int> indexData;
 	};
 
 	void LoadVertexListFromFile(BasicVertexListInfo* _vInfo, const std::string& _path);

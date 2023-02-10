@@ -40,18 +40,20 @@ class LightList
 private:
 	int numLights = 0;
 	int maxLights;
-	std::deque<int>freeIndices;
-	std::deque<int>usedIndices;
+	std::deque<int> freeIndices;
+	std::deque<int> usedIndices;
 	StructuredBuffer lightsBuffer;
 	StructuredBuffer lightsIndicesBuffer;
 public:
 	// Add resize function
 
-	LightList(ID3D12Device* _device, CommandList* _cmdList, int _maxLights)
+	LightList() = default;
+
+	LightList(ID3D12Device* _device, CommandList& _cmdList, int _maxLights)
 	{
 		maxLights = _maxLights;
-		lightsBuffer.InitDynamic(_device, _cmdList, nullptr, sizeof(T) * maxLights, maxLights, false, L"");
-		lightsIndicesBuffer.InitDynamic(_device, _cmdList, nullptr, sizeof(int) * maxLights, maxLights, false, L"");
+		lightsBuffer.InitDynamic(_device, &_cmdList, nullptr, sizeof(T) * maxLights, maxLights, false, L"");
+		lightsIndicesBuffer.InitDynamic(_device, &_cmdList, nullptr, sizeof(int) * maxLights, maxLights, false, L"");
 
 		for (int i = 0; i < maxLights; i++)
 		{
@@ -128,12 +130,24 @@ public:
 
 	NumLights numLights;
 
-	LightManager(ID3D12Device* _device, CommandList* _cmdList, int _maxDirectionalLights, int _maxPointLights, int _maxSpotLights)
+	LightManager() = default;
+
+	LightManager(ID3D12Device* _device, CommandList& _cmdList, int _maxDirectionalLights, int _maxPointLights, int _maxSpotLights)
 		:dLightList(_device, _cmdList, _maxDirectionalLights), 
 		pLightList(_device, _cmdList, _maxPointLights),
 		sLightList(_device, _cmdList, _maxSpotLights)
 	{
-		numLightsCB.InitDynamic(_device, _cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
+		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
+		numLightsCB.GetMainResource()->SetName(L"CB NUM LIGHTS");
+	}
+
+	void Init(ID3D12Device* _device, CommandList& _cmdList, int _maxDirectionalLights, int _maxPointLights, int _maxSpotLights)
+	{
+		dLightList = LightList<DirectionalLight>(_device, _cmdList, _maxDirectionalLights);
+		pLightList = LightList<PointLight>(_device, _cmdList, _maxPointLights);
+		sLightList = LightList<SpotLight>(_device, _cmdList, _maxSpotLights);
+
+		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
 		numLightsCB.GetMainResource()->SetName(L"CB NUM LIGHTS");
 	}
 

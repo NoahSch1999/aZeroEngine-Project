@@ -13,6 +13,11 @@ BaseResource::~BaseResource()
 	}*/
 }
 
+void BaseResource::ReleaseMain()
+{
+	mainResource->Release();
+}
+
 void BaseResource::ReleaseIntermediate()
 {
 	if (intermediateResource != nullptr)
@@ -49,12 +54,12 @@ void BaseResource::Update(CommandList* _cmdList, const void* _data, int _numByte
 	memcpy((char*)mappedBuffer + sizePerSubresource * _frameIndex + _offset, _data, _numBytes);
 
 	if (mainResourceState != D3D12_RESOURCE_STATE_COPY_DEST)
-		TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATE_COPY_DEST);
+		TransitionMain(_cmdList->GetGraphicList(), D3D12_RESOURCE_STATE_COPY_DEST);
 
-	TransitionIntermediate(_cmdList->graphic, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	TransitionIntermediate(_cmdList->GetGraphicList(), D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-	_cmdList->graphic->CopyBufferRegion(mainResource, 0, intermediateResource, sizePerSubresource * _frameIndex + _offset, sizePerSubresource);
-	TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+	_cmdList->GetGraphicList()->CopyBufferRegion(mainResource, 0, intermediateResource, sizePerSubresource * _frameIndex + _offset, sizePerSubresource);
+	TransitionMain(_cmdList->GetGraphicList(), D3D12_RESOURCE_STATES::D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-	TransitionIntermediate(_cmdList->graphic, D3D12_RESOURCE_STATE_COMMON);
+	TransitionIntermediate(_cmdList->GetGraphicList(), D3D12_RESOURCE_STATE_COMMON);
 }

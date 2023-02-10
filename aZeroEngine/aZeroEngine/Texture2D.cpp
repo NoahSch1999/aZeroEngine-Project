@@ -60,7 +60,7 @@ void Texture2D::Init(ID3D12Device* _device, CommandList* _cmdList, ID3D12Resourc
 	InitSRV(_device, rDesc);
 	
 	D3D12_RESOURCE_BARRIER barrier(CD3DX12_RESOURCE_BARRIER::Transition(mainResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-	_cmdList->graphic->ResourceBarrier(1, &barrier);
+	_cmdList->GetGraphicList()->ResourceBarrier(1, &barrier);
 
 	// Set resource name for debugging purposes
 	std::wstring wsTemp(_name.begin(), _name.end());

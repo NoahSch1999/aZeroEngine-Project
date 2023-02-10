@@ -11,9 +11,9 @@ template<typename T>
 class MappedVector
 {
 private:
-	std::unordered_map<std::string, int>strToIndex;
-	std::vector<T>objects;
-	std::deque<int>freeIndices;
+	std::unordered_map<std::string, int> strToIndex;
+	std::vector<T> objects;
+	std::deque<int> freeIndices;
 public:
 	MappedVector() = default;
 
@@ -35,46 +35,41 @@ public:
 	* Doesn't check if an object with the input key actually exists. It is up to the developer to check this by for example calling MappedVector::Exists().
 	* Since it will call std::unordered_map::Erase() on a non-existing hash key, it will throw an exception.
 	@param _name Key value which is mapped to the objects index which will get open for reuse.
-	@return void
+	@return TRUE: The object has been succesfully removed, FALSE: An object doesn't exist with the specified hash value
 	*/
-	void Remove(const std::string& _name);
+	bool Remove(const std::string& _name);
 
 	/** Returns the index of the object within the internal vector which can be used in conjunction with MappedVector::Get(int).
 	@param _name Key value which is mapped with the returned index
 	@return void
 	*/
-	int GetID(const std::string& _name);
+	int GetID(const std::string& _name) const { return strToIndex.at(_name); }
 
 	/** Returns a reference to the object within the internal vector.
 	* The reference may be invalidated if an object is added or removed by for example calling MappedVector::Add() or MappedVector::Remove().
 	@param _name Key value which is mapped with the object returned
 	@return void
 	*/
-	T& Get(const std::string& _name);
+	T& Get(const std::string& _name) { return objects[strToIndex.at(_name)]; }
 
 	/** Returns a reference to the object within the internal vector.
 	* The reference may be invalidated if an object is added or removed by for example calling MappedVector::Add() or MappedVector::Remove().
 	@param _ID Internal vector index to the object returned. Index can be retrieved using MappedVector::Get(int)
 	@return void
 	*/
-	T& Get(int _ID);
+	T& Get(int _ID) { return objects[_ID]; }
 
 	/** Returns whether or not the key already exists.
 	@param _key Key to check.
 	@return bool
 	*/
-	bool Exists(const std::string& _key)
-	{
-		if (strToIndex.count(_key) > 0)
-			return true;
-		return false;
-	}
+	const bool Exists(const std::string& _key) const { return strToIndex.count(_key) > 0; }
 
 	/** Returns a reference to the internal vector containing the actual objects.
 	* The reference may be invalidated if an object is added or removed by for example calling MappedVector::Add() or MappedVector::Remove().
 	@return std::vector<T>&
 	*/
-	std::vector<T>& GetObjects();
+	std::vector<T>& GetObjects() { return objects; }
 };
 
 template<typename T>
@@ -97,33 +92,14 @@ inline void MappedVector<T>::Add(const std::string& _name, const T& _object)
 }
 
 template<typename T>
-inline void MappedVector<T>::Remove(const std::string& _name)
+inline bool MappedVector<T>::Remove(const std::string& _name)
 {
-	int freeIndex = strToIndex.at(_name);
-	strToIndex.erase(_name);
-	freeIndices.push_back(freeIndex);
-}
+	auto freeIndexPos = strToIndex.find(_name);
+	if (freeIndexPos == strToIndex.end())
+		return false;
 
-template<typename T>
-inline T& MappedVector<T>::Get(const std::string& _name)
-{
-	return objects[strToIndex.at(_name)];
-}
+	freeIndices.push_back(freeIndexPos->second);
+	strToIndex.erase(freeIndexPos);
 
-template<typename T>
-inline int MappedVector<T>::GetID(const std::string& _name)
-{
-	return strToIndex.at(_name);
-}
-
-template<typename T>
-inline T& MappedVector<T>::Get(int _ID)
-{
-	return objects[_ID];
-}
-
-template<typename T>
-inline std::vector<T>& MappedVector<T>::GetObjects()
-{
-	return objects;
+	return true;
 }

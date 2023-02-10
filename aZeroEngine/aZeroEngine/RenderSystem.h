@@ -36,14 +36,14 @@ struct Camera
 	IDirectInputDevice8* diMouseDevice;
 	LPDIRECTINPUT8 directInput;
 
-	Camera(ID3D12Device* _device, CommandList* _cmdList, UINT _width, UINT _height, HINSTANCE _instance, HWND _handle)
+	Camera(ID3D12Device* _device, CommandList& _cmdList, UINT _width, UINT _height, HINSTANCE _instance, HWND _handle)
 	{
 		view = Matrix::CreateLookAt(position, forward, UP);
 		proj = Matrix::CreatePerspectiveFieldOfView(fov, (float)_width / (float)_height, 0.1f, 1000.f);
 		view.Transpose();
 		proj.Transpose();
 		buffer = new ConstantBuffer();
-		buffer->InitDynamic(_device, _cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), 1, true, L"Camera Buffer");
+		buffer->InitDynamic(_device, &_cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), 1, true, L"Camera Buffer");
 
 		HRESULT hr = DirectInput8Create(_instance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, NULL);
 		if (FAILED(hr))
@@ -147,23 +147,24 @@ private:
 	InputLayout layout;
 	RasterState solidRaster;
 	Sampler defaultSampler;
-	ResourceManager* rManager;
+	ResourceManager& rManager;
 
 public:
 
 	Camera camera;
 
-	CommandList* cmdList;
-	VertexBufferCache* vbCache;
-	LightManager* lManager;
-	MaterialManager* mManager;
-	ECS* ecs;
+	CommandList& cmdList;
+	VertexBufferCache& vbCache;
+	LightManager& lManager;
+	MaterialManager& mManager;
+	ECS& ecs;
 
-	BasicRendererSystem(ID3D12Device* _device, CommandList* _cmdList, const SwapChain& _swapChain, ResourceManager& _rManager, AppWindow* _window, HINSTANCE _instance)
-		:solidRaster(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE), camera(_device, _cmdList, _window->width, _window->height, _instance, _window->windowHandle)
+	BasicRendererSystem(ID3D12Device* _device, CommandList& _cmdList, ECS& _ecs,
+		MaterialManager& _matManager, ResourceManager& _rManager, LightManager& _lManager, VertexBufferCache& _vbCache,
+		const SwapChain& _swapChain, AppWindow* _window, HINSTANCE _instance)
+		:solidRaster(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE), ecs(_ecs), cmdList(_cmdList), mManager(_matManager), lManager(_lManager), rManager(_rManager), vbCache(_vbCache),
+		camera(_device, _cmdList, _window->width, _window->height, _instance, _window->windowHandle)
 	{
-		rManager = &_rManager;
-		cmdList = _cmdList;
 
 		componentMask.set(false);
 		componentMask.set(0, true);
@@ -198,23 +199,23 @@ public:
 	// Inherited via ECSystem
 	virtual void Update() override
 	{
-		cmdList->graphic->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		cmdList->graphic->SetPipelineState(pso.GetPipelineState()); // optimize
-		cmdList->graphic->SetGraphicsRootSignature(rootSig.signature); // optimize
-		cmdList->graphic->SetGraphicsRootDescriptorTable(0, rManager->GetTexture2DStartAddress());
-		cmdList->graphic->SetGraphicsRootConstantBufferView(3, camera.buffer->GetGPUAddress());
-		cmdList->graphic->SetGraphicsRootShaderResourceView(5, lManager->pLightList.GetLightsBufferPtr()->GetGPUAddress());
-		cmdList->graphic->SetGraphicsRootShaderResourceView(6, lManager->pLightList.GetLightsIndicesBufferPtr()->GetGPUAddress());
-		cmdList->graphic->SetGraphicsRootConstantBufferView(7, lManager->numLightsCB.GetGPUAddress());
-		cmdList->graphic->SetGraphicsRootDescriptorTable(4, defaultSampler.GetHandle().GetGPUHandle());
+		cmdList.GetGraphicList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		cmdList.GetGraphicList()->SetPipelineState(pso.GetPipelineState()); // optimize
+		cmdList.GetGraphicList()->SetGraphicsRootSignature(rootSig.signature); // optimize
+		cmdList.GetGraphicList()->SetGraphicsRootDescriptorTable(0, rManager.GetTexture2DStartAddress());
+		cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(3, camera.buffer->GetGPUAddress());
+		cmdList.GetGraphicList()->SetGraphicsRootShaderResourceView(5, lManager.pLightList.GetLightsBufferPtr()->GetGPUAddress());
+		cmdList.GetGraphicList()->SetGraphicsRootShaderResourceView(6, lManager.pLightList.GetLightsIndicesBufferPtr()->GetGPUAddress());
+		cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(7, lManager.numLightsCB.GetGPUAddress());
+		cmdList.GetGraphicList()->SetGraphicsRootDescriptorTable(4, defaultSampler.GetHandle().GetGPUHandle());
 
-		ComponentManager& cManager = ecs->GetComponentManager();
+		ComponentManager& cManager = ecs.GetComponentManager();
 		for (Entity ent : entityIDMap.objects)
 		{
-			cmdList->graphic->IASetVertexBuffers(0, 1, &vbCache->GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetView());
-			cmdList->graphic->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(ent)->cb.GetGPUAddress());
-			cmdList->graphic->SetGraphicsRootConstantBufferView(1, mManager->GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(ent)->materialID)->GetGPUAddress());
-			cmdList->graphic->DrawInstanced(vbCache->GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetNumVertices(), 1, 0, 0);
+			cmdList.GetGraphicList()->IASetVertexBuffers(0, 1, &vbCache.GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetView());
+			cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(ent)->cb.GetGPUAddress());
+			cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(1, mManager.GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(ent)->materialID)->GetGPUAddress());
+			cmdList.GetGraphicList()->DrawInstanced(vbCache.GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetNumVertices(), 1, 0, 0);
 		}
 	}
 };

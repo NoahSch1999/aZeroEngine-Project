@@ -1,7 +1,9 @@
 #pragma once
 #include "BaseResource.h"
 #include "HiddenDescriptorHeap.h"
-#include "CommandList.h"
+
+class BaseResource;
+class HiddenDescriptorHeap;
 
 class DepthStencil : public BaseResource
 {
@@ -12,8 +14,6 @@ public:
 	void ReInit(ID3D12Device* _device, CommandList* _cmdList, UINT _width, UINT _height, DXGI_FORMAT _format);
 
 	virtual ~DepthStencil();
-
-
 
 	// Inherited via BaseResource
 

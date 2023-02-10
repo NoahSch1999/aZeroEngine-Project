@@ -1,6 +1,5 @@
 #pragma once
 #include "VertexBuffer.h"
-#include "HelperFunctions.h"
 #include "ResourceCache.h"
 
 /** @brief Functions as a vertex buffer cache. Is used to load, store, and retrieve vertex buffers from.

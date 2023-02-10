@@ -1,28 +1,7 @@
 #pragma once
 #include "BaseResource.h"
 
-//class IndexBuffer : public BaseResource
-//{
-//private:
-//	D3D12_INDEX_BUFFER_VIEW view;
-//	ID3D12Resource* uploadBuffer;
-//public:
-//	IndexBuffer()
-//		:BaseResource()
-//	{
-//
-//	}
-//
-//	~IndexBuffer()
-//	{
-//		uploadBuffer->Release();
-//	}
-//
-//	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _numIndices, const std::wstring& _name = L"");
-//
-//	D3D12_INDEX_BUFFER_VIEW& GetView() { return view; }
-//	int numIndices = 0;
-//};
+class BaseResource;
 
 /** @brief Encapsulates a vertex buffer.
 */

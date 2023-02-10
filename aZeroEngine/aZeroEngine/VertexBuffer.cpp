@@ -26,7 +26,7 @@ VertexBuffer::VertexBuffer(ID3D12Device* _device, CommandList* _cmdList, void* _
 
 	Helper::CreateCommitedResourceStatic(_device, mainResource, rDesc, intermediateResource, rDesc, _cmdList, _data, _size * _stride, _size * _stride);
 
-	TransitionMain(_cmdList->graphic, D3D12_RESOURCE_STATE_GENERIC_READ);
+	TransitionMain(_cmdList->GetGraphicList(), D3D12_RESOURCE_STATE_GENERIC_READ);
 
 	view.BufferLocation = mainResource->GetGPUVirtualAddress();
 	view.SizeInBytes = _size * _stride;

@@ -1,7 +1,9 @@
 #pragma once
 #include "BaseResource.h"
 #include "ShaderDescriptorHeap.h"
-#include "CommandList.h"
+
+class BaseResource;
+class ShaderDescriptorHeap;
 
 /** @brief Encapsulates a 2D texture resource.
 */

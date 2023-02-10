@@ -1,7 +1,5 @@
 #pragma once
-#include "HiddenDescriptorHeap.h"
-#include "BaseResource.h"
-#include "FreeList.h"
+#include "DescriptorHandle.h"
 
 /** @brief Class that encapsulates the logic for a shader visible descriptor heap.
 */
@@ -13,8 +11,8 @@ private:
 	ID3D12DescriptorHeap* heap;
 	D3D12_DESCRIPTOR_HEAP_TYPE type;
 	DescriptorHandle handle;
-public:
 
+public:
 	ShaderDescriptorHeap() = default;
 
 	/** @brief Initiates the necessary variables.
