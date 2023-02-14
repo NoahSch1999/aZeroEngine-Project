@@ -9,7 +9,7 @@ RootSignature::~RootSignature()
 	signature->Release();
 }
 
-void RootSignature::Initialize(ID3D12Device* _device, RootParameters* _params, D3D12_ROOT_SIGNATURE_FLAGS _flags, UINT _numStaticSamplers = 0, 
+void RootSignature::Init(ID3D12Device* _device, RootParameters* _params, D3D12_ROOT_SIGNATURE_FLAGS _flags, UINT _numStaticSamplers = 0, 
 	D3D12_STATIC_SAMPLER_DESC* _staticSamplerDesc = nullptr)
 {
 	D3D12_ROOT_SIGNATURE_DESC desc{(UINT)_params->GetParameterNum(), _params->GetParameterData(), _numStaticSamplers, _staticSamplerDesc, _flags};

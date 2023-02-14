@@ -13,12 +13,19 @@ class MaterialManager
 private:
 	MappedVector<PhongMaterial>phongMaterials;
 	ResourceManager* rManager;
+	Texture2DCache* textureCache;
 public:
 	MaterialManager() = default;
 
-	void Init(ResourceManager* _rManager) { rManager = _rManager; }
+	void Init(ID3D12Device* _device, CommandList& _cmdList, ResourceManager* _rManager, Texture2DCache* _textureCache) 
+	{ 
+		rManager = _rManager;
+		textureCache = _textureCache;
+		CreateMaterial<PhongMaterial>(_device, _cmdList, "DefaultPhongMaterial");
+	}
 
-	~MaterialManager() {
+	~MaterialManager() 
+	{
 		for (auto& mat : phongMaterials.GetObjects())
 		{
 			RemoveMaterial<PhongMaterial>(mat.GetName());
@@ -28,19 +35,20 @@ public:
 	/** Creates a new material and adds it to the internal MappedVector for the template specified material type.
 	@param _device The main ID3D12Device instance used
 	@param _cmdList The main CommandList instance to register the resource creation commands on
-	@param _handle The DescriptorHandle to be used for the bindless rendering constant buffer
-	@param _textureCache The Texture2DCache instance to get default material textures from
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
 	@return void
 	*/
 	template<typename T>
-	void CreateMaterial(ID3D12Device* _device, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _materialName);
+	void CreateMaterial(ID3D12Device* _device, CommandList& _cmdList, const std::string _materialName);
 
+	/** Loads a material (.azm) file from disk and adds it to the internal MappedVector for the template specified material type.
+	@param _device The main ID3D12Device instance used
+	@param _cmdList The main CommandList instance to register the resource creation commands on
+	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
+	@return void
+	*/
 	template<typename T>
-	void CreateMaterial(ID3D12Device* _device, ResourceManager& _rManager, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _fileDirectory, const std::string _materialName);
-
-	template<typename T>
-	void CreateMaterial(const T& _material);
+	void LoadMaterial(ID3D12Device* _device, CommandList& _cmdList, const std::string _materialName);
 
 	/** Removes the material of the template specified type with the input name.
 	@param _materialName Name of the material to remove. Has to exist, otherwise there could be a potential crash
@@ -74,47 +82,30 @@ public:
 	template<typename T>
 	int GetReferenceID(const std::string& _materialName);
 
-	/** Decrements the material reference ID.
-	@param _ID ID of the material to decrement reference count for
-	@return void
-	*/
-	template<typename T>
-	void FreeReferenceID(int _ID);
-
 	std::vector<PhongMaterial>& GetPhongMaterials() { return phongMaterials.GetObjects(); }
 
-	bool Exists(const std::string& _name)
-	{
-		return phongMaterials.Exists(_name);
-	}
+	bool Exists(const std::string& _name) { return phongMaterials.Exists(_name); }
 };
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _materialName)
-{
-	if constexpr (std::is_same_v<T, PhongMaterial>)
-	{
-		phongMaterials.Add(_materialName, PhongMaterial(_device, _cmdList, _textureCache, _materialName));
-	}
-}
-
-template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* _device, ResourceManager& _rManager, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string _fileDirectory, const std::string _materialName)
+inline void MaterialManager::CreateMaterial(ID3D12Device* _device, CommandList& _cmdList, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
 		if (phongMaterials.Exists(_materialName))
 			return;
-		phongMaterials.Add(_materialName, PhongMaterial(_device, _rManager, _cmdList, _fileDirectory, _materialName, _textureCache));
+		phongMaterials.Add(_materialName, PhongMaterial(_device, _cmdList, *textureCache, _materialName));
 	}
 }
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(const T& _material)
+inline void MaterialManager::LoadMaterial(ID3D12Device* _device, CommandList& _cmdList, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Add(_material.name, _material);
+		if (phongMaterials.Exists(_materialName))
+			return;
+		phongMaterials.Add(_materialName, PhongMaterial(_device, _cmdList, *rManager, *textureCache, _materialName));
 	}
 }
 
@@ -123,8 +114,8 @@ inline void MaterialManager::RemoveMaterial(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Get(_materialName).GetBufferPtr().ReleaseMain();
-		phongMaterials.Get(_materialName).GetBufferPtr().ReleaseIntermediate();
+		if (!phongMaterials.Exists(_materialName))
+			return;
 		rManager->FreePassDescriptor(phongMaterials.Get(_materialName).GetHandle().GetHeapIndex());
 		phongMaterials.Remove(_materialName);
 	}
@@ -135,6 +126,8 @@ inline T* MaterialManager::GetMaterial(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
+		if (!phongMaterials.Exists(_materialName))
+			return nullptr;
 		return &phongMaterials.Get(_materialName);
 	}
 
@@ -146,6 +139,8 @@ inline T* MaterialManager::GetMaterial(int _ID)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
+		if (!phongMaterials.Exists(_ID))
+			return nullptr;
 		return &phongMaterials.Get(_ID);
 	}
 
@@ -157,20 +152,10 @@ inline int MaterialManager::GetReferenceID(const std::string& _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Get(_materialName).referenceCount++;
+		if (!phongMaterials.Exists(_materialName))
+			return -1;
 		return phongMaterials.GetID(_materialName);
 	}
 
 	return -1;
-}
-
-template<typename T>
-inline void MaterialManager::FreeReferenceID(int _ID)
-{
-	if constexpr (std::is_same_v<T, PhongMaterial>)
-	{
-		PhongMaterial* temp = &phongMaterials.Get(_ID);
-		if(temp->referenceCount > 0)
-			temp->referenceCount--;
-	}
 }

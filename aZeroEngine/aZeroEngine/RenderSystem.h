@@ -181,7 +181,7 @@ public:
 		params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_SRV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// point light structs 5
 		params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_SRV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// point light indices 6
 		params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// num lights
-		rootSig.Initialize(_device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
+		rootSig.Init(_device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
 		pso.Init(_device, &rootSig, layout, solidRaster, _swapChain.numBackBuffers, _swapChain.rtvFormat, _swapChain.dsvFormat,
 			L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
@@ -201,7 +201,7 @@ public:
 	{
 		cmdList.GetGraphicList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		cmdList.GetGraphicList()->SetPipelineState(pso.GetPipelineState()); // optimize
-		cmdList.GetGraphicList()->SetGraphicsRootSignature(rootSig.signature); // optimize
+		cmdList.GetGraphicList()->SetGraphicsRootSignature(rootSig.GetSignature()); // optimize
 		cmdList.GetGraphicList()->SetGraphicsRootDescriptorTable(0, rManager.GetTexture2DStartAddress());
 		cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(3, camera.buffer->GetGPUAddress());
 		cmdList.GetGraphicList()->SetGraphicsRootShaderResourceView(5, lManager.pLightList.GetLightsBufferPtr()->GetGPUAddress());
@@ -212,10 +212,10 @@ public:
 		ComponentManager& cManager = ecs.GetComponentManager();
 		for (Entity ent : entityIDMap.objects)
 		{
-			cmdList.GetGraphicList()->IASetVertexBuffers(0, 1, &vbCache.GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetView());
-			cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(ent)->cb.GetGPUAddress());
-			cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(1, mManager.GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(ent)->materialID)->GetGPUAddress());
-			cmdList.GetGraphicList()->DrawInstanced(vbCache.GetBuffer(cManager.GetComponent<Mesh>(ent)->vbIndex)->GetNumVertices(), 1, 0, 0);
+			cmdList.GetGraphicList()->IASetVertexBuffers(0, 1, &vbCache.GetBuffer(cManager.GetComponent<Mesh>(ent)->GetVBIndex())->GetView());
+			cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(2, cManager.GetComponent<Transform>(ent)->GetBuffer().GetGPUAddress());
+			cmdList.GetGraphicList()->SetGraphicsRootConstantBufferView(1, mManager.GetMaterial<PhongMaterial>(cManager.GetComponent<MaterialComponent>(ent)->GetMaterialID())->GetGPUAddress());
+			cmdList.GetGraphicList()->DrawInstanced(vbCache.GetBuffer(cManager.GetComponent<Mesh>(ent)->GetVBIndex())->GetNumVertices(), 1, 0, 0);
 		}
 	}
 };

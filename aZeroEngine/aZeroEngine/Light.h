@@ -61,6 +61,15 @@ public:
 		}
 	}
 
+	void Delete()
+	{
+		lightsBuffer.GetMainResource()->Release();
+		//lightsBuffer.GetIntermediateResource()->Release();	// Uncomment once the triple buffering is done so that the interm. resource isn't null
+
+		lightsIndicesBuffer.GetMainResource()->Release();
+		//lightsIndicesBuffer.GetIntermediateResource()->Release();	   // Uncomment once the triple buffering is done so that the interm. resource isn't null
+	}
+
 	void AddLight(const T& _light, int& _index);
 
 	void RemoveLight(int _index);
@@ -139,6 +148,15 @@ public:
 	{
 		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
 		numLightsCB.GetMainResource()->SetName(L"CB NUM LIGHTS");
+	}
+
+	~LightManager()
+	{
+		dLightList.Delete();
+		pLightList.Delete();
+		sLightList.Delete();
+		numLightsCB.GetMainResource()->Release();
+		numLightsCB.GetIntermediateResource()->Release();
 	}
 
 	void Init(ID3D12Device* _device, CommandList& _cmdList, int _maxDirectionalLights, int _maxPointLights, int _maxSpotLights)

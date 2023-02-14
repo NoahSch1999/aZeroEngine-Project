@@ -98,14 +98,18 @@ public:
 
 			Helper::WriteToFile(file, name);
 
-			Matrix tf = ecs.GetComponentManager().GetComponent<Transform>(entity)->worldMatrix;
-			file.write((char*)&tf, sizeof(Matrix));
+			Transform* tf = ecs.GetComponentManager().GetComponent<Transform>(entity);
+			/*Matrix tf = ecs.GetComponentManager().GetComponent<Transform>(entity)->Compose();
+			file.write((char*)&tf, sizeof(Matrix));*/
+			file.write((char*)&tf->GetTranslation(), sizeof(Vector3));
+			file.write((char*)&tf->GetRotation(), sizeof(Vector3));
+			file.write((char*)&tf->GetScale(), sizeof(Vector3));
 
 			Mesh* mesh = ecs.GetComponentManager().GetComponent<Mesh>(entity);
 			if (mesh != nullptr)
 			{
 				file.write((char*)&yes, sizeof(bool));
-				std::string fileName = vbCache.GetBuffer(mesh->vbIndex)->GetFileName();
+				std::string fileName = vbCache.GetBuffer(mesh->GetVBIndex())->GetFileName();
 				Helper::WriteToFile(file, fileName);
 			}
 			else
@@ -122,7 +126,7 @@ public:
 
 				// Avoid copy of material to be written
 
-				PhongMaterial* phong = mManager.GetMaterial<PhongMaterial>(matComp->materialID);
+				PhongMaterial* phong = mManager.GetMaterial<PhongMaterial>(matComp->GetMaterialID());
 				Helper::WriteToFile(file, phong->GetName());
 
 				phong->Save("..\\materials\\", phong->GetName(), textureCache, _debugASCII);
@@ -145,35 +149,36 @@ public:
 				file << "Entity Name: " + name << std::endl;
 				file << "|---------Transform Data--------|\n";
 				Transform* tf = ecs.GetComponentManager().GetComponent<Transform>(entity);
-				file << tf->worldMatrix._11 << " ";
-				file << tf->worldMatrix._12 << " ";
-				file << tf->worldMatrix._13 << " ";
-				file << tf->worldMatrix._14 << "\n";
-				file << tf->worldMatrix._21 << " ";
-				file << tf->worldMatrix._22 << " ";
-				file << tf->worldMatrix._23 << " ";
-				file << tf->worldMatrix._24 << "\n";
-				file << tf->worldMatrix._31 << " ";
-				file << tf->worldMatrix._32 << " ";
-				file << tf->worldMatrix._33 << " ";
-				file << tf->worldMatrix._34 << "\n";
-				file << tf->worldMatrix._41 << " ";
-				file << tf->worldMatrix._42 << " ";
-				file << tf->worldMatrix._43 << " ";
-				file << tf->worldMatrix._44 << "\n";
+				Matrix tfMat = tf->Compose();
+				file << tfMat._11 << " ";
+				file << tfMat._12 << " ";
+				file << tfMat._13 << " ";
+				file << tfMat._14 << "\n";
+				file << tfMat._21 << " ";
+				file << tfMat._22 << " ";
+				file << tfMat._23 << " ";
+				file << tfMat._24 << "\n";
+				file << tfMat._31 << " ";
+				file << tfMat._32 << " ";
+				file << tfMat._33 << " ";
+				file << tfMat._34 << "\n";
+				file << tfMat._41 << " ";
+				file << tfMat._42 << " ";
+				file << tfMat._43 << " ";
+				file << tfMat._44 << "\n";
 
 				Mesh* mesh = ecs.GetComponentManager().GetComponent<Mesh>(entity);
 				if (mesh != nullptr)
 				{
 					file << "\n|---------Mesh Data-------------|\n";
-					file << "Filename: " << vbCache.GetBuffer(mesh->vbIndex)->GetFileName() << std::endl;
+					file << "Filename: " << vbCache.GetBuffer(mesh->GetVBIndex())->GetFileName() << std::endl;
 				}
 
 				MaterialComponent* material = ecs.GetComponentManager().GetComponent<MaterialComponent>(entity);
 				if (material != nullptr)
 				{
 					// Check material type and act accordingly. Store file names for textures which are then loaded (or not) using the texture2dcache
-					PhongMaterial* phongMat = mManager.GetMaterial<PhongMaterial>(material->materialID);
+					PhongMaterial* phongMat = mManager.GetMaterial<PhongMaterial>(material->GetMaterialID());
 					//PhongMaterialInformation* info = phongMat->GetInfoPtr();
 					file << "\n|---------Material Data-------------|\n";
 					file << "Material Name: " << phongMat->GetName() << "\n";
@@ -207,8 +212,8 @@ public:
 			// Create entity with name
 			Entity& tempEnt = CreateEntity(_device, &_cmdList, entityName);
 
-			Matrix mat;
-			file.read((char*)&mat, sizeof(Matrix));
+			/*Matrix mat;
+			file.read((char*)&mat, sizeof(Matrix));*/
 			//std::cout << "Matrix: \n";
 			//std::cout << mat._11 << " ";
 			//std::cout << mat._12 << " ";
@@ -228,7 +233,12 @@ public:
 			//std::cout << mat._44 << "\n";
 
 			// Create transform component
-			GetComponentForEntity<Transform>(tempEnt)->Update(&_cmdList, mat, _frameIndex);
+			Transform* tf = GetComponentForEntity<Transform>(tempEnt);
+
+			file.read((char*)&tf->GetTranslation(), sizeof(Vector3));
+			file.read((char*)&tf->GetRotation(), sizeof(Vector3));
+			file.read((char*)&tf->GetScale(), sizeof(Vector3));
+			tf->Update(&_cmdList, _frameIndex);
 
 			bool tempCheck = false;
 			file.read((char*)&tempCheck, sizeof(bool));
@@ -242,12 +252,12 @@ public:
 
 				if (vbCache.Exists(name))
 				{
-					tempMesh.vbIndex = vbCache.GetBufferIndex(name);
+					tempMesh.SetVBIndex(vbCache.GetBufferIndex(name));
 				}
 				else
 				{
-					vbCache.LoadResource(_device, &_cmdList, name);
-					tempMesh.vbIndex = vbCache.GetBufferIndex(name);
+					vbCache.LoadResource(_device, _cmdList, name);
+					tempMesh.SetVBIndex(vbCache.GetBufferIndex(name));
 				}
 				AddComponentToEntity<Mesh>(tempEnt, tempMesh);
 
@@ -264,12 +274,12 @@ public:
 				MaterialComponent matComp;
 				if (mManager.Exists(matName))
 				{
-					matComp.materialID = mManager.GetReferenceID<PhongMaterial>(matName);
+					matComp.SetMaterialID(mManager.GetReferenceID<PhongMaterial>(matName));
 				}
 				else
 				{
-					mManager.CreateMaterial<PhongMaterial>(_device, rManager, _cmdList, textureCache, "..\\materials\\", matName);
-					matComp.materialID = mManager.GetReferenceID<PhongMaterial>(matName);
+					mManager.LoadMaterial<PhongMaterial>(_device, _cmdList, matName);
+					matComp.SetMaterialID(mManager.GetReferenceID<PhongMaterial>(matName));
 				}
 
 				AddComponentToEntity<MaterialComponent>(tempEnt, matComp);
@@ -302,7 +312,7 @@ public:
 		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
-		ecs.GetComponentManager().RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
+		ecs.GetComponentManager().RegisterComponent<Transform>(entity, Transform(_device, _cmdList));
 		entityIdToName.emplace(tempEnt.id, name);
 		// Find unique name...
 
@@ -328,7 +338,7 @@ public:
 		Entity& entity = entities.Get(name);
 		std::wstring wName;
 		wName.assign(name.begin(), name.end());
-		ecs.GetComponentManager().RegisterComponent<Transform>(entity, Transform(_device, _cmdList))->cb.GetMainResource()->SetName(wName.c_str());
+		ecs.GetComponentManager().RegisterComponent<Transform>(entity, Transform(_device, _cmdList));
 		entityIdToName.emplace(tempEnt.id, name);
 		// Find unique name...
 

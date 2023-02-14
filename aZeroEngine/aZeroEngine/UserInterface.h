@@ -95,4 +95,5 @@ public:
 	}
 
 	void Update();
+	void ShowPerformanceData();
 };

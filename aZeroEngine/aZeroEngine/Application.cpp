@@ -93,20 +93,29 @@ void Application::Run()
 			}
 		}
 
-		if (editorMode)
-		{
-			ui->BeginFrame();
-			ui->Update();
-		}
+
 
 		// Rendering
+		ui->BeginFrame();
+
+
+		if (editorMode)
+		{
+			ImGuizmo::Enable(true);
+			ui->Update();
+		}
+		else
+		{
+			ImGuizmo::Enable(false);
+		}
+		ui->ShowPerformanceData();
+
 		graphics->Begin();
 
 		graphics->Render(window);
 
-		if (editorMode)
-			ui->Render(&graphics->directCmdList);
-
+		ui->Render(&graphics->directCmdList);
+		
 		graphics->Present();
 
 		clock_t endFrame = clock();

@@ -8,7 +8,7 @@
 class VertexBufferCache : public ResourceCache<VertexBuffer>
 {
 private:
-	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList* _cmdList, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer);
+	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList& _cmdList, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer);
 
 public:
 	VertexBufferCache() = default;
@@ -22,7 +22,7 @@ public:
 	@param _name Name of the fbx file residing on the disk without the .fbx extension. The application will look within the "../meshes/" folder.
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name) override;
+	virtual void LoadResource(ID3D12Device* _device, CommandList& _cmdList, const std::string& _name) override;
 
 	/**Removes the vertex buffer from the VertexBufferCache and memory.
 	* Inherited via ResourceCache
@@ -60,4 +60,11 @@ public:
 	@return bool (TRUE: Buffer is loaded, FALSE: Buffer isn't loaded)
 	*/
 	bool Exists(const std::string& _name);
+
+	/** Returns whether or not the buffer with the specified ID is loaded.
+	* ID can be retrieved using VertexBufferCache::GetBufferIndex().
+	@param _ID ID of the VertexBuffer.
+	@return bool (TRUE: Buffer is loaded, FALSE: Buffer isn't loaded)
+	*/
+	bool Exists(int _ID);
 };

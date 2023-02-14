@@ -43,7 +43,7 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, c
 
 
 	desc.InputLayout = { &_inputLayout.descs[0], 3 };
-	desc.pRootSignature = _rootSignature->signature;
+	desc.pRootSignature = _rootSignature->GetSignature();
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
 	desc.PS = { reinterpret_cast<BYTE*>(pShader->GetBufferPointer()), pShader->GetBufferSize() };
 	desc.RasterizerState = _rasterState.GetDesc();

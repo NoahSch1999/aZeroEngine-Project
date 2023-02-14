@@ -38,19 +38,12 @@ void EditorUI::Update()
 	// Available entities && entity selection
 	if (graphics.scene != nullptr)
 	{
-		static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
-		static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+		graphics.WaitForGPU();
 
-		if (ImGui::IsKeyPressed(ImGuiKey_T))
-			mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-		if (ImGui::IsKeyPressed(ImGuiKey_R))
-			mCurrentGizmoOperation = ImGuizmo::ROTATE;
-		if (ImGui::IsKeyPressed(ImGuiKey_S)) // r Key
-			mCurrentGizmoOperation = ImGuizmo::SCALE;
-
+		ImGui::Begin("Entity Editor");
 
 		//------------------------Entity Editor------------------------
-		ImGui::Begin("Entity Editor");
+
 		if (graphics.scene->entities.GetObjects().size() > 0)
 		{
 			ImGui::ListBoxHeader("Entities");
@@ -83,8 +76,34 @@ void EditorUI::Update()
 		}
 		//-----------------------------------------------------------------------
 
+		static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
+		static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+
 		if (selectedEntityID != -1)
 		{
+			
+			if (ImGui::IsKeyPressed(ImGuiKey_W))
+				mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_R))
+				mCurrentGizmoOperation = ImGuizmo::ROTATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_E))
+				mCurrentGizmoOperation = ImGuizmo::SCALE;
+
+			ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
+			Transform* tf = graphics.ecs.GetComponentManager().GetComponent<Transform>(graphics.scene->GetEntity(selectedEntityStr));
+			Matrix editMat = tf->Compose();
+
+			if (ImGuizmo::Manipulate(&graphics.renderSystem->camera.view._11, &graphics.renderSystem->camera.proj._11, mCurrentGizmoOperation, mCurrentGizmoMode, &editMat._11, NULL, 0))
+			{
+				Quaternion tempRotDegrees(tf->GetRotation());
+				editMat.Decompose(tf->GetScale(), tempRotDegrees, tf->GetTranslation());
+				
+				Vector3 tempRotRad = tempRotDegrees.ToEuler();
+				tf->SetRotation(tempRotRad);
+				
+				tf->Update(&graphics.directCmdList, graphics.frameIndex);
+			}
+
 			// Hide / Show Entity
 			// NOT DONE. THERE IS A BUG WHICH HAPPENS IF THE ENTITY IS HIDDEN AND IT GETS BOUND TO THE RENDERER. THIS BUG WILL DISABLE THE ABILITY TO HIDE/SHOW THE ENTITY.
 			bool& isHidden = graphics.scene->entities.Get(selectedEntityID).disabled;
@@ -104,7 +123,7 @@ void EditorUI::Update()
 			const char* comps[] = { "Transform", "Mesh", "Material" };
 			if (ImGui::TreeNode("Components"))
 			{
-				graphics.WaitForGPU();
+				//graphics.WaitForGPU();
 				for (int i = 0; i < 3; i++)
 				{
 					if (ImGui::TreeNode((void*)(intptr_t)i, comps[i]))
@@ -113,41 +132,26 @@ void EditorUI::Update()
 						{
 						case 0:	// Transform Component
 						{
-							Transform* tf = graphics.scene->GetComponentForEntity<Transform>(graphics.scene->entities.Get(selectedEntityID));
-							Vector3 translation;
-							Quaternion rotQuat;
-							Vector3 rotRad;
-							Vector3 scale;
-							tf->worldMatrix.Decompose(scale, rotQuat, translation);
 
-							rotRad = rotQuat.ToEuler();
-
-							Vector3 rotDeg;
-							rotDeg.x = rotRad.x * (180 / 3.14f);
-							rotDeg.y = rotRad.y * (180 / 3.14f);
-							rotDeg.z = rotRad.z * (180 / 3.14f);
-
-							float pos[3]{ translation.x, translation.y, translation.z };
-							if (ImGui::InputFloat3("Translation", pos))
+							if (ImGui::InputFloat3("Translation", &tf->GetTranslation().x))
 							{
-								tf->worldMatrix = (Matrix::CreateRotationX(rotRad.x) * Matrix::CreateRotationY(rotRad.y) * Matrix::CreateRotationZ(rotRad.z)) * Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos[0], pos[1], pos[2]);
 								tf->Update(&graphics.directCmdList, graphics.frameIndex);
 							}
 
-							float rot[3]{ rotDeg.x, rotDeg.y, rotDeg.z };
-							if (ImGui::InputFloat3("Rotation", rot))
+							Quaternion rotInDegrees(tf->GetRotation());
+							Vector3 rotInDeg = tf->GetRotation();
+							rotInDeg.x = rotInDeg.x * (180 / 3.14f);
+							rotInDeg.y = rotInDeg.y * (180 / 3.14f);
+							rotInDeg.z = rotInDeg.z * (180 / 3.14f);
+							if (ImGui::InputFloat3("Rotation", &rotInDeg.x))
 							{
-								rotRad.x = rot[0] / (180 / 3.14f);
-								rotRad.y = rot[1] / (180 / 3.14f);
-								rotRad.z = rot[2] / (180 / 3.14f);
-								tf->worldMatrix = (Matrix::CreateRotationX(rotRad.x) * Matrix::CreateRotationY(rotRad.y) * Matrix::CreateRotationZ(rotRad.z)) * Matrix::CreateScale(scale) * Matrix::CreateTranslation(translation);
+								Vector3 rotInRad = Vector3(rotInDeg.x / (180 / 3.14f), rotInDeg.y / (180 / 3.14f), rotInDeg.z / (180 / 3.14f));
+								tf->SetRotation(rotInRad);
 								tf->Update(&graphics.directCmdList, graphics.frameIndex);
 							}
 
-							float sca[3]{ scale.x, scale.y, scale.z };
-							if (ImGui::InputFloat3("Scale", sca))
+							if (ImGui::InputFloat3("Scale", &tf->GetScale().x))
 							{
-								tf->worldMatrix = (Matrix::CreateRotationX(rotRad.x) * Matrix::CreateRotationY(rotRad.y) * Matrix::CreateRotationZ(rotRad.z)) * Matrix::CreateScale(sca[0], sca[1], sca[2]) * Matrix::CreateTranslation(translation);
 								tf->Update(&graphics.directCmdList, graphics.frameIndex);
 							}
 
@@ -167,24 +171,26 @@ void EditorUI::Update()
 									std::string::size_type const p(fbxNameWithExt.find_last_of('.'));
 									std::string fileNameWithoutExt = fbxNameWithExt.substr(0, p);
 
-									graphics.vbCache.LoadResource(graphics.device, &graphics.directCmdList, fileNameWithoutExt);
+									graphics.vbCache.LoadResource(graphics.device, graphics.directCmdList, fileNameWithoutExt);
 									if (meshComp == nullptr)
 									{
-										Mesh tempMesh;
-										tempMesh.vbIndex = graphics.vbCache.GetBufferIndex(fileNameWithoutExt);
+										Mesh tempMesh(graphics.vbCache.GetBufferIndex(fileNameWithoutExt));
 										graphics.scene->AddComponentToEntity<Mesh>(graphics.scene->entities.Get(selectedEntityID), tempMesh);
+
+										MaterialComponent tempMat(graphics.materialManager.GetReferenceID<PhongMaterial>("DefaultPhongMaterial"));
+										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->entities.Get(selectedEntityID), tempMat);
 										graphics.renderSystem->Bind(graphics.scene->entities.Get(selectedEntityID));
 									}
 									else
 									{
-										meshComp->vbIndex = graphics.vbCache.GetBufferIndex(fileNameWithoutExt);
+										meshComp->SetVBIndex(graphics.vbCache.GetBufferIndex(fileNameWithoutExt));
 									}
 								}
 							}
 
 							if (meshComp != nullptr)
 							{
-								std::string vbName = "Current Vertex Buffer: " + graphics.vbCache.GetBuffer(meshComp->vbIndex)->GetFileName();
+								std::string vbName = "Current Vertex Buffer: " + graphics.vbCache.GetBuffer(meshComp->GetVBIndex())->GetFileName();
 								ImGui::Text(vbName.c_str());
 							}
 							else
@@ -198,31 +204,6 @@ void EditorUI::Update()
 						{
 							MaterialComponent* matComp = graphics.scene->GetComponentForEntity<MaterialComponent>(graphics.scene->entities.Get(selectedEntityID));
 
-							// Should remove the old deprecated Windows functions and replace with the IFileDialog API...
-							if (ImGui::Button("Load Phong Material"))
-							{
-								std::string matNameWithExt = "";
-								if (OpenFileDialogForExtension(".azm", matNameWithExt))
-								{
-									std::string::size_type const p(matNameWithExt.find_last_of('.'));
-									std::string matNameWithoutExt = matNameWithExt.substr(0, p);
-
-									graphics.materialManager.CreateMaterial<PhongMaterial>(graphics.device, graphics.resourceManager, graphics.directCmdList, graphics.textureCache, "..\\materials\\", matNameWithoutExt);
-
-									if (matComp == nullptr)
-									{
-										MaterialComponent tempMat;
-										tempMat.materialID = graphics.materialManager.GetReferenceID<PhongMaterial>(matNameWithoutExt);
-										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->entities.Get(selectedEntityID), tempMat);
-										graphics.renderSystem->Bind(graphics.scene->entities.Get(selectedEntityID));
-									}
-									else
-									{
-										matComp->materialID = graphics.materialManager.GetReferenceID<PhongMaterial>(matNameWithoutExt);
-									}
-								}
-							}
-
 							const std::string btnName = "Attach Selected Material: " + selectedMaterialStr;
 
 							if (ImGui::Button(btnName.c_str()))
@@ -231,14 +212,13 @@ void EditorUI::Update()
 								{
 									if (matComp == nullptr)
 									{
-										MaterialComponent tempMat;
-										tempMat.materialID = graphics.materialManager.GetReferenceID<PhongMaterial>(selectedMaterialStr);
+										MaterialComponent tempMat(graphics.materialManager.GetReferenceID<PhongMaterial>(selectedMaterialStr));
 										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->entities.Get(selectedEntityID), tempMat);
 										graphics.renderSystem->Bind(graphics.scene->entities.Get(selectedEntityID));
 									}
 									else
 									{
-										matComp->materialID = graphics.materialManager.GetReferenceID<PhongMaterial>(selectedMaterialStr);
+										matComp->SetMaterialID(graphics.materialManager.GetReferenceID<PhongMaterial>(selectedMaterialStr));
 									}
 								}
 
@@ -249,58 +229,17 @@ void EditorUI::Update()
 								// Info about what type of material...
 
 								//
-								PhongMaterial* pMat = graphics.materialManager.GetMaterial<PhongMaterial>(matComp->materialID);
+								PhongMaterial* pMat = graphics.materialManager.GetMaterial<PhongMaterial>(matComp->GetMaterialID());
 								if (pMat != nullptr)
 								{
 									std::string matName = "Current Material: " + pMat->GetName();
 									ImGui::Text(matName.c_str());
-								
-									PhongMaterialInformation& info = pMat->GetInfoPtr();
-									const std::string textureName = "Diffuse Texture Name: " + graphics.textureCache.GetTextureName(info.diffuseTextureID);
-									ImGui::Text(textureName.c_str());
-
-									if (ImGui::Button("Set Diffuse Texture"))
-									{
-										std::string textureNameWithExt = "";
-										if (OpenFileDialogForExtension(".png", textureNameWithExt))
-										{
-											if (!graphics.textureCache.Exists(textureNameWithExt))
-												graphics.textureCache.LoadResource(graphics.device, graphics.resourceManager.GetTexture2DDescriptor(), &graphics.directCmdList, textureNameWithExt);
-
-											info.diffuseTextureID = graphics.textureCache.GetResource(textureNameWithExt).GetHandle().GetHeapIndex();
-											pMat->Update(&graphics.directCmdList, graphics.frameIndex);
-										}
-									}
-
-									float ambientSpecs[3]{ info.ambientAbsorbation.x, info.ambientAbsorbation.y, info.ambientAbsorbation.z };
-									if (ImGui::InputFloat3("Ambient Absorbation", ambientSpecs))
-									{
-										info.ambientAbsorbation.x = ambientSpecs[0];
-										info.ambientAbsorbation.y = ambientSpecs[1];
-										info.ambientAbsorbation.z = ambientSpecs[2];
-										pMat->Update(&graphics.directCmdList, graphics.frameIndex);
-									}
-
-									float specularSpecs[3]{ info.specularAbsorbation.x, info.specularAbsorbation.y, info.specularAbsorbation.z };
-									if (ImGui::InputFloat3("Specular Absorbation", specularSpecs))
-									{
-										info.specularAbsorbation.x = specularSpecs[0];
-										info.specularAbsorbation.y = specularSpecs[1];
-										info.specularAbsorbation.z = specularSpecs[2];
-										pMat->Update(&graphics.directCmdList, graphics.frameIndex);
-									}
-
-									if (ImGui::InputFloat("Specular Exponent", &info.specularShine))
-									{
-										pMat->Update(&graphics.directCmdList, graphics.frameIndex);
-									}
 								}
 							}
 							else
 							{
 								ImGui::Text("Current Material: NULL");
 							}
-
 
 
 							break;
@@ -341,19 +280,87 @@ void EditorUI::Update()
 
 		if (ImGui::Button("Create Phong Material") && matNameBuffer[0] != '\0')
 		{
-			graphics.WaitForGPU();
+			//graphics.WaitForGPU();
 			const std::string newMatTempName(matNameBuffer);
 			if (!graphics.materialManager.Exists(newMatTempName))
 			{
-				graphics.materialManager.CreateMaterial<PhongMaterial>(graphics.device, graphics.directCmdList, graphics.textureCache, newMatTempName);
+				graphics.materialManager.CreateMaterial<PhongMaterial>(graphics.device, graphics.directCmdList, newMatTempName);
 				PhongMaterial* tempNew = graphics.materialManager.GetMaterial<PhongMaterial>(newMatTempName);
 				tempNew->GetInfoPtr().diffuseTextureID = graphics.textureCache.GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex();
 				tempNew->Update(&graphics.directCmdList, graphics.frameIndex);
 			}
 		}
 
+		// Should remove the old deprecated Windows functions and replace with the IFileDialog API...
+		if (ImGui::Button("Load Phong Material"))
+		{
+			std::string matNameWithExt = "";
+			if (OpenFileDialogForExtension(".azm", matNameWithExt))
+			{
+				std::string::size_type const p(matNameWithExt.find_last_of('.'));
+				std::string matNameWithoutExt = matNameWithExt.substr(0, p);
+
+				graphics.materialManager.LoadMaterial<PhongMaterial>(graphics.device, graphics.directCmdList, matNameWithoutExt);
+				PhongMaterial* mat = graphics.materialManager.GetMaterial<PhongMaterial>(matNameWithoutExt);
+				selectedMaterialID = graphics.materialManager.GetReferenceID<PhongMaterial>(matNameWithoutExt);
+				selectedMaterialStr = mat->GetName();
+			}
+		}
+
+		PhongMaterial* pMat = graphics.materialManager.GetMaterial<PhongMaterial>(selectedMaterialID);
+		if (pMat != nullptr)
+		{
+			std::string matName = "Current Material: " + pMat->GetName();
+			ImGui::Text(matName.c_str());
+
+			if (pMat->GetName() != "DefaultPhongMaterial")
+			{
+
+				PhongMaterialInformation& info = pMat->GetInfoPtr();
+				const std::string textureName = "Diffuse Texture Name: " + graphics.textureCache.GetTextureName(info.diffuseTextureID);
+				ImGui::Text(textureName.c_str());
+
+				if (ImGui::Button("Set Diffuse Texture"))
+				{
+					std::string textureNameWithExt = "";
+					if (OpenFileDialogForExtension(".png", textureNameWithExt))
+					{
+						if (!graphics.textureCache.Exists(textureNameWithExt))
+							graphics.textureCache.LoadResource(graphics.device, graphics.directCmdList, graphics.resourceManager, textureNameWithExt);
+
+						info.diffuseTextureID = graphics.textureCache.GetResource(textureNameWithExt).GetHandle().GetHeapIndex();
+						pMat->Update(&graphics.directCmdList, graphics.frameIndex);
+					}
+				}
+
+				float ambientSpecs[3]{ info.ambientAbsorbation.x, info.ambientAbsorbation.y, info.ambientAbsorbation.z };
+				if (ImGui::InputFloat3("Ambient Absorbation", ambientSpecs))
+				{
+					info.ambientAbsorbation.x = ambientSpecs[0];
+					info.ambientAbsorbation.y = ambientSpecs[1];
+					info.ambientAbsorbation.z = ambientSpecs[2];
+					pMat->Update(&graphics.directCmdList, graphics.frameIndex);
+				}
+
+				float specularSpecs[3]{ info.specularAbsorbation.x, info.specularAbsorbation.y, info.specularAbsorbation.z };
+				if (ImGui::InputFloat3("Specular Absorbation", specularSpecs))
+				{
+					info.specularAbsorbation.x = specularSpecs[0];
+					info.specularAbsorbation.y = specularSpecs[1];
+					info.specularAbsorbation.z = specularSpecs[2];
+					pMat->Update(&graphics.directCmdList, graphics.frameIndex);
+				}
+
+				if (ImGui::InputFloat("Specular Exponent", &info.specularShine))
+				{
+					pMat->Update(&graphics.directCmdList, graphics.frameIndex);
+				}
+			}
+		}
 		ImGui::End();
 		//-----------------------------------------------------------------------
+
+		ImGui::ShowDemoWindow();
 	}
 
 	//-----------------------------Scene Manager-----------------------------
@@ -369,7 +376,16 @@ void EditorUI::Update()
 		ImGui::Text(sceneNameText.c_str());
 	}
 
-	if (ImGui::Button("Load Scene"))
+	if (graphics.scene == nullptr)
+	{
+		if (ImGui::Button("New Scene"))
+		{
+			graphics.WaitForGPU();
+			graphics.scene = new Scene(graphics.ecs, graphics.vbCache, graphics.materialManager, graphics.resourceManager, graphics.textureCache);
+		}
+	}
+
+	if (ImGui::Button("Open Scene"))
 	{
 		graphics.WaitForGPU();
 		std::string sceneNameWithExt = "";
@@ -399,44 +415,55 @@ void EditorUI::Update()
 		}
 	}
 
-	if (ImGui::Button("Close Scene"))
+	if (graphics.scene != nullptr)
 	{
-		graphics.WaitForGPU();
-
-		if (graphics.scene != nullptr)
+		if (ImGui::Button("Close Scene"))
 		{
-			for (const auto& ent : graphics.scene->entities.GetObjects())
+			graphics.WaitForGPU();
+
+			if (graphics.scene != nullptr)
 			{
-				graphics.renderSystem->UnBind(ent);
+				for (const auto& ent : graphics.scene->entities.GetObjects())
+				{
+					graphics.renderSystem->UnBind(ent);
+				}
+				delete graphics.scene;
+				graphics.scene = nullptr;
 			}
-			delete graphics.scene;
-			graphics.scene = nullptr;
+
+			selectedEntityStr = "";
+			selectedEntityID = -1;
 		}
-
-		selectedEntityStr = "";
-		selectedEntityID = -1;
-	}
-
-	static char sceneNameBuffer[40] = "";
-	ImGui::InputText("Scene Name", sceneNameBuffer, 40);
-	if (ImGui::Button("Save Scene"))
-	{
-		const std::string sceneName(sceneNameBuffer);
-		if (sceneName.size() == 0)
+	
+		static char sceneNameBuffer[40] = "";
+		ImGui::InputText("Scene Name", sceneNameBuffer, 40);
+		if (ImGui::Button("Save Scene"))
 		{
-			graphics.scene->Save("..\\scenes\\", graphics.scene->GetName().c_str(), false);
-		}
-		else
-		{
-			graphics.scene->Save("..\\scenes\\", sceneName.c_str(), false);
-		}
+			graphics.WaitForGPU();
+			const std::string sceneName(sceneNameBuffer);
+			if (sceneName.size() == 0)
+			{
+				graphics.scene->Save("..\\scenes\\", graphics.scene->GetName().c_str(), false);
+			}
+			else
+			{
+				graphics.scene->Save("..\\scenes\\", sceneName.c_str(), false);
+			}
 
-		ZeroMemory(sceneNameBuffer, sizeof(sceneNameBuffer));
+			ZeroMemory(sceneNameBuffer, sizeof(sceneNameBuffer));
+		}
 	}
 
 	ImGui::End();
 	//-----------------------------------------------------------------------
 
+	lastSelectedEntityStr = selectedEntityStr;
+	lastSelectedEntityID = selectedEntityID;
+	
+}
+
+void EditorUI::ShowPerformanceData()
+{
 	//------------------------Performance Data Window------------------------
 	ImGui::Begin("Performance Data");
 	static int currentFramesPerfFPS = 0;
@@ -467,10 +494,4 @@ void EditorUI::Update()
 	ImGui::Text("Average MS and FPS: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 	ImGui::End();
-	//-----------------------------------------------------------------------
-
-	ImGui::ShowDemoWindow();
-
-	lastSelectedEntityStr = selectedEntityStr;
-	lastSelectedEntityID = selectedEntityID;
 }

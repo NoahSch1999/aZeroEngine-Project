@@ -2,26 +2,6 @@
 
 BaseResource::~BaseResource()
 {
-	/*if (isInitiated)
-	{
-		mainResource->Release();
-
-		if (intermediateResource == nullptr)
-		{
-			intermediateResource->Release();
-		}
-	}*/
-}
-
-void BaseResource::ReleaseMain()
-{
-	mainResource->Release();
-}
-
-void BaseResource::ReleaseIntermediate()
-{
-	if (intermediateResource != nullptr)
-		intermediateResource->Release();
 }
 
 void BaseResource::TransitionMain(ID3D12GraphicsCommandList* _gCmdList, D3D12_RESOURCE_STATES _newState)

@@ -36,16 +36,6 @@ public:
 	*/
 	bool GetIsStatic() { return isStatic; }
 
-	/**Releases the main resource.
-	@return void
-	*/
-	void ReleaseMain();
-
-	/**Releases the intermediate resource.
-	@return void
-	*/
-	void ReleaseIntermediate();
-
 	/**Transitions the main GPU resource from one state to another.
 	@param _gCmdList Pointer to a ID3D12GraphicsCommandList to register the transitioning to.
 	@param _newState The state to transition to.

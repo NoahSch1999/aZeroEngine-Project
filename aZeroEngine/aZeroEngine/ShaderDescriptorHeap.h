@@ -23,6 +23,8 @@ public:
 	*/
 	ShaderDescriptorHeap(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, const std::wstring& _name = L"");
 
+	~ShaderDescriptorHeap();
+
 	/** @brief Initiates the necessary variables.
 	@param _device Device to create the resources with.
 	@param _type D3D12_DESCRIPTOR_HEAP_TYPE of the heap.
@@ -31,7 +33,6 @@ public:
 	@return void
 	*/
 	void Init(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, const std::wstring& _name = L"");
-	~ShaderDescriptorHeap();
 
 	/** @brief Returns a copy of a descriptor handle at the specified index.
 	@param _index Index of the descriptor handle to return.

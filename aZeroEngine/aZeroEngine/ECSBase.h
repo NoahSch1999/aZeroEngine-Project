@@ -55,46 +55,144 @@ namespace COMPONENTENUM
 //};
 // ---------------------------------------------------------------
 
-struct Transform
+class Transform
 {
-	Matrix worldMatrix;
+private:
+//	Matrix worldMatrix;
+
+	Vector3 translation = Vector3::Zero;
+	Vector3 rotation = Vector3::Zero;
+	Vector3 scale = Vector3(1.f, 1.f, 1.f);
 	ConstantBuffer cb;
-	Transform()
+
+public:
+
+	void SetTranslation(const Vector3& _translation)
 	{
-		worldMatrix = Matrix::Identity;
+		translation = _translation;
 	}
+
+	void SetTranslation(float _xPos, float _yPos, float _zPos)
+	{
+		translation.x = _xPos;
+		translation.y = _yPos;
+		translation.z = _zPos;
+	}
+
+	void SetTranslationX(float _xPos)
+	{
+		translation.x = _xPos;
+	}
+
+	void SetTranslationY(float _yPos)
+	{
+		translation.y = _yPos;
+	}
+
+	void SetTranslationZ(float _zPos)
+	{
+		translation.z = _zPos;
+	}
+
+	void SetRotation(const Vector3& _rotation)
+	{
+		rotation = _rotation;
+	}
+
+	void SetRotation(float _xRot, float _yRot, float _zRot)
+	{
+		rotation.x = _xRot;
+		rotation.y = _yRot;
+		rotation.z = _zRot;
+	}
+
+	void SetRotationX(float _xRotDegree)
+	{
+		rotation.x = _xRotDegree;
+	}
+
+	void SetRotationY(float _yRotDegree)
+	{
+		rotation.y = _yRotDegree;
+	}
+
+	void SetRotationZ(float _zRotDegree)
+	{
+		rotation.z = _zRotDegree;
+	}
+
+	void SetScale(const Vector3& _scale)
+	{
+		scale = _scale;
+	}
+
+	void SetScale(float _xScale, float _yScale, float _zScale)
+	{
+		scale.x = _xScale;
+		scale.y = _yScale;
+		scale.z = _zScale;
+	}
+
+	void SetScaleX(float _xScale)
+	{
+		scale.x = _xScale;
+	}
+
+	void SetScaleY(float _yScale)
+	{
+		scale.y = _yScale;
+	}
+
+	void SetScaleZ(float _zScale)
+	{
+		scale.z = _zScale;
+	}
+
+	void SetScaleUniform(float _scale)
+	{
+		scale = Vector3(_scale, _scale, _scale);
+	}
+
+	Vector3& GetTranslation() { return translation; }
+	Vector3& GetRotation() { return rotation; }
+	Vector3& GetScale() { return scale; }
+
+	Matrix Compose()
+	{
+		return (Matrix::CreateScale(scale)) * Matrix::CreateFromYawPitchRoll(rotation) *  Matrix::CreateTranslation(translation);
+	}
+
+	void Delete()
+	{
+		cb.GetIntermediateResource()->Release();
+		cb.GetMainResource()->Release();
+	}
+
+	ConstantBuffer& GetBuffer() { return cb; }
+
+	Transform() = default;
 
 	Transform(ID3D12Device* _device, CommandList* _cmdList)
 	{
-		worldMatrix = Matrix::Identity;
-		cb.InitDynamic(_device, _cmdList, (void*)&worldMatrix, sizeof(Matrix), 1, true, L"");
+		Matrix temp = Matrix::Identity;
+		cb.InitDynamic(_device, _cmdList, (void*)&temp, sizeof(Matrix), 1, true, L"");
 	}
 
 	// Used for non-trippleframed resources
 	void Update()
 	{
-		cb.Update((void*)&worldMatrix, sizeof(Matrix));
-	}
-
-	void Update(const Matrix& _matrix)
-	{
-		worldMatrix = _matrix;
-		cb.Update((void*)&worldMatrix, sizeof(Matrix));
+		Matrix temp = Compose();
+		cb.Update((void*)&temp, sizeof(Matrix));
 	}
 
 	void Update(CommandList* _cmdList, int _frameIndex)
 	{
-		cb.Update(_cmdList, (void*)&worldMatrix, sizeof(Matrix), _frameIndex);
-	}
-
-	void Update(CommandList* _cmdList, const Matrix& _matrix, int _frameIndex)
-	{
-		worldMatrix = _matrix;
-		cb.Update(_cmdList, (void*)&worldMatrix, sizeof(Matrix), _frameIndex);
+		Matrix temp = Compose();
+		cb.Update(_cmdList, (void*)&temp, sizeof(Matrix), _frameIndex);
 	}
 };
 
-struct Mesh
+class Mesh
 {
 	// SHOULD THE COMPONENT HAVE A VERTEX BUFFER OR AN INDEX TO THE VERTEX BUFFER WITHIN THE VERTEXBUFFERCACHE (SAME AS WITH THE MATERIAL COMPONENT)?
 	// PROS WITH HAVING ITS OWN VERTEX BUFFER: 
@@ -102,12 +200,24 @@ struct Mesh
 	// PROS WITH HAVING ONLY AN INDEX: 
 	//		LESS MEMORY CONSUMPTION
 	//		IF VERTEX BUFFER CHANGES MID-APPLICATION, THE CHANGE IS APPLIED TO EVERY MESH COMPONENT THAT HAS AN ID TO THE SAME VERTEX BUFFER
+private:
 	int vbIndex;
+public:
+	Mesh() = default;
+	Mesh(int _vbIndex) :vbIndex(_vbIndex) {};
+	void SetVBIndex(int _vbIndex) { vbIndex = _vbIndex; }
+	int GetVBIndex() { return vbIndex; }
 };
 
-struct MaterialComponent
+class MaterialComponent
 {
+private:
 	int materialID;
+public:
+	MaterialComponent() = default;
+	MaterialComponent(int _materialID) :materialID(_materialID) {};
+	void SetMaterialID(int _materialID) { materialID = _materialID; }
+	int GetMaterialID() { return materialID; }
 };
 
 // Light component
@@ -414,12 +524,7 @@ public:
 		//tSystem.UnBind(_entity); // Works regardless if it's bound or not
 
 		Transform* tf = componentManager.GetComponent<Transform>(_entity);
-		if (tf != nullptr)
-		{
-			if(tf->cb.GetIntermediateResource()!= nullptr)
-				tf->cb.GetIntermediateResource()->Release();
-			tf->cb.GetMainResource()->Release();
-		}
+		tf->Delete();
 
 		componentManager.RemoveComponent<Transform>(_entity);
 

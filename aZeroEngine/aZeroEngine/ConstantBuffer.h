@@ -7,8 +7,6 @@ Can be either static or dynamic (single or tripple-buffered).
 */
 class ConstantBuffer : public BaseResource
 {
-private:
-	
 public:
 
 	ConstantBuffer();

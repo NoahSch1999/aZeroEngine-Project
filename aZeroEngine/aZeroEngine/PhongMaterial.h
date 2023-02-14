@@ -15,19 +15,20 @@ class PhongMaterial : public Material<PhongMaterialInformation>
 public:
 	PhongMaterial() = default;
 
-	PhongMaterial(ID3D12Device* _device, ResourceManager& _rManager, CommandList& _cmdList, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache)
+	PhongMaterial(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, Texture2DCache& _textureCache, const std::string& _name)
 		:Material()
 	{
-		Load(_device, _cmdList, _rManager, _fileDirectory, _name, _textureCache);
+		Load(_device, _cmdList, _rManager, _name, _textureCache);
 	}
 
 	PhongMaterial(ID3D12Device* _device, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string& _name)
 		:Material()
 	{
 		name = _name;
-		info.diffuseTextureID = _textureCache.GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex();
+		info.diffuseTextureID = _textureCache.GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex(); // Bug here... When i loaded a scene and switched material...out of range on the getresource.get() method.
 		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), 1, true, L"Default Material Buffer");
 	}
+
 	~PhongMaterial() = default;
 
 	// Inherited via Material
@@ -57,9 +58,9 @@ public:
 		}
 	}
 
-	virtual void Load(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) override
+	virtual void Load(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, const std::string& _name, Texture2DCache& _textureCache) override
 	{
-		std::ifstream file(_fileDirectory + "/" + _name + ".azm", std::ios::in | std::ios::binary);
+		std::ifstream file("..\\materials\\" + _name + ".azm", std::ios::in | std::ios::binary);
 
 		name = _name;
 
@@ -76,7 +77,7 @@ public:
 		}
 		else
 		{
-			_textureCache.LoadResource(_device, _rManager.GetTexture2DDescriptor(), &_cmdList, textureName); // _name -> textureName
+			_textureCache.LoadResource(_device, _cmdList, _rManager, textureName); // _name -> textureName
 			info.diffuseTextureID = _textureCache.GetResource(textureName).GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 

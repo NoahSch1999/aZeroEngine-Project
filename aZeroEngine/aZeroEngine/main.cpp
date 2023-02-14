@@ -14,9 +14,18 @@ ID3D12Debug* d3d12Debug;
 IDXGIDebug* idxgiDebug;
 #endif // DEBUG
 
+class XXX
+{
+public:
+	XXX() = default;
+	~XXX()
+	{
+		printf("s");
+	}
+};
+
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int showCommand)
 {
-
 #ifdef _DEBUG
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&d3d12Debug))))
 		d3d12Debug->EnableDebugLayer();

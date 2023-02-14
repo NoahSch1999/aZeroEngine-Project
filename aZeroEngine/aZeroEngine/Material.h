@@ -29,10 +29,9 @@ public:
 	
 	void SetName(const std::string& _name) const { name = _name; }
 	std::string GetName() const { return name; }
-	int referenceCount = 0;
 	
 
 	virtual void Save(const std::string& _fileDirectory, const std::string& _name, const Texture2DCache& _textureCache, bool _debugASCII = false) const = 0;
 	// Nytt med rmanager inp
-	virtual void Load(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) = 0;
+	virtual void Load(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, const std::string& _name, Texture2DCache& _textureCache) = 0;
 };

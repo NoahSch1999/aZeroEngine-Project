@@ -1,6 +1,7 @@
 #pragma once
 #include "ResourceCache.h"
 #include "Texture2D.h"
+#include "ResourceManager.h"
 
 /** @brief Class that stores and manages 2D textures. A subclass of ResourceCache.
 */
@@ -13,24 +14,33 @@ public:
 
 	virtual ~Texture2DCache();
 
+	/**Initiates the Texture2DCache object.
+	* It also creates a default texture.
+	@param _device ID3D12Device used for D3D12 resource creations.
+	@param _cmdList The main CommandList instance to register the resource creation command on.
+	@param _rManager ResourceManager to use for the default texture creation.
+	@return void
+	*/
+	void Init(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager);
+
 	/**Loads a 2D texture from the disk.
 	* Inherited via ResourceCache
-	@param _device The main ID3D12Device instance used
-	@param _cmdList The main CommandList instance to register the resource creation command on
+	@param _device ID3D12Device used for D3D12 resource creations.
+	@param _cmdList The main CommandList instance to register the resource creation command on.
 	@param _name Name of the 2D texture resource residing on the disk. The application will look within the "../textures/" folder.
 	The parameter name has to contain a jpg or png extension.
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device* _device, CommandList* _cmdList, const std::string& _name) override;
+	virtual void LoadResource(ID3D12Device* _device, CommandList& _cmdList, const std::string& _name) override;
 
 	/**Loads a 2D texture from the disk.
-	@param _device The main ID3D12Device instance used
-	@param _handle A descriptor handle which will be used for the loaded resource
-	@param _cmdList The main CommandList instance to register the resource creation command on
+	@param _device ID3D12Device used for D3D12 resource creations.
+	@param _cmdList The main CommandList instance to register the resource creation command on.
+	@param _rManager ResourceManager to acquire an empty Texture2D DescriptorHandle from.
 	@param _name Name of the 2D texture resource residing on the disk. The application will look within the "../textures/" folder. The parameter name has to contain a jpg or png extension.
 	@return void
 	*/
-	void LoadResource(ID3D12Device* _device, DescriptorHandle _handle, CommandList* _cmdList, const std::string& _name);
+	void LoadResource(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, const std::string& _name);
 
 	/**Removes a texture from the cache and memory.
 	* Inherited via ResourceCache

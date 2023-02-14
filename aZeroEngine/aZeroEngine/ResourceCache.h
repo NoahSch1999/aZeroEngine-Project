@@ -13,12 +13,23 @@ protected:
 	MappedVector<T> resourceMVec;
 public:
 	ResourceCache() = default;
+
 	/**Clears all the resources within the unordered map
 	*/
 	virtual ~ResourceCache() 
 	{
+		std::vector<T>& res = resourceMVec.GetObjects();
+		for (int i = 0; i < res.size(); i++)
+		{
+			res[i].GetMainResource()->Release();
+		}
+
 		for (auto& resource : intermediateResources)
+		{
 			resource->Release();
+		}
+
+		intermediateResources.clear();
 	}
 
 	/**Returns a reference to the internal resource vector
@@ -35,7 +46,7 @@ public:
 	@param _name Name of the resource
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device*_device, CommandList* _cmdList, const std::string& _name) = 0;
+	virtual void LoadResource(ID3D12Device*_device, CommandList& _cmdList, const std::string& _name) = 0;
 	/**Removes resources by filename.
 	@param _name Filename of the resource to remove
 	@return void

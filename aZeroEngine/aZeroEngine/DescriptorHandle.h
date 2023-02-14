@@ -46,7 +46,10 @@ public:
 
 	~DescriptorHandle() = default;
 
-	/** Copies the input data to the handle. If T is D3D12_CPU_DESCRIPTOR_HANDLE, the CPU handle will be set. If T is D3D12_GPU_DESCRIPTOR_HANDLE, the GPU handle will be set.
+	/** Copies the input data to the handle. 
+	* If T is D3D12_CPU_DESCRIPTOR_HANDLE, the CPU handle will be set. 
+	* If T is D3D12_GPU_DESCRIPTOR_HANDLE, the GPU handle will be set.
+	* If T is DescriptorHandle, the DescriptorHandle will be copied to this object
 	@param _handle Handle to copy to the internal handle.
 	*/
 	template<typename T>
@@ -89,9 +92,15 @@ inline void DescriptorHandle::SetHandle(const T& _handle)
 	{
 		gpuHandle = _handle;
 	}
+	else if constexpr (std::is_same_v<T, DescriptorHandle>)
+	{
+		cpuHandle = _handle.GetCPUHandle();
+		gpuHandle = _handle.GetGPUHandle();
+		heapIndex = _handle.GetHeapIndex();
+	}
 	else
 	{
-		static_assert(std::is_same_v<T, D3D12_CPU_DESCRIPTOR_HANDLE> || std::is_same_v<T, D3D12_GPU_DESCRIPTOR_HANDLE>, "T is an invalid input.");
+		static_assert(std::is_same_v<T, D3D12_CPU_DESCRIPTOR_HANDLE> || std::is_same_v<T, D3D12_GPU_DESCRIPTOR_HANDLE> || std::is_same_v<T, DescriptorHandle>, "T is an invalid input.");
 		//using FailureType = typename std::enable_if<false, T>::type; // SFINAE
 	}
 }

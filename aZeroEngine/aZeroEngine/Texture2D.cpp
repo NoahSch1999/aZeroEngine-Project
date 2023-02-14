@@ -21,7 +21,11 @@ Texture2D::Texture2D()
 
 Texture2D::~Texture2D()
 {
-	//uploadBuffer->Release();
+	/*if (mainResource != nullptr)
+	{
+		mainResource->Release();
+		mainResource = nullptr;
+	}*/
 }
 
 void Texture2D::Init(ID3D12Device* _device, CommandList* _cmdList, ID3D12Resource*& _intermediateResource, DescriptorHandle _handle, const std::string& _path, const std::string& _name, D3D12_RESOURCE_STATES _state, DXGI_FORMAT _format)

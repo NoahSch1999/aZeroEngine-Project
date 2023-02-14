@@ -43,7 +43,9 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	resourceManager.Init(device, 100, 1500);
 
-	materialManager.Init(&resourceManager);
+	textureCache.Init(device, directCmdList, resourceManager);
+
+	materialManager.Init(device, directCmdList, &resourceManager, &textureCache);
 
 	swapChain = new SwapChain(device, &directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
@@ -54,52 +56,9 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	swapChain->device = device;
 	swapChain->cmdList = &directCmdList;
 
-	//bool debug = true;
-
-	//if (debug)
-	//{
-	//	vbCache.LoadResource(device, &directCmdList, "goblin");
-
-	//	textureCache.LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "defaultDiffuse.png");
-	//	textureCache.LoadResource(device, resourceManager.GetTexture2DDescriptor(), &directCmdList, "goblintexture.png");
-
-	//	materialManager.CreateMaterial<PhongMaterial>(device, directCmdList, textureCache, "defaultMaterial");
-
-	//	lManager.Init(device, directCmdList, 1, 10, 1);
-
-	//	scene = new Scene(ecs, vbCache, materialManager, resourceManager, textureCache);
-
-	//	for (int i = 0; i < 5; i++)
-	//	{
-	//		float xPos = i;
-	//		float zPos = 0;
-	//		if (i % 2 == 0)
-	//		{
-	//			xPos /= 2.f;
-	//			zPos = i;
-	//		}
-	//		Entity& tempEnt = scene->CreateEntity(device, &directCmdList);
-
-	//		Mesh mesh;
-	//		mesh.vbIndex = vbCache.GetBufferIndex("goblin");
-	//		scene->AddComponentToEntity<Mesh>(tempEnt, mesh);
-
-	//		MaterialComponent mat;
-	//		mat.materialID = materialManager.GetReferenceID<PhongMaterial>("defaultMaterial");
-	//		scene->AddComponentToEntity<MaterialComponent>(tempEnt, mat);
-
-	//		ecs.GetComponentManager().GetComponent<Transform>(tempEnt)->cb.InitAsCBV(device, resourceManager.GetPassDescriptor());
-	//		Matrix x = Matrix::CreateTranslation(xPos, 0, zPos);
-	//		ecs.GetComponentManager().GetComponent<Transform>(tempEnt)->Update(&directCmdList, x, 0);
-	//	}
-	//}
-	//else
-	//{
-
 	lManager.Init(device, directCmdList, 1, 10, 1);
 
-	scene = new Scene(ecs, vbCache, materialManager, resourceManager, textureCache);
-	//}
+	scene = nullptr;
 
 	PointLight l;
 	l.color = { 1,1,0 };
@@ -126,11 +85,6 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 	textureCache.ReleaseIntermediateResources();
 
 	renderSystem = new BasicRendererSystem(device, directCmdList, ecs, materialManager, resourceManager, lManager, vbCache, *swapChain, _window, _instance);
-
-	for (const auto& ent : scene->entities.GetObjects())
-	{
-		renderSystem->Bind(ent);
-	}
 }
 
 void Graphics::Begin()

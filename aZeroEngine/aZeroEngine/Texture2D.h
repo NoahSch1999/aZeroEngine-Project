@@ -13,7 +13,7 @@ private:
 	std::string fileName;
 	DXGI_FORMAT format;
 	void InitSRV(ID3D12Device* _device, D3D12_RESOURCE_DESC _desc);
-	ID3D12Resource* mainResource;
+	ID3D12Resource* mainResource = nullptr;
 	D3D12_RESOURCE_STATES mainResourceState = D3D12_RESOURCE_STATE_COMMON;
 	/*ID3D12Resource* intermediateResource;
 	D3D12_RESOURCE_STATES intermediateResourceState = D3D12_RESOURCE_STATE_COMMON;*/
