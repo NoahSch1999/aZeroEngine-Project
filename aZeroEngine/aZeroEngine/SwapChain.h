@@ -6,12 +6,12 @@
 
 class SwapChain
 {
+private:
+
 public:
-	DXGI_FORMAT rtvFormat;
-	DXGI_FORMAT dsvFormat;
 	int numBackBuffers;
 	std::vector<RenderTarget*> backBuffers;
-	DepthStencil* dsv;
+	DepthStencil dsv;
 
 	IDXGISwapChain1* swapChain;
 	IDXGIFactory2* dxgiFactory;
@@ -19,19 +19,10 @@ public:
 	D3D12_RECT scissorRect;
 
 	int refreshRate;
-
-	CommandQueue* queue;
-	CommandList* cmdList;
-	ID3D12Device* device;
-	int* syncValue;
-
-	// render target and dsv
-	SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList* _cmdList, HiddenDescriptorHeap* _dsvHeap, HiddenDescriptorHeap* _heap, 
-		HWND _winHandle, UINT _width, UINT _height, int _numBackBuffers, DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat);
+	SwapChain() = default;
 	~SwapChain();
 
-	//void SetFullscreen(AppWindow* _window);
-	//void SetWindowed(AppWindow* _window, int width, int height);
+	void Init(ID3D12Device* _device, HWND _windowHandle, CommandQueue& _cmdQueue, CommandList& _cmdList, const Vector2& _clientDimensions, DescriptorHandle _dsvHandle, std::vector<DescriptorHandle> _bbHandles, int _numBackBuffers, DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat);
 
 	void OnResize(HWND _winHandle/*, UINT& _width, UINT& _height*/);
 };

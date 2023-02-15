@@ -146,7 +146,7 @@ public:
 		pLightList(_device, _cmdList, _maxPointLights),
 		sLightList(_device, _cmdList, _maxSpotLights)
 	{
-		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
+		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), true, L"Light Manager Num Buffer");
 		numLightsCB.GetMainResource()->SetName(L"CB NUM LIGHTS");
 	}
 
@@ -165,7 +165,7 @@ public:
 		pLightList = LightList<PointLight>(_device, _cmdList, _maxPointLights);
 		sLightList = LightList<SpotLight>(_device, _cmdList, _maxSpotLights);
 
-		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), 1, true, L"Light Manager Num Buffer");
+		numLightsCB.InitDynamic(_device, &_cmdList, (void*)&numLights, sizeof(NumLights), true, L"Light Manager Num Buffer");
 		numLightsCB.GetMainResource()->SetName(L"CB NUM LIGHTS");
 	}
 

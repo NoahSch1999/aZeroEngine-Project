@@ -9,9 +9,9 @@ class Graphics
 private:
 	float clearColor[4] = { 0.7f, 0.7f, 0.7f, 1 };
 public:
-	Graphics(AppWindow* _window, HINSTANCE _instance);
+	Graphics(AppWindow& _window, HINSTANCE _instance);
 	~Graphics();
-	void Initialize(AppWindow* _window, HINSTANCE _instance);
+	void Initialize(AppWindow& _window, HINSTANCE _instance);
 	void Begin();
 	void Render(AppWindow* _window);
 	void Present();
@@ -20,6 +20,7 @@ public:
 
 	ID3D12Device* device;
 	CommandQueue directCommandQueue;
+	AppWindow& window;
 
 	HiddenDescriptorHeap* rtvHeap;
 	HiddenDescriptorHeap* dsvHeap;
@@ -29,7 +30,7 @@ public:
 	CommandAllocator allocator;
 
 	// Presenting and culling
-	SwapChain* swapChain;
+	//SwapChain* swapChain;
 	RenderTarget* currentBackBuffer;
 	int nextSyncSignal = 0;
 	int frameIndex;

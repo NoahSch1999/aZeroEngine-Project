@@ -19,24 +19,13 @@ public:
 	*/
 	void InitAsCBV(ID3D12Device* _device, const DescriptorHandle& _handle);
 
-	/**Returns whether the resource is static or not.
-	@return bool
-	*/
-	bool IsStatic() { return isStatic; }
-
-	/**Returns whether the resource is tripple buffered or not.
-	@return bool
-	*/
-	bool IsTrippleBuffered() { return isTrippleBuffered; }
-
-
 	// Inherited via BaseResource
 
 	// has to be tested
-	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName) override;
+	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName) override;
 
 	// has to be tested with single buffering
-	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
+	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
 
 };
 

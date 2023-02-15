@@ -14,8 +14,13 @@ I HAVE TO FIX SO THIS USES REAL TRIPPLE BUFFERING INSTEAD OF MEMCPY STUFF (WITH 
 class StructuredBuffer : public BaseResource
 {
 private:
-	int sizeOfElement;
+	int sizeOfElement = -1;
+	int numElements = -1;
 
+	// Inherited via BaseResource
+	// Disabled
+	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName) override;
+	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
 public:
 	StructuredBuffer()
 		:BaseResource()
@@ -28,6 +33,8 @@ public:
 		//uploadBuffer->Release();
 	}
 
+	using BaseResource::GetGPUAddress;
+
 	/**Updates the specified element with the input data. Use this when the resource is SINGLE BUFFERED.
 	@param _elementIndex Index of the element to update.
 	@param _data Data to copy to the specified element.
@@ -36,18 +43,13 @@ public:
 	*/
 	void Update(int _elementIndex, void* _data, int _size);
 
-	using BaseResource::GetGPUAddress;
-
 	/**Returns the virtual GPU address for the specified frame index.
 	@param _frameIndex Frame index to use.
 	@return D3D12_GPU_VIRTUAL_ADDRESS
 	*/
-	D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress(int _frameIndex);
+	D3D12_GPU_VIRTUAL_ADDRESS const GetGPUAddress(int _frameIndex);
 
-	// Inherited via BaseResource
-	// Static has to be defined
-	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName) override;
-	// Has to be redesigned for "new" tripple buffering and tested
-	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
+	// Redesign for "new" tripple buffer version
+	void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _isTrippleBuffered, const std::wstring& _mainResourceName);
 };
 

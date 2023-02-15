@@ -10,17 +10,23 @@ Application::Application(HINSTANCE _instance, int _width, int _height)
 void Application::Initialize(HINSTANCE _instance, int _width, int _height)
 {
 	window = new AppWindow(WndProc, _instance, _width, _height, L"../sprites/snowflake.ico", L"../sprites/snowflakeRed.ico");
-	graphics = new Graphics(window, _instance);
-	input = new Input(_instance, window->windowHandle);
-	sc = graphics->swapChain;
-	win = window;
-	init = true;
+	graphics = new Graphics(*window, _instance);
+	std::vector<DescriptorHandle>bbHandles;
+	bbHandles.emplace_back(graphics->rtvHeap->GetNewSlot());
+	bbHandles.emplace_back(graphics->rtvHeap->GetNewSlot());
+	bbHandles.emplace_back(graphics->rtvHeap->GetNewSlot());
+	window->InitSwapChain(graphics->device, graphics->directCommandQueue, graphics->directCmdList, graphics->dsvHeap->GetNewSlot(), bbHandles, bbHandles.size());
+
+	graphics->renderSystem = new BasicRendererSystem(graphics->device, graphics->directCmdList, graphics->ecs, graphics->materialManager, graphics->resourceManager, graphics->lManager, graphics->vbCache, _instance, *window);
+
+	input = new Input(_instance, window->GetHandle());
 	ui = new EditorUI(*graphics, *window);
+
+	graphics->WaitForGPU();
 }
 
 void Application::Run()
 {
-	//SetCursor(NULL);
 	performanceTimer.StartCountDown();
 	int lastSecond = 0;
 	int currentSecond = 0;
@@ -46,7 +52,7 @@ void Application::Run()
 		if (!window->Update())
 			break;
 
-		if (input->KeyDown(DIK_LALT))
+		if (input->KeyDown(DIK_B))
 		{
 			break;
 		}
@@ -67,37 +73,16 @@ void Application::Run()
 			Sleep(100);
 		}
 
-		if(!editorMode)
-			graphics->renderSystem->camera.Update(performanceTimer.deltaTime, *input, window->width, window->height, &graphics->directCmdList, graphics->frameIndex);
-
-		if (input->KeyDown(DIK_V))
+		if (!editorMode)
 		{
-			graphics->scene->Save("..\\scenes\\", "Level1", true);
+			Vector2 clientDimensions = window->GetClientSize();
+			graphics->renderSystem->camera.Update(performanceTimer.deltaTime, *input, clientDimensions.x, clientDimensions.y, &graphics->directCmdList, graphics->frameIndex);
 		}
-		if (input->KeyDown(DIK_B) )
-		{
-			if (graphics->scene != nullptr)
-			{
-				graphics->WaitForGPU();
-				for (const auto& ent : graphics->scene->entities.GetObjects())
-				{
-					graphics->renderSystem->UnBind(ent);
-				}
-				delete graphics->scene;
-			}
-			graphics->scene = new Scene(graphics->ecs, graphics->vbCache, graphics->materialManager, graphics->resourceManager, graphics->textureCache);
-			graphics->scene->Load(graphics->device, graphics->directCmdList, graphics->frameIndex, "..\\scenes\\", "Level1");
-			for (const auto& ent : graphics->scene->entities.GetObjects())
-			{
-				graphics->renderSystem->Bind(ent);
-			}
-		}
-
-
 
 		// Rendering
 		ui->BeginFrame();
 
+		//ui->ShowSettings();
 
 		if (editorMode)
 		{
@@ -108,7 +93,7 @@ void Application::Run()
 		{
 			ImGuizmo::Enable(false);
 		}
-		ui->ShowPerformanceData();
+		//ui->ShowPerformanceData();
 
 		graphics->Begin();
 
@@ -144,4 +129,5 @@ Application::~Application()
 	delete window;
 	delete graphics;
 	delete input;
+	delete ui;
 }

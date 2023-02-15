@@ -18,11 +18,10 @@ void ConstantBuffer::InitAsCBV(ID3D12Device* _device, const DescriptorHandle& _h
 	_device->CreateConstantBufferView(&view, handle.GetCPUHandle());
 }
 
-void ConstantBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName)
+void ConstantBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName)
 {
-	numElements = _numElements;
 	isStatic = true;
-	sizePerSubresource = (_numBytes / _numElements + 255) & ~255;
+	sizePerSubresource = (_numBytes + 255) & ~255;
 
 	D3D12_RESOURCE_DESC rDesc = {};
 	ZeroMemory(&rDesc, sizeof(rDesc));
@@ -39,14 +38,11 @@ void ConstantBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, vo
 
 	Init<RESOURCETYPE::STATIC>(_device, _cmdList, rDesc, rDesc, _initData);
 	mainResource->SetName(_mainResourceName.c_str());
-
-	// clear intermediate somehow
 }
 
-void ConstantBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName)
+void ConstantBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName)
 {
-	numElements = _numElements;
-	sizePerSubresource = (_numBytes / _numElements + 255) & ~255; // size per buffer subresource
+	sizePerSubresource = (_numBytes + 255) & ~255; // size per buffer subresource
 
 	D3D12_RESOURCE_DESC rDesc = {};
 	ZeroMemory(&rDesc, sizeof(rDesc));

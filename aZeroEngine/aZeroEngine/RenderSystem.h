@@ -36,16 +36,17 @@ struct Camera
 	IDirectInputDevice8* diMouseDevice;
 	LPDIRECTINPUT8 directInput;
 
-	Camera(ID3D12Device* _device, CommandList& _cmdList, UINT _width, UINT _height, HINSTANCE _instance, HWND _handle)
+	Camera(ID3D12Device* _device, CommandList& _cmdList, AppWindow& _appWindow)
 	{
 		view = Matrix::CreateLookAt(position, forward, UP);
-		proj = Matrix::CreatePerspectiveFieldOfView(fov, (float)_width / (float)_height, 0.1f, 1000.f);
+		Vector2 clientDimensions = _appWindow.GetClientSize();
+		proj = Matrix::CreatePerspectiveFieldOfView(fov, (float)clientDimensions.x / (float)clientDimensions.y, 0.1f, 1000.f);
 		view.Transpose();
 		proj.Transpose();
 		buffer = new ConstantBuffer();
-		buffer->InitDynamic(_device, &_cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), 1, true, L"Camera Buffer");
+		buffer->InitDynamic(_device, &_cmdList, (void*)&view, sizeof(Matrix) + sizeof(Matrix), true, L"Camera Buffer");
 
-		HRESULT hr = DirectInput8Create(_instance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, NULL);
+		HRESULT hr = DirectInput8Create(_appWindow.GetInstance(), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&directInput, NULL);
 		if (FAILED(hr))
 			throw;
 
@@ -57,7 +58,7 @@ struct Camera
 		if (FAILED(hr))
 			throw;
 
-		hr = diMouseDevice->SetCooperativeLevel(_handle, DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
+		hr = diMouseDevice->SetCooperativeLevel(_appWindow.GetHandle(), DISCL_EXCLUSIVE | DISCL_NOWINKEY | DISCL_FOREGROUND);
 		if (FAILED(hr))
 			throw;
 
@@ -161,9 +162,9 @@ public:
 
 	BasicRendererSystem(ID3D12Device* _device, CommandList& _cmdList, ECS& _ecs,
 		MaterialManager& _matManager, ResourceManager& _rManager, LightManager& _lManager, VertexBufferCache& _vbCache,
-		const SwapChain& _swapChain, AppWindow* _window, HINSTANCE _instance)
+		HINSTANCE _instance, AppWindow& _appWindow)
 		:solidRaster(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE), ecs(_ecs), cmdList(_cmdList), mManager(_matManager), lManager(_lManager), rManager(_rManager), vbCache(_vbCache),
-		camera(_device, _cmdList, _window->width, _window->height, _instance, _window->windowHandle)
+		camera(_device, _cmdList, _appWindow)
 	{
 
 		componentMask.set(false);
@@ -183,7 +184,7 @@ public:
 		params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// num lights
 		rootSig.Init(_device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
-		pso.Init(_device, &rootSig, layout, solidRaster, _swapChain.numBackBuffers, _swapChain.rtvFormat, _swapChain.dsvFormat,
+		pso.Init(_device, &rootSig, layout, solidRaster, _appWindow.GetSwapChain().numBackBuffers, _appWindow.GetBBFormat(), _appWindow.GetDSVFormat(),
 			L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso", L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso",
 			L"", L"", L"");
 

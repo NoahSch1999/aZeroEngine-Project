@@ -1,8 +1,8 @@
 #include "Graphics.h"
 #include <array>
 
-Graphics::Graphics(AppWindow* _window, HINSTANCE _instance)
-	:frameCount(0), frameIndex(0), ecs(1000)
+Graphics::Graphics(AppWindow& _window, HINSTANCE _instance)
+	:frameCount(0), frameIndex(0), ecs(1000), window(_window)
 {
 	Initialize(_window, _instance);
 }
@@ -10,8 +10,6 @@ Graphics::Graphics(AppWindow* _window, HINSTANCE _instance)
 Graphics::~Graphics()
 {
 	WaitForGPU();
-
-	delete swapChain;
 
 	device->Release();
 
@@ -21,7 +19,7 @@ Graphics::~Graphics()
 	delete scene;
 }
 
-void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
+void Graphics::Initialize(AppWindow& _window, HINSTANCE _instance)
 {
 	// Device
 	HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
@@ -47,14 +45,7 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	materialManager.Init(device, directCmdList, &resourceManager, &textureCache);
 
-	swapChain = new SwapChain(device, &directCommandQueue, &directCmdList, dsvHeap, rtvHeap, _window->windowHandle, _window->width, _window->height, 3, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT);
-
 	WaitForGPU();
-
-	swapChain->queue = &directCommandQueue;
-	swapChain->syncValue = &nextSyncSignal;
-	swapChain->device = device;
-	swapChain->cmdList = &directCmdList;
 
 	lManager.Init(device, directCmdList, 1, 10, 1);
 
@@ -83,20 +74,18 @@ void Graphics::Initialize(AppWindow* _window, HINSTANCE _instance)
 
 	vbCache.ReleaseIntermediateResources();
 	textureCache.ReleaseIntermediateResources();
-
-	renderSystem = new BasicRendererSystem(device, directCmdList, ecs, materialManager, resourceManager, lManager, vbCache, *swapChain, _window, _instance);
 }
 
 void Graphics::Begin()
 {
-	frameIndex = frameCount % swapChain->numBackBuffers;
-	currentBackBuffer = swapChain->backBuffers[frameIndex];
+	frameIndex = frameCount % window.GetSwapChain().numBackBuffers;
+	currentBackBuffer = window.GetSwapChain().backBuffers[frameIndex];
 	currentBackBuffer->TransitionMain(directCmdList.GetGraphicList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-	directCmdList.GetGraphicList()->RSSetViewports(1, &swapChain->viewport);
-	directCmdList.GetGraphicList()->RSSetScissorRects(1, &swapChain->scissorRect);
+	directCmdList.GetGraphicList()->RSSetViewports(1, &window.GetSwapChain().viewport);
+	directCmdList.GetGraphicList()->RSSetScissorRects(1, &window.GetSwapChain().scissorRect);
 	directCmdList.GetGraphicList()->ClearRenderTargetView(currentBackBuffer->GetHandle().GetCPUHandle(), clearColor, 0, nullptr);
-	directCmdList.GetGraphicList()->ClearDepthStencilView(swapChain->dsv->GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
-	directCmdList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapChain->dsv->GetHandle().GetCPUHandleRef());
+	directCmdList.GetGraphicList()->ClearDepthStencilView(window.GetSwapChain().dsv.GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+	directCmdList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &window.GetSwapChain().dsv.GetHandle().GetCPUHandleRef());
 }
 
 void Graphics::Render(AppWindow* _window)
@@ -113,7 +102,7 @@ void Graphics::Present()
 	nextSyncSignal = directCommandQueue.Execute(directCmdList);
 
 	// might enqueue work on gpu...
-	swapChain->swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	window.GetSwapChain().swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 	
 	if (frameCount % 3 == 0)
 	{

@@ -86,6 +86,18 @@ public:
 	@return std::vector<T>&
 	*/
 	std::vector<T>& GetObjects() { return objects; }
+
+	void UpdateStringKey(const std::string& _oldKey, const std::string& _newKey)
+	{
+		if (strToIndex.count(_newKey) == 0) // if it doesnt exist
+		{
+			int savedIndex = strToIndex.at(_oldKey);
+			strToIndex.erase(_oldKey);
+			strToIndex.emplace(_newKey, savedIndex);
+
+			indexToStr.at(savedIndex) = _newKey;
+		}
+	}
 };
 
 template<typename T>
@@ -133,6 +145,6 @@ inline void MappedVector<T>::Remove(int _ID)
 		return;
 
 	freeIndices.push_back(indexToFree->first);
-	indexToStr.erase(indexToFree->first);
 	strToIndex.erase(indexToFree->second);
+	indexToStr.erase(indexToFree->first);
 }

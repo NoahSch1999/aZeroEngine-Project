@@ -20,9 +20,7 @@ protected:
 	bool isStatic = false;
 	bool isTrippleBuffered = false;
 	int sizePerSubresource = -1;
-	int numElements = -1;
 	void* mappedBuffer = nullptr;
-	bool isInitiated = false;
 
 	template<RESOURCETYPE ResourceType>
 	void Init(ID3D12Device* _device, CommandList* _cmdList, const D3D12_RESOURCE_DESC& _mDesc, D3D12_RESOURCE_DESC _iDesc, void* _initData);
@@ -34,7 +32,12 @@ public:
 	/**Returns whether or not the resource is static or not.
 	@return bool (TRUE: Is static, FALSE: Is dynamic)
 	*/
-	bool GetIsStatic() { return isStatic; }
+	bool GetIsStatic() const { return isStatic; }
+
+	/**Returns whether the resource is tripple buffered or not.
+	@return bool
+	*/
+	bool IsTrippleBuffered() { return isTrippleBuffered; }
 
 	/**Transitions the main GPU resource from one state to another.
 	@param _gCmdList Pointer to a ID3D12GraphicsCommandList to register the transitioning to.
@@ -74,12 +77,12 @@ public:
 	/**Returns the current resource state.
 	@return D3D12_RESOURCE_STATES
 	*/
-	D3D12_RESOURCE_STATES GetMainState() { return mainResourceState; }
+	D3D12_RESOURCE_STATES GetMainState() const { return mainResourceState; }
 
 	/**Returns the current resource state.
 	@return D3D12_RESOURCE_STATES
 	*/
-	D3D12_RESOURCE_STATES GetIntermediateState() { return intermediateResourceState; }
+	D3D12_RESOURCE_STATES GetIntermediateState() const { return intermediateResourceState; }
 
 	/**Sets the current main resource state.
 	@param _newState New state.
@@ -104,11 +107,10 @@ public:
 	@param _cmdList CommandList to record the commands for.
 	@param _initData Initial data for the resource.
 	@param _numBytes Number of bytes that the resource should be allocated with.
-	@param _numElements Number of elements within the resource. Per element byte-size is calculated with _numBytes / _numElements.
 	@param _mainResourceName Optional ID3D12Resource name.
 	@return void
 	*/
-	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName) = 0;
+	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName) = 0;
 
 	/**A pure virtual method that is overridden by the subclasses.
 	* When this overridden method is used, the resource is modifiable.
@@ -116,12 +118,11 @@ public:
 	@param _cmdList CommandList to record the commands for.
 	@param _initData Initial data for the resource.
 	@param _numBytes Number of bytes that the resource should be allocated with.
-	@param _numElements Number of elements within the resource. Per element byte-size is calculated with _numBytes / _numElements.
 	@param _trippleBuffered Whether or not the resource should be tripple or single bufferd.
 	@param _mainResourceName Optional ID3D12Resource name.
 	@return void
 	*/
-	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName) = 0;
+	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName) = 0;
 
 	/**Method to be used if the resource is single buffered and dynamic.
 	* Updates the mapped pointer that is pointing to the uploaded GPU resource.
@@ -149,7 +150,6 @@ inline void BaseResource::Init(ID3D12Device* _device, CommandList* _cmdList, con
 	if constexpr (ResourceType == RESOURCETYPE::STATIC)
 	{
 		isStatic = true;
-		isInitiated = true;
 		Helper::CreateCommitedResourceStatic(_device, mainResource, _mDesc, intermediateResource, _iDesc, _cmdList, _initData, sizePerSubresource, sizePerSubresource);
 		gpuAddress = mainResource->GetGPUVirtualAddress();
 		mainResourceState = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -158,7 +158,6 @@ inline void BaseResource::Init(ID3D12Device* _device, CommandList* _cmdList, con
 	else if constexpr (ResourceType == RESOURCETYPE::DYNAMIC)
 	{
 		isStatic = false;
-		isInitiated = true;
 		if (isTrippleBuffered)
 		{
 			_iDesc.Width = sizePerSubresource * 3;

@@ -12,12 +12,12 @@ RenderTarget::RenderTarget(ID3D12Device* _device, HiddenDescriptorHeap* _heap, U
 	_device->CreateRenderTargetView(mainResource, &desc, handle.GetCPUHandle());
 }
 
-void RenderTarget::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName)
+void RenderTarget::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName)
 {
 	throw; // Not implemented yet
 }
 
-void RenderTarget::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName)
+void RenderTarget::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName)
 {
 	throw; // Not implemented yet
 }

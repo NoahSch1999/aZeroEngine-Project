@@ -8,22 +8,19 @@ void StructuredBuffer::Update(int _elementIndex, void* _data, int _size)
 	memcpy((char*)mappedBuffer + _elementIndex * sizeOfElement, _data, _size);
 }
 
-D3D12_GPU_VIRTUAL_ADDRESS StructuredBuffer::GetGPUAddress(int _frameIndex)
+
+
+D3D12_GPU_VIRTUAL_ADDRESS const StructuredBuffer::GetGPUAddress(int _frameIndex)
 {
 	return gpuAddress + sizePerSubresource * _frameIndex;
 }
 
-void StructuredBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName)
-{
-	throw; // Not implemented yet
-}
-
-void StructuredBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName)
+void StructuredBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _isTrippleBuffered, const std::wstring& _mainResourceName)
 {
 	numElements = _numElements;
 	sizeOfElement = _numBytes / _numElements;
 	sizePerSubresource = _numBytes;
-	isTrippleBuffered = false;
+	isTrippleBuffered = _isTrippleBuffered;
 
 	D3D12_RESOURCE_DESC rDesc;
 	ZeroMemory(&rDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -41,4 +38,14 @@ void StructuredBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList,
 	//D3D12_RESOURCE_DESC iDesc = rDesc;
 
 	Init<RESOURCETYPE::DYNAMIC>(_device, _cmdList, rDesc, rDesc, nullptr);
+}
+
+void StructuredBuffer::InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName)
+{
+	throw; // Not implemented yet
+}
+
+void StructuredBuffer::InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName)
+{
+	throw;
 }

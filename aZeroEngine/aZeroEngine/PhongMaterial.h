@@ -26,7 +26,7 @@ public:
 	{
 		name = _name;
 		info.diffuseTextureID = _textureCache.GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex(); // Bug here... When i loaded a scene and switched material...out of range on the getresource.get() method.
-		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), 1, true, L"Default Material Buffer");
+		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), true, L"Default Material Buffer");
 	}
 
 	~PhongMaterial() = default;
@@ -82,6 +82,6 @@ public:
 		}
 
 		std::wstring tempName(_name.begin(), _name.end());
-		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), 1, true, tempName + L" Material Buffer");
+		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), true, tempName + L" Material Buffer");
 	}
 };

@@ -175,7 +175,7 @@ public:
 	Transform(ID3D12Device* _device, CommandList* _cmdList)
 	{
 		Matrix temp = Matrix::Identity;
-		cb.InitDynamic(_device, _cmdList, (void*)&temp, sizeof(Matrix), 1, true, L"");
+		cb.InitDynamic(_device, _cmdList, (void*)&temp, sizeof(Matrix), true, L"");
 	}
 
 	// Used for non-trippleframed resources

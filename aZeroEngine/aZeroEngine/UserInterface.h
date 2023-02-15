@@ -49,10 +49,9 @@ public:
 		ImGui::StyleColorsDark();
 
 		// Setup Platform/Renderer backends
-		ImGui_ImplWin32_Init(_window.windowHandle);
+		ImGui_ImplWin32_Init(_window.GetHandle());
 		heapHandle = _graphics.resourceManager.GetPassDescriptor();
 		ImGui_ImplDX12_Init(_graphics.device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, _graphics.resourceManager.GetResourceHeap(), heapHandle.GetCPUHandle(), heapHandle.GetGPUHandle());
-
 		clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	}
 
@@ -94,6 +93,8 @@ public:
 
 	}
 
+	// Fix bug that cursor is inaccurate
 	void Update();
 	void ShowPerformanceData();
+	void ShowSettings();
 };

@@ -1,8 +1,13 @@
 #include "SwapChain.h"
 #include "HelperFunctions.h"
 
-SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList* _cmdList, HiddenDescriptorHeap* _dsvHeap, HiddenDescriptorHeap* _heap, 
-	HWND _winHandle, UINT _width, UINT _height, int _numBackBuffers, DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat)
+SwapChain::~SwapChain()
+{
+	swapChain->Release();
+	dxgiFactory->Release();
+}
+
+void SwapChain::Init(ID3D12Device* _device, HWND _windowHandle, CommandQueue& _cmdQueue, CommandList& _cmdList, const Vector2& _clientDimensions, DescriptorHandle _dsvHandle, std::vector<DescriptorHandle> _bbHandles, int _numBackBuffers, DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat)
 {
 	HRESULT hr = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
 	if (FAILED(hr))
@@ -18,8 +23,8 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	scDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER;
 	scDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	scDesc.Width = _width;
-	scDesc.Height = _height;
+	scDesc.Width = _clientDimensions.x;
+	scDesc.Height = _clientDimensions.y;
 	scDesc.Stereo = false;
 	scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
@@ -35,7 +40,7 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 	fullScreenDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
 	fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 
-	hr = dxgiFactory->CreateSwapChainForHwnd(_cmdQueue->GetQueue(), _winHandle, &scDesc, nullptr, 0, &swapChain);
+	hr = dxgiFactory->CreateSwapChainForHwnd(_cmdQueue.GetQueue(), _windowHandle, &scDesc, nullptr, 0, &swapChain);
 	if (FAILED(hr))
 		throw;
 
@@ -49,38 +54,31 @@ SwapChain::SwapChain(ID3D12Device* _device, CommandQueue* _cmdQueue, CommandList
 		if (FAILED(hr))
 			throw;
 
-		backBuffers[i]->GetHandle() = _heap->GetNewSlot();
+		backBuffers[i]->GetHandle() = _bbHandles[i];
 		_device->CreateRenderTargetView(backBuffers[i]->GetMainResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
 		std::wstring name = L"Back Buffer " + i;
 		backBuffers[i]->GetMainResource()->SetName(name.c_str());
 	}
-	rtvFormat = _rtvFormat;
-	dsvFormat = _dsvFormat;
+	/*rtvFormat = _rtvFormat;
+	dsvFormat = _dsvFormat;*/
 	numBackBuffers = _numBackBuffers;
 
 	// Viewport
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
-	viewport.Width = (FLOAT)_width;
-	viewport.Height = (FLOAT)_height;
+	viewport.Width = (FLOAT)_clientDimensions.x;
+	viewport.Height = (FLOAT)_clientDimensions.y;
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 
 	// Scissor Rect
 	scissorRect.left = 0;
 	scissorRect.top = 0;
-	scissorRect.right = _width;
-	scissorRect.bottom = _height;
+	scissorRect.right = _clientDimensions.x;
+	scissorRect.bottom = _clientDimensions.y;
 
-	dsv = new DepthStencil(_device, _dsvHeap, _cmdList, _width, _height, dsvFormat);
-	dsv->GetMainResource()->SetName(L"SwapChain DSV");
-}
-
-SwapChain::~SwapChain()
-{
-	swapChain->Release();
-	dxgiFactory->Release();
-	delete dsv;
+	dsv.Init(_device, _dsvHandle, _cmdList, _clientDimensions.x, _clientDimensions.y, _dsvFormat);
+	dsv.GetMainResource()->SetName(L"SwapChain DSV");
 }
 
 void SwapChain::OnResize(HWND _winHandle)

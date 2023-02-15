@@ -26,14 +26,9 @@ Create a load binary and/or asci method.
 class Scene
 {
 private:
-	/// \public
-	ECS& ecs; /**< Pointer to the ECS instance used within its member functions.*/
-	///// \public
-	//EntityManager* eManager; /**< Pointer to the EntityManager instance used within its member functions.*/
-	///// \public
-	//ComponentManager* cManager; /**< Pointer to the ComponentManager instance used within its member functions.*/
-	///// \public
-	VertexBufferCache& vbCache; /**< Pointer to the VertexBufferCache instance used within its member functions.*/
+	ECS& ecs;
+
+	VertexBufferCache& vbCache;
 
 	MaterialManager& mManager;
 
@@ -68,20 +63,17 @@ public:
 	*/
 	~Scene()
 	{
-		std::vector<Entity>& ents = entities.GetObjects();
-		for (Entity& ent : ents)
+		for (auto& [name, index] : entities.GetStringToIndexMap())
 		{
 			// Free vb ref id?
 
-			ecs.ObliterateEntity(ent);
+			ecs.ObliterateEntity(entities.Get(index));
 		}
 	}
 
 	void Save(const std::string& _fileDirectory, const std::string& _fileName, bool _debugASCII = false)
 	{
-		std::vector<Entity>& ents = entities.GetObjects();
-
-		int size = (int)ents.size();
+		int size = (int)entities.GetStringToIndexMap().size();
 
 		if (size == 0)
 			return;
@@ -99,8 +91,6 @@ public:
 			Helper::WriteToFile(file, name);
 
 			Transform* tf = ecs.GetComponentManager().GetComponent<Transform>(entity);
-			/*Matrix tf = ecs.GetComponentManager().GetComponent<Transform>(entity)->Compose();
-			file.write((char*)&tf, sizeof(Matrix));*/
 			file.write((char*)&tf->GetTranslation(), sizeof(Vector3));
 			file.write((char*)&tf->GetRotation(), sizeof(Vector3));
 			file.write((char*)&tf->GetScale(), sizeof(Vector3));
@@ -179,13 +169,8 @@ public:
 				{
 					// Check material type and act accordingly. Store file names for textures which are then loaded (or not) using the texture2dcache
 					PhongMaterial* phongMat = mManager.GetMaterial<PhongMaterial>(material->GetMaterialID());
-					//PhongMaterialInformation* info = phongMat->GetInfoPtr();
 					file << "\n|---------Material Data-------------|\n";
 					file << "Material Name: " << phongMat->GetName() << "\n";
-					/*file << "Diffuse Texture Filename: " << textureCache->GetTextureName(info->diffuseTextureID) << "\n";
-					file << "Ambient RGB: [" << info->ambientAbsorbation.x << ":" << info->ambientAbsorbation.y << ":" << info->ambientAbsorbation.z << "]\n";
-					file << "Specular RGB: [" << info->specularAbsorbation.x << ":" << info->specularAbsorbation.y << ":" << info->specularAbsorbation.z << "]\n";
-					file << "Specular Exponent: " << info->specularShine << "\n";*/
 				}
 
 			}
@@ -203,34 +188,11 @@ public:
 
 		for (int i = 0; i < numEntities; i++)
 		{
-			//std::cout << "|---------------------------------New entity---------------------------------|\n";
-
 			std::string entityName;
 			Helper::ReadFromFile(file, entityName);
-			//std::cout << "Entity Name: " << entityName << std::endl;
 
 			// Create entity with name
 			Entity& tempEnt = CreateEntity(_device, &_cmdList, entityName);
-
-			/*Matrix mat;
-			file.read((char*)&mat, sizeof(Matrix));*/
-			//std::cout << "Matrix: \n";
-			//std::cout << mat._11 << " ";
-			//std::cout << mat._12 << " ";
-			//std::cout << mat._13 << " ";
-			//std::cout << mat._14 << "\n";
-			//std::cout << mat._21 << " ";
-			//std::cout << mat._22 << " ";
-			//std::cout << mat._23 << " ";
-			//std::cout << mat._24 << "\n";
-			//std::cout << mat._31 << " ";
-			//std::cout << mat._32 << " ";
-			//std::cout << mat._33 << " ";
-			//std::cout << mat._34 << "\n";
-			//std::cout << mat._41 << " ";
-			//std::cout << mat._42 << " ";
-			//std::cout << mat._43 << " ";
-			//std::cout << mat._44 << "\n";
 
 			// Create transform component
 			Transform* tf = GetComponentForEntity<Transform>(tempEnt);
@@ -246,7 +208,6 @@ public:
 			{
 				std::string name;
 				Helper::ReadFromFile(file, name);
-				//std::cout << "Mesh Name: " << name << std::endl;
 
 				Mesh tempMesh;
 
@@ -319,6 +280,23 @@ public:
 		return entity;
 	}
 
+	void DeleteEntity(const std::string& _name)
+	{
+		ecs.ObliterateEntity(GetEntity(_name));
+		entities.Remove(_name);
+	}
+
+	void DeleteEntity(int _ID)
+	{
+		ecs.ObliterateEntity(GetEntity(_ID));
+		entities.Remove(_ID);
+	}
+
+	void RenameEntity(const std::string& _oldName, const std::string& _newName)
+	{
+		entities.UpdateStringKey(_oldName, _newName);
+	}
+
 	std::string CheckName(const std::string _name)
 	{
 		if (entities.Exists(_name))
@@ -348,6 +326,11 @@ public:
 	Entity& GetEntity(const std::string& _name)
 	{
 		return entities.Get(_name);
+	}
+
+	Entity& GetEntity(int _ID)
+	{
+		return entities.Get(_ID);
 	}
 
 	const std::string GetEntityName(const Entity& _entity) const

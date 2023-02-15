@@ -49,7 +49,11 @@ void EditorUI::Update()
 			ImGui::ListBoxHeader("Entities");
 			for (auto [name, index] : graphics.scene->entities.GetStringToIndexMap())
 			{
-				if (ImGui::Selectable(std::string(name).c_str()))
+				bool selected = false;
+				if (name == selectedEntityStr)
+					selected = true;
+
+				if (ImGui::Selectable(std::string(name).c_str(), selected))
 				{
 					selectedEntityStr = name;
 					selectedEntityID = graphics.scene->entities.GetID(selectedEntityStr);
@@ -64,17 +68,50 @@ void EditorUI::Update()
 		}
 		//-----------------------------------------------------------------
 
-		//------------------------Create New Entity------------------------
+		//------------------------Create New Entity------------------------------
 		static int counter = 0;
 		if (ImGui::Button("Create Entity"))
 		{
-			graphics.WaitForGPU();
 			Entity& ent = graphics.scene->CreateEntity(graphics.device, &graphics.directCmdList);
 			selectedEntityStr = graphics.scene->GetEntityName(ent);
 			selectedEntityID = graphics.scene->entities.GetID(selectedEntityStr);
 			counter++;
 		}
 		//-----------------------------------------------------------------------
+
+		if (selectedEntityID != -1)
+		{
+			//----------------------------Delete Entity------------------------------
+			if (ImGui::Button("Delete Entity"))
+			{
+				graphics.renderSystem->UnBind(graphics.scene->GetEntity(selectedEntityID));
+				graphics.scene->DeleteEntity(selectedEntityID);
+				selectedEntityStr = "";
+				selectedEntityID = -1;
+			}
+			//-----------------------------------------------------------------------
+
+			static char newName[40] = { 0 };
+			ImGui::InputText("New Name", newName, ARRAYSIZE(newName));
+
+			//-----------------------------Rename Entity-----------------------------
+			if (ImGui::Button("Rename Entity"))
+			{
+				const std::string newNameStr(newName);
+				if (newNameStr != "")
+				{
+					if (!graphics.scene->entities.Exists(newNameStr))
+					{
+
+						graphics.scene->RenameEntity(selectedEntityStr, newName);
+						selectedEntityStr = newName;
+						ZeroMemory(newName, ARRAYSIZE(newName));
+
+					}
+				}
+			}
+			//-----------------------------------------------------------------------
+		}
 
 		static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
 		static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
@@ -263,7 +300,11 @@ void EditorUI::Update()
 		ImGui::ListBoxHeader("Materials");
 		for (PhongMaterial& mat : graphics.materialManager.GetPhongMaterials())
 		{
-			if (ImGui::Selectable(mat.GetName().c_str()))
+			bool selected = false;
+			if (mat.GetName() == selectedMaterialStr)
+				selected = true;
+
+			if (ImGui::Selectable(mat.GetName().c_str(), selected))
 			{
 				selectedMaterialStr = mat.GetName();
 				selectedMaterialID = graphics.materialManager.GetReferenceID<PhongMaterial>(mat.GetName());
@@ -280,7 +321,6 @@ void EditorUI::Update()
 
 		if (ImGui::Button("Create Phong Material") && matNameBuffer[0] != '\0')
 		{
-			//graphics.WaitForGPU();
 			const std::string newMatTempName(matNameBuffer);
 			if (!graphics.materialManager.Exists(newMatTempName))
 			{
@@ -368,21 +408,18 @@ void EditorUI::Update()
 
 	if (graphics.scene == nullptr)
 	{
-		ImGui::Text("Current Scene Name: NULL");
-	}
-	else
-	{
-		const std::string sceneNameText = "Current Scene Name: " + graphics.scene->GetName();
-		ImGui::Text(sceneNameText.c_str());
-	}
+		ImGuizmo::Enable(false);
 
-	if (graphics.scene == nullptr)
-	{
 		if (ImGui::Button("New Scene"))
 		{
 			graphics.WaitForGPU();
 			graphics.scene = new Scene(graphics.ecs, graphics.vbCache, graphics.materialManager, graphics.resourceManager, graphics.textureCache);
 		}
+	}
+	else
+	{
+		const std::string sceneNameText = "Current Scene Name: " + graphics.scene->GetName();
+		ImGui::Text(sceneNameText.c_str());
 	}
 
 	if (ImGui::Button("Open Scene"))
@@ -492,6 +529,46 @@ void EditorUI::ShowPerformanceData()
 	}
 
 	ImGui::Text("Average MS and FPS: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+	ImGui::End();
+}
+
+void EditorUI::ShowSettings()
+{
+	ImGui::Begin("Project Settings");
+
+	ImGui::BeginListBox("Resolution");
+	const char* resolutions[] = { "800x600", "1920x1080" };
+	static int sel = -1;
+	static int lastSel = -1;
+	for (int i = 0; i < ARRAYSIZE(resolutions); i++)
+	{
+		if (ImGui::Selectable(resolutions[i]))
+		{
+			sel = i;
+			break;
+		}
+	}
+	ImGui::EndListBox();
+
+	if (sel != lastSel)
+	{
+		switch (sel)
+		{
+		case 0: // 800x600
+		{
+
+			break;
+		}
+		case 1: // 1920x1080
+		{
+
+			break;
+		}
+		}
+	}
+
+	lastSel = sel;
 
 	ImGui::End();
 }

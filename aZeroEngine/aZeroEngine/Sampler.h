@@ -38,7 +38,7 @@ public:
 		int _maxAnisotropy = 16, Vector4 _borderColor = { 1,1,1,1 },
 		float _midLodBias = 0, float _minLod = 0, float _maxLod = D3D12_FLOAT32_MAX);
 
-	DescriptorHandle GetHandle() { return handle; }
+	DescriptorHandle GetHandle() const { return handle; }
 	void SetHandle(const DescriptorHandle& _handle) { handle = _handle; }
 };
 

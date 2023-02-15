@@ -11,6 +11,11 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW view;
 	int numVertices;
 	std::string fileName;
+
+	// Inherited via BaseResource
+	// Disabled
+	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName) override;
+	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
 public:
 	VertexBuffer();
 
@@ -40,7 +45,6 @@ public:
 	@return void
 	*/
 	void SetNumVertices(int _numVertices) { numVertices = _numVertices; }
-	int referenceCount = 0;
 
 	/**Returns a constant pointer to the name of the mesh data file.
 	@return const char*
@@ -52,9 +56,6 @@ public:
 	*/
 	void SetFileName(const std::string& _fileName) { fileName = _fileName; }
 
-	// Inherited via BaseResource
-	// Dynamic has to be defined
-	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName) override;
-	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
+	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName);
 };
 
