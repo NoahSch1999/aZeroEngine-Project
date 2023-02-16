@@ -298,16 +298,18 @@ void EditorUI::Update()
 		ImGui::Begin("Material Editor");
 
 		ImGui::ListBoxHeader("Materials");
-		for (PhongMaterial& mat : graphics.materialManager.GetPhongMaterials())
+		for (auto& [name, index] : graphics.materialManager.GetPhongStringToIndexMap())
 		{
+			PhongMaterial* mat = graphics.materialManager.GetMaterial<PhongMaterial>(index);
+
 			bool selected = false;
-			if (mat.GetName() == selectedMaterialStr)
+			if (mat->GetName() == selectedMaterialStr)
 				selected = true;
 
-			if (ImGui::Selectable(mat.GetName().c_str(), selected))
+			if (ImGui::Selectable(mat->GetName().c_str(), selected))
 			{
-				selectedMaterialStr = mat.GetName();
-				selectedMaterialID = graphics.materialManager.GetReferenceID<PhongMaterial>(mat.GetName());
+				selectedMaterialStr = mat->GetName();
+				selectedMaterialID = graphics.materialManager.GetReferenceID<PhongMaterial>(mat->GetName());
 				break;
 			}
 		}
@@ -344,6 +346,27 @@ void EditorUI::Update()
 				PhongMaterial* mat = graphics.materialManager.GetMaterial<PhongMaterial>(matNameWithoutExt);
 				selectedMaterialID = graphics.materialManager.GetReferenceID<PhongMaterial>(matNameWithoutExt);
 				selectedMaterialStr = mat->GetName();
+			}
+		}
+
+		if (ImGui::Button("Delete Phong Material"))
+		{
+			if (selectedMaterialID != 0)
+			{
+				for (auto [str, index] : graphics.scene->entities.GetStringToIndexMap())
+				{
+					Entity& ent = graphics.scene->GetEntity(index);
+
+					MaterialComponent* matComp = graphics.ecs.GetComponentManager().GetComponent<MaterialComponent>(ent);
+					if (matComp != nullptr)
+					{
+						if (matComp->GetMaterialID() == selectedMaterialID)
+							matComp->SetMaterialID(graphics.materialManager.GetReferenceID<PhongMaterial>("DefaultPhongMaterial"));
+					}
+				}
+				graphics.materialManager.RemoveMaterial<PhongMaterial>(selectedMaterialID);
+				selectedMaterialID = -1;
+				selectedMaterialStr = "";
 			}
 		}
 
