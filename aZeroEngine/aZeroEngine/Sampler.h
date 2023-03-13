@@ -9,7 +9,7 @@ class Sampler
 private:
 	DescriptorHandle handle;
 public:
-	D3D12_STATIC_SAMPLER_DESC staticDesc;
+	D3D12_STATIC_SAMPLER_DESC staticDesc = D3D12_STATIC_SAMPLER_DESC();
 	Sampler() = default;
 	Sampler(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _filter,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeU = D3D12_TEXTURE_ADDRESS_MODE_WRAP, 

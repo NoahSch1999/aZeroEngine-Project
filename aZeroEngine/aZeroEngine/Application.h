@@ -2,7 +2,6 @@
 #include "AppWindow.h"
 #include "Graphics.h"
 #include "Timer.h"
-#include "UserInterface.h"
 
 class Application
 {
@@ -13,7 +12,6 @@ private:
 public:
 	AppWindow* window;
 	Graphics* graphics;
-	EditorUI* ui;
 	Input* input;
 	Timer performanceTimer;
 

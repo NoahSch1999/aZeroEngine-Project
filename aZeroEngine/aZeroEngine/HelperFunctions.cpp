@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "HelperFunctions.h"
 #include <fstream>
-#include "..\Assimp\include\assimp\scene.h"
-#include "..\Assimp\include\assimp\Importer.hpp"
-#include "..\Assimp\include\assimp\postprocess.h"
+#include "..\assimp\include\assimp\scene.h"
+#include "..\assimp\include\assimp\Importer.hpp"
+#include "..\assimp\include\assimp\postprocess.h"
+#include "stb_image.h"
 
 ID3DBlob* Helper::LoadBlobFromFile(const std::wstring& _filePath)
 {
@@ -119,4 +120,40 @@ void Helper::CreateCommitedResourceDynamic(ID3D12Device* _device, ID3D12Resource
 	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &_rDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_mainResource));
 	if (FAILED(hr))
 		throw;
+}
+
+Helper::STBIImageData Helper::LoadSTBIImage(const std::string& _fileName)
+{
+	STBIImageData data;
+	data.rawData = stbi_load(_fileName.c_str(), &data.width, &data.height, nullptr, STBI_rgb_alpha);
+	data.channels = STBI_rgb_alpha;
+	return data;
+}
+
+bool Helper::OpenFileDialogForExtension(const std::string& _extension, std::string& _storeFileStr)
+{
+	CHAR ogPath[MAX_PATH];
+	DWORD dw = GetCurrentDirectoryA(MAX_PATH, ogPath);
+
+	OPENFILENAMEA openDialog = { 0 };
+	CHAR filePath[260] = { 0 };
+	ZeroMemory(&openDialog, sizeof(openDialog));
+	openDialog.lStructSize = sizeof(openDialog);
+	openDialog.hwndOwner = NULL;
+	openDialog.lpstrInitialDir = LPCSTR(ogPath);
+	openDialog.lpstrFile = filePath;
+	openDialog.nMaxFile = MAX_PATH;
+	openDialog.lpstrTitle = "Select a file";
+	openDialog.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
+	GetOpenFileNameA(&openDialog);
+
+	const std::string selectedFilePath(filePath);
+
+	if (selectedFilePath.ends_with(_extension))
+	{
+		std::string fileameWithExt = selectedFilePath.substr(selectedFilePath.find_last_of("/\\") + 1);
+		_storeFileStr = fileameWithExt;
+		return true;
+	}
+	return false;
 }

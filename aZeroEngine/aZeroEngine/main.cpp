@@ -8,21 +8,10 @@ extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 608; }
 
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
-//static Application* app = nullptr;
 #ifdef _DEBUG
 ID3D12Debug* d3d12Debug;
 IDXGIDebug* idxgiDebug;
 #endif // DEBUG
-
-class XXX
-{
-public:
-	XXX() = default;
-	~XXX()
-	{
-		printf("s");
-	}
-};
 
 int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int showCommand)
 {
@@ -33,9 +22,18 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int s
 #endif // DEBUG
 
 	{
+		// To do:
+		/*
+		* Push to GitHub
+		* Add ambient part
+		* Complete shadow mapping with PBR / Phong
+		* Add normal mapping to PBR / Phong
+		* Handle feature support on startup
+		* Check mem leaks gpu/cpu
+		* Fix d-light gizmo rotation
+		*/
 		Application app(instance, 1920, 1080/*800, 600*/);
-		//app = new Application
-
+		
 		app.Run();
 	}
 	//delete app;

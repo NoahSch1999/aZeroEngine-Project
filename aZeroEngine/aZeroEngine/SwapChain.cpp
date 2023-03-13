@@ -7,7 +7,7 @@ SwapChain::~SwapChain()
 	dxgiFactory->Release();
 }
 
-void SwapChain::Init(ID3D12Device* _device, HWND _windowHandle, CommandQueue& _cmdQueue, CommandList& _cmdList, const Vector2& _clientDimensions, DescriptorHandle _dsvHandle, std::vector<DescriptorHandle> _bbHandles, int _numBackBuffers, DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat)
+void SwapChain::Init(ID3D12Device* _device, HWND _windowHandle, ResourceEngine& _resourceEngine, const Vector2& _clientDimensions, DescriptorHandle _dsvHandle, std::vector<DescriptorHandle> _bbHandles, int _numBackBuffers, DXGI_FORMAT _rtvFormat)
 {
 	HRESULT hr = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
 	if (FAILED(hr))
@@ -40,11 +40,10 @@ void SwapChain::Init(ID3D12Device* _device, HWND _windowHandle, CommandQueue& _c
 	fullScreenDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
 	fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 
-	hr = dxgiFactory->CreateSwapChainForHwnd(_cmdQueue.GetQueue(), _windowHandle, &scDesc, nullptr, 0, &swapChain);
+	hr = dxgiFactory->CreateSwapChainForHwnd(_resourceEngine.directQueue.GetQueue(), _windowHandle, &scDesc, nullptr, 0, &swapChain);
 	if (FAILED(hr))
 		throw;
 
-	// create render targets and main depth buffer
 	backBuffers.resize(_numBackBuffers);
 
 	for (int i = 0; i < _numBackBuffers; i++)
@@ -56,11 +55,11 @@ void SwapChain::Init(ID3D12Device* _device, HWND _windowHandle, CommandQueue& _c
 
 		backBuffers[i]->GetHandle() = _bbHandles[i];
 		_device->CreateRenderTargetView(backBuffers[i]->GetMainResource(), NULL, backBuffers[i]->GetHandle().GetCPUHandle());
-		std::wstring name = L"Back Buffer " + i;
+		std::string tName = "Back Buffer " + std::to_string(i);
+		std::wstring name(tName.begin(), tName.end());
 		backBuffers[i]->GetMainResource()->SetName(name.c_str());
 	}
-	/*rtvFormat = _rtvFormat;
-	dsvFormat = _dsvFormat;*/
+
 	numBackBuffers = _numBackBuffers;
 
 	// Viewport
@@ -77,8 +76,11 @@ void SwapChain::Init(ID3D12Device* _device, HWND _windowHandle, CommandQueue& _c
 	scissorRect.right = _clientDimensions.x;
 	scissorRect.bottom = _clientDimensions.y;
 
-	dsv.Init(_device, _dsvHandle, _cmdList, _clientDimensions.x, _clientDimensions.y, _dsvFormat);
-	dsv.GetMainResource()->SetName(L"SwapChain DSV");
+	_resourceEngine.CreateResource(_device, dsv, _dsvHandle, _clientDimensions.x, _clientDimensions.y);
+#ifdef DEBUG
+	dsv.GetMainResource()->SetName(L"Swap Chain Depth Stencil");
+#endif // DEBUG
+
 }
 
 void SwapChain::OnResize(HWND _winHandle)

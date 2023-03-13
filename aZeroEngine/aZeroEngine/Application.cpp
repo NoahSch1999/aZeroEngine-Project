@@ -1,6 +1,7 @@
 #include "Application.h"
 #include <iostream>
 #include <chrono>
+#include "EditorUI.h"
 
 Application::Application(HINSTANCE _instance, int _width, int _height)
 {
@@ -12,17 +13,29 @@ void Application::Initialize(HINSTANCE _instance, int _width, int _height)
 	window = new AppWindow(WndProc, _instance, _width, _height, L"../sprites/snowflake.ico", L"../sprites/snowflakeRed.ico");
 	graphics = new Graphics(*window, _instance);
 	std::vector<DescriptorHandle>bbHandles;
-	bbHandles.emplace_back(graphics->rtvHeap->GetNewSlot());
-	bbHandles.emplace_back(graphics->rtvHeap->GetNewSlot());
-	bbHandles.emplace_back(graphics->rtvHeap->GetNewSlot());
-	window->InitSwapChain(graphics->device, graphics->directCommandQueue, graphics->directCmdList, graphics->dsvHeap->GetNewSlot(), bbHandles, bbHandles.size());
+	bbHandles.emplace_back(graphics->descriptorManager.GetRTVDescriptor());
+	bbHandles.emplace_back(graphics->descriptorManager.GetRTVDescriptor());
+	bbHandles.emplace_back(graphics->descriptorManager.GetRTVDescriptor());
+	window->InitSwapChain(graphics->device, graphics->resourceEngine, graphics->descriptorManager.GetDSVDescriptor(), bbHandles, (int)bbHandles.size());
 
-	graphics->renderSystem = new BasicRendererSystem(graphics->device, graphics->directCmdList, graphics->ecs, graphics->materialManager, graphics->resourceManager, graphics->lManager, graphics->vbCache, _instance, *window);
+	graphics->renderSystem = new BasicRendererSystem(graphics->device, graphics->resourceEngine, graphics->ecs, graphics->materialManager, graphics->descriptorManager, graphics->lManager, graphics->vbCache, _instance, *window);
+	graphics->shadowSystem = new ShadowPassSystem(graphics->device, graphics->resourceEngine, graphics->ecs, graphics->materialManager, graphics->descriptorManager, graphics->lManager, graphics->vbCache, _instance, *window);
+	
+	graphics->shadowSystem->camera = &graphics->renderSystem->camera;
+	graphics->renderSystem->shadowMap = &graphics->shadowSystem->shadowMapTexture;
 
 	input = new Input(_instance, window->GetHandle());
-	ui = new EditorUI(*graphics, *window);
 
-	graphics->WaitForGPU();
+	graphics->resourceEngine.Execute(graphics->frameIndex);
+
+	if (graphics->scene)
+	{
+		for (auto& ent : graphics->scene->entities.GetObjects())
+		{
+			graphics->renderSystem->Bind(ent);
+			graphics->shadowSystem->Bind(ent);
+		}
+	}
 }
 
 void Application::Run()
@@ -40,6 +53,9 @@ void Application::Run()
 	using clocks = std::chrono::steady_clock;
 
 	auto nextFrame = clocks::now();
+
+	std::shared_ptr<EditorUI>eui(new EditorUI("Editor", *graphics, *window));
+	graphics->AttachUI(eui);
 
 	while (true)
 	{
@@ -73,35 +89,28 @@ void Application::Run()
 			Sleep(100);
 		}
 
+
+
+		eui->editorMode = editorMode;
+		
+		graphics->BeginFrame();
+
 		if (!editorMode)
 		{
 			Vector2 clientDimensions = window->GetClientSize();
-			graphics->renderSystem->camera.Update(performanceTimer.deltaTime, *input, clientDimensions.x, clientDimensions.y, &graphics->directCmdList, graphics->frameIndex);
+			graphics->renderSystem->camera.Update(graphics->resourceEngine, (float)performanceTimer.deltaTime, *input, (UINT)clientDimensions.x, (UINT)clientDimensions.y, graphics->frameIndex);
 		}
 
-		// Rendering
-		ui->BeginFrame();
+		graphics->lManager.Update(graphics->frameIndex);
 
-		//ui->ShowSettings();
-
-		if (editorMode)
-		{
-			ImGuizmo::Enable(true);
-			ui->Update();
-		}
-		else
-		{
-			ImGuizmo::Enable(false);
-		}
-		//ui->ShowPerformanceData();
-
-		graphics->Begin();
-
+		//eui->ShowMaterialPreview();
 		graphics->Render(window);
 
-		ui->Render(&graphics->directCmdList);
 		
-		graphics->Present();
+
+		
+
+		graphics->EndFrame();
 
 		clock_t endFrame = clock();
 
@@ -112,16 +121,13 @@ void Application::Run()
 		if (((delt / (double)CLOCKS_PER_SEC) * 1000.0) > 1000.0)
 		{
 			frameRate = (double)frames * 0.5 + frameRate * 0.5;
-			//std::cout << frames << "\n";
 			frames = 0;
 			delt -= CLOCKS_PER_SEC;
 			averageFrameMilli = 1000.0 / (frameRate == 0 ? 0.001 : frameRate);
-
-			//std::cout << averageFrameMilli << std::endl;
 		}
-
-		//std::this_thread::sleep_until(nextFrame);
 	}
+
+	graphics->resourceEngine.Execute(0);
 }
 
 Application::~Application()
@@ -129,5 +135,4 @@ Application::~Application()
 	delete window;
 	delete graphics;
 	delete input;
-	delete ui;
 }

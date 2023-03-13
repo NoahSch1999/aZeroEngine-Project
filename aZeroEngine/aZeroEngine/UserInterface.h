@@ -4,10 +4,12 @@
 #include "../ImGui/backends/imgui_impl_dx12.h"
 #include <dxgi1_4.h>
 #include <tchar.h>
-#include "Scene.h"
 #include <Psapi.h>
-#include <filesystem>
+#include "CommandList.h"
+#include "DescriptorHandle.h"
 #include "ImGuizmo.h"
+
+
 //#include <ShObjIdl_core.h>
 
 #ifdef _DEBUG
@@ -19,27 +21,19 @@
 #pragma comment(lib, "dxguid.lib")
 #endif
 
-#include "Graphics.h"
-#include "AppWindow.h"
-
-
-using Task = std::function<void()>;
-
 class UserInterface
 {
 private:
 	DescriptorHandle heapHandle;
 	ImGuiIO io;
 protected:
-	Graphics& graphics;
-	AppWindow& window;
+
 	ImVec4 clearColor;
 
 public:
-	UserInterface(Graphics& _graphics, AppWindow& _window)
-		:graphics(_graphics), window(_window)
+	UserInterface(const std::string& _name, ID3D12Device* _device, ID3D12DescriptorHeap* _heap, const DescriptorHandle& _descHandle, HWND _windowHandle)
 	{
-
+		name = _name;
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -49,18 +43,26 @@ public:
 		ImGui::StyleColorsDark();
 
 		// Setup Platform/Renderer backends
-		ImGui_ImplWin32_Init(_window.GetHandle());
-		heapHandle = _graphics.resourceManager.GetPassDescriptor();
-		ImGui_ImplDX12_Init(_graphics.device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, _graphics.resourceManager.GetResourceHeap(), heapHandle.GetCPUHandle(), heapHandle.GetGPUHandle());
+		ImGui_ImplWin32_Init(/*_window.GetHandle()*/_windowHandle);
+		heapHandle = _descHandle/*_graphics.descriptorManager.GetPassDescriptor()*/;
+		ImGui_ImplDX12_Init(/*_graphics.device*/_device, 3, DXGI_FORMAT_B8G8R8A8_UNORM, /*_graphics.descriptorManager.GetResourceHeap()*/_heap, heapHandle.GetCPUHandle(), heapHandle.GetGPUHandle());
 		clearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	}
 
+	virtual ~UserInterface() { printf("User Interface Destroyed\n"); }
+
 	void BeginFrame()
 	{
-		ImGui_ImplDX12_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-		ImGuizmo::BeginFrame();
+
+		if (editorMode)
+		{
+			ImGuizmo::Enable(true);
+		}
+		else
+		{
+			ImGuizmo::Enable(false);
+		}
+
 	}
 
 	void Render(CommandList* _cmdList)
@@ -69,32 +71,8 @@ public:
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), _cmdList->GetGraphicList());
 	}
 
-};
+	virtual void Update() = 0;
 
-class EditorUI : public UserInterface
-{
-private:
-
-public:
-
-	
-
-	std::string selectedEntityStr = "";
-	std::string lastSelectedEntityStr = "";
-	int selectedEntityID = -1;
-	int lastSelectedEntityID = -1;
-
-	std::string selectedMaterialStr = "";
-	int selectedMaterialID = -1;
-
-	EditorUI(Graphics& _graphics, AppWindow& _window)
-		:UserInterface(_graphics, _window)
-	{
-
-	}
-
-	// Fix bug that cursor is inaccurate
-	void Update();
-	void ShowPerformanceData();
-	void ShowSettings();
+	bool editorMode = false;
+	std::string name = "";
 };

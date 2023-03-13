@@ -12,23 +12,10 @@ private:
 	int numVertices;
 	std::string fileName;
 
-	// Inherited via BaseResource
-	// Disabled
-	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName) override;
-	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
 public:
 	VertexBuffer();
 
-	/**Initiates as a static vertex buffer.
-	@param _device Device to use when creating the D3D12 resources.
-	@param _cmdList CommandList to execute the resource initiation commands on.
-	@param _data Data to initiate the buffer with.
-	@param _size Size of the data to initiate with.
-	@param _stride Size of each vertex within the resource.
-	*/
-	VertexBuffer(ID3D12Device* _device, CommandList* _cmdList, void* _data, int _size, int _stride);
-
-	~VertexBuffer();
+	~VertexBuffer(){}
 
 	/** Returns a reference to the vertex buffer view.
 	@return D3D12_VERTEX_BUFFER_VIEW&
@@ -56,6 +43,51 @@ public:
 	*/
 	void SetFileName(const std::string& _fileName) { fileName = _fileName; }
 
-	void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, const std::wstring& _mainResourceName);
+	void InitBase(ID3D12Device* _device, CommandList& _copyList, void* _initData, int _numBytes, int _numElements, const std::string& _name)
+	{
+		numVertices = _numElements;
+		int stride = _numBytes / _numElements;
+
+		sizePerSubresource = _numBytes;
+
+		D3D12_RESOURCE_DESC rDesc;
+		ZeroMemory(&rDesc, sizeof(rDesc));
+		rDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		rDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+		rDesc.Width = sizePerSubresource;
+		rDesc.Height = 1;
+		rDesc.DepthOrArraySize = 1;
+		rDesc.MipLevels = 1;
+		rDesc.Format = DXGI_FORMAT_UNKNOWN;
+		rDesc.SampleDesc.Count = 1;
+		rDesc.SampleDesc.Quality = 0;
+		rDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		rDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+		HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &rDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&mainResource));
+		if (FAILED(hr))
+			throw;
+
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &rDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&intermediateResource));
+		if (FAILED(hr))
+			throw;
+
+		D3D12_SUBRESOURCE_DATA sData = {};
+		sData.pData = _initData;
+		sData.RowPitch = sizePerSubresource;
+		sData.SlicePitch = sizePerSubresource;
+
+		UpdateSubresources(_copyList.GetGraphicList(), mainResource, intermediateResource, 0, 0, 1, &sData);
+
+		view.BufferLocation = mainResource->GetGPUVirtualAddress();
+		view.SizeInBytes = sizePerSubresource;
+		view.StrideInBytes = stride;
+
+		fileName = _name;
+	}
 };
 

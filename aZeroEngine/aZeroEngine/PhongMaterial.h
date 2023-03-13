@@ -15,29 +15,35 @@ class PhongMaterial : public Material<PhongMaterialInformation>
 public:
 	PhongMaterial() = default;
 
-	PhongMaterial(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, Texture2DCache& _textureCache, const std::string& _name)
+	PhongMaterial(ID3D12Device* _device, ResourceEngine& _resourceEngine, DescriptorManager& _dManager, Texture2DCache& _textureCache, const std::string& _name)
 		:Material()
 	{
-		Load(_device, _cmdList, _rManager, _name, _textureCache);
+		Load(_device, _resourceEngine, _dManager, _name, _textureCache);
 	}
 
-	PhongMaterial(ID3D12Device* _device, CommandList& _cmdList, Texture2DCache& _textureCache, const std::string& _name)
+	PhongMaterial(ID3D12Device* _device, ResourceEngine& _resourceEngine, Texture2DCache& _textureCache, const std::string& _name)
 		:Material()
 	{
 		name = _name;
-		info.diffuseTextureID = _textureCache.GetResource("defaultDiffuse.png").GetHandle().GetHeapIndex(); // Bug here... When i loaded a scene and switched material...out of range on the getresource.get() method.
-		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), true, L"Default Material Buffer");
+		Texture2D* t = _textureCache.GetResource("defaultDiffuse.png");
+		if (t)
+			info.diffuseTextureID = t->GetHandle().GetHeapIndex(); // Bug here... When i loaded a scene and switched material...out of range on the getresource.get() method.
+		else
+			info.diffuseTextureID = 0;
+
+		_resourceEngine.CreateResource(_device, buffer, (void*)&info, sizeof(PhongMaterialInformation), true, true);
+		//buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), true, L"Default Material Buffer");
 	}
 
 	~PhongMaterial() = default;
 
 	// Inherited via Material
-	virtual void Save(const std::string& _fileDirectory, const std::string& _name, const Texture2DCache& _textureCache, bool _debugASCII = false) const override
+	virtual void Save(const std::string& _fileDirectory, const Texture2DCache& _textureCache) const override
 	{
 		std::string textureName = _textureCache.GetTextureName(info.diffuseTextureID);
-		int numBytes = sizeof(int) + textureName.length() + sizeof(Vector3) + sizeof(Vector3) + sizeof(float);
+		int numBytes = sizeof(int) + (int)textureName.length() + sizeof(Vector3) + sizeof(Vector3) + sizeof(float);
 
-		std::ofstream file(_fileDirectory + _name + ".azm", std::ios::trunc | std::ios::out | std::ios::binary);
+		std::ofstream file(_fileDirectory + name + ".azm", std::ios::trunc | std::ios::out | std::ios::binary);
 
 		Helper::WriteToFile(file, textureName);
 		file.write((char*)&info.ambientAbsorbation, sizeof(Vector3));
@@ -45,20 +51,9 @@ public:
 		file.write((char*)&info.specularShine, sizeof(float));
 
 		file.close();
-
-		if (_debugASCII)
-		{
-			std::ofstream file(_fileDirectory + _name + "_ASCII.txt", std::ios::trunc | std::ios::out);
-			file << "Type: Phong\n";
-			file << "Diffuse Texture Name: " << textureName << "\n";
-			file << "Ambient Absorbation: [" << info.ambientAbsorbation.x << ":" << info.ambientAbsorbation.y << ":" << info.ambientAbsorbation.z << "]\n";
-			file << "Specular Absorbation: [" << info.specularAbsorbation.x << ":" << info.specularAbsorbation.y << ":" << info.specularAbsorbation.z << "]\n";
-			file << "Specular Shininess Exponent: " << info.specularShine << "\n";
-			file.close();
-		}
 	}
 
-	virtual void Load(ID3D12Device* _device, CommandList& _cmdList, ResourceManager& _rManager, const std::string& _name, Texture2DCache& _textureCache) override
+	virtual void Load(ID3D12Device* _device, ResourceEngine& _resourceEngine, DescriptorManager& _dManager, const std::string& _name, Texture2DCache& _textureCache) override
 	{
 		std::ifstream file("..\\materials\\" + _name + ".azm", std::ios::in | std::ios::binary);
 
@@ -73,15 +68,14 @@ public:
 
 		if (_textureCache.Exists(_name))
 		{
-			info.diffuseTextureID = _textureCache.GetResource(textureName).GetHandle().GetHeapIndex(); // _name -> textureName
+			info.diffuseTextureID = _textureCache.GetResource(textureName)->GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 		else
 		{
-			_textureCache.LoadResource(_device, _cmdList, _rManager, textureName); // _name -> textureName
-			info.diffuseTextureID = _textureCache.GetResource(textureName).GetHandle().GetHeapIndex(); // _name -> textureName
+			_textureCache.LoadResource(_device, "..\\textures\\", textureName); // _name -> textureName
+			info.diffuseTextureID = _textureCache.GetResource(textureName)->GetHandle().GetHeapIndex(); // _name -> textureName
 		}
 
-		std::wstring tempName(_name.begin(), _name.end());
-		buffer.InitDynamic(_device, &_cmdList, (void*)&info, sizeof(PhongMaterialInformation), true, tempName + L" Material Buffer");
+		_resourceEngine.CreateResource(_device, buffer, (void*)&info, sizeof(PhongMaterialInformation), true, true);
 	}
 };

@@ -31,8 +31,7 @@ public:
 	void Init(T* _wndProc, HINSTANCE _instance, int _width, int _height,
 		const std::wstring& _smallIconPath, const std::wstring& _bigIconPath);
 
-	void InitSwapChain(ID3D12Device* _device, CommandQueue& _cmdQueue,
-		CommandList& _cmdList,
+	void InitSwapChain(ID3D12Device* _device, ResourceEngine& _resourceEngine,
 		DescriptorHandle _dsvHandle,
 		std::vector<DescriptorHandle> _bbHandles,
 		int _numBackBuffers);

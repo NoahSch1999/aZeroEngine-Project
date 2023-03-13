@@ -2,69 +2,41 @@
 #include "VertexBuffer.h"
 #include "ResourceCache.h"
 
-/** @brief Functions as a vertex buffer cache. Is used to load, store, and retrieve vertex buffers from.
-* By using VertexBufferCache::GetBufferIndex() you can retrieve an index. This index can then be used with VertexBufferCache::GetBuffer(int) to get the actual resource in constant time.
+/** @brief Class that stores and manages loaded VertexBuffer objects. A subclass of ResourceCache.
+* 
+* It uses dependency injection with a ResourceEngine object, which is set during the constructor of the VertexBufferCache object, to create and remove DirectX12 resources.
 */
 class VertexBufferCache : public ResourceCache<VertexBuffer>
 {
 private:
-	void LoadVertexDataFromFile(ID3D12Device* _device, CommandList& _cmdList, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer);
+	void LoadVertexDataFromFile(ID3D12Device* _device, ResourceEngine& _resourceEngine, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer);
 
 public:
-	VertexBufferCache() = default;
+	/**Initiates the VertexBufferCache object.
+	@param _resourceEngine ResourceEngine used for D3D12 resource creations.
+	*/
+	VertexBufferCache(ResourceEngine& _resourceEngine);
 
 	virtual ~VertexBufferCache();
 
-	/**Loads a vertex buffer from the disk.
-	* Inherited via ResourceCache
-	@param _device The main ID3D12Device instance used
-	@param _cmdList The main CommandList instance to register the resource creation command on
-	@param _name Name of the fbx file residing on the disk without the .fbx extension. The application will look within the "../meshes/" folder.
+	/**Loads a vertex buffer from the disk from the specified directory.
+	@param _device ID3D12Device used for D3D12 resource creations.
+	@param _name Name of the fbx file resource residing on the disk. The name has to contain a the fbx extension.
+	@param _directory Directory where the fbx file should be located. Default value is the "../meshes/" folder.
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device* _device, CommandList& _cmdList, const std::string& _name) override;
+	virtual void LoadResource(ID3D12Device* _device, const std::string& _name, const std::string& _directory = "../meshes/") override;
 
-	/**Removes the vertex buffer from the VertexBufferCache and memory.
-	* Inherited via ResourceCache
-	@param _name Name of the vertex buffer to remove. Is the same as the name used during VertexBufferCache::LoadResource()
+	/**Immediately removes the vertex buffer from the CPU-side memory and queues the GPU-side resource to be removed ASAP.
+	* The key is the std::string which is the same as the filename for the loaded resource.
+	@param _key Name of the vertex buffer to remove. Is the same as the name used during VertexBufferCache::LoadResource()
 	@return void
 	*/
-	virtual void RemoveResource(const std::string& _name) override;
+	virtual void RemoveResource(const std::string& _key) override;
 
-	/** Removes the buffer with the specified name.
-	@param _name Name of the resource to remove from this class
+	/**Immediately removes the VertexBuffer from the CPU-side memory and queues the GPU-side resource to be removed ASAP.
+	@param _key ID of the VertexBuffer to remove. The ID is retrieves using ResourceCache::GetID() which this class inherits.
 	@return void
 	*/
-	void RemoveBuffer(const std::string& _name) { resourceMVec.Remove(_name); }
-
-	/** Returns a pointer to the vertex buffer that corresponds to the input index/ID.
-	@param _ID Index of the buffer to return
-	@return VertexBuffer*
-	*/
-	VertexBuffer* GetBuffer(int _ID){ return &resourceMVec.Get(_ID); }
-
-	/** Returns a pointer to the vertex buffer that corresponds to the input name.
-	@param _name Name of the buffer to return
-	@return VertexBuffer*
-	*/
-	VertexBuffer* GetBuffer(const std::string& _name){ return &resourceMVec.Get(_name); }
-
-	/** Returns the index of the buffer with the input name.
-	@param _name Name of the buffer to get the index from
-	@return int
-	*/
-	int GetBufferIndex(const std::string& _name){ return resourceMVec.GetID(_name); }
-
-	/** Returns whether or not the buffer with the specified name is loaded.
-	@param _name Name of the buffer to look for
-	@return bool (TRUE: Buffer is loaded, FALSE: Buffer isn't loaded)
-	*/
-	bool Exists(const std::string& _name);
-
-	/** Returns whether or not the buffer with the specified ID is loaded.
-	* ID can be retrieved using VertexBufferCache::GetBufferIndex().
-	@param _ID ID of the VertexBuffer.
-	@return bool (TRUE: Buffer is loaded, FALSE: Buffer isn't loaded)
-	*/
-	bool Exists(int _ID);
+	virtual void RemoveResource(int _key) override;
 };

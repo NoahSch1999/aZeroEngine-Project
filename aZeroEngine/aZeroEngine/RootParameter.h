@@ -7,7 +7,7 @@ class RootParameters
 {
 private:
 	std::vector<D3D12_ROOT_PARAMETER> parameters;
-	D3D12_DESCRIPTOR_RANGE ranges[100];
+	D3D12_DESCRIPTOR_RANGE ranges[100] = {};
 	int num = 0;
 public:
 	RootParameters() = default;
@@ -32,7 +32,7 @@ public:
 	/** @brief Returns the number of parameters within the list.
 	@return int
 	*/
-	int GetParameterNum() { return parameters.size(); }
+	int GetParameterNum() { return (int)parameters.size(); }
 
 	/** @brief Adds a descriptor table with the specified arguments to the parameter list.
 	@param _rangeType D3D12_DESCRIPTOR_RANGE_TYPE of the descriptor table.

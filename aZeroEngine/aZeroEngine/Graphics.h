@@ -3,47 +3,52 @@
 #include "SwapChain.h"
 #include "RenderSystem.h"
 #include "Scene.h"
+#include "UserInterface.h"
+#include "ResourceEngine.h"
 
 class Graphics
 {
 private:
-	float clearColor[4] = { 0.7f, 0.7f, 0.7f, 1 };
+	std::unordered_map<std::string, std::shared_ptr<UserInterface>>userInterfaces;
 public:
+	float clearColor[4] = { 0.7f, 0.7f, 0.7f, 1 };
 	Graphics(AppWindow& _window, HINSTANCE _instance);
 	~Graphics();
 	void Initialize(AppWindow& _window, HINSTANCE _instance);
-	void Begin();
+	void BeginFrame();
 	void Render(AppWindow* _window);
-	void Present();
-
-	void WaitForGPU();
+	void EndFrame();
 
 	ID3D12Device* device;
-	CommandQueue directCommandQueue;
 	AppWindow& window;
 
-	HiddenDescriptorHeap* rtvHeap;
-	HiddenDescriptorHeap* dsvHeap;
-
-	// temp
-	CommandList directCmdList;
-	CommandAllocator allocator;
-
-	// Presenting and culling
-	//SwapChain* swapChain;
 	RenderTarget* currentBackBuffer;
 	int nextSyncSignal = 0;
-	int frameIndex;
-	int frameCount;
+	int frameIndex = 0;
+	int frameCount = 0;
 
-	VertexBufferCache vbCache;
-	Texture2DCache textureCache;
-	ResourceManager resourceManager;
+	ECS ecs;
+	ResourceEngine resourceEngine;
+
+	DescriptorManager descriptorManager;
 	MaterialManager materialManager;
 	LightManager lManager;
 
-	Scene* scene = nullptr;
-	ECS ecs;
+	VertexBufferCache vbCache;
+	Texture2DCache textureCache;
 
 	BasicRendererSystem* renderSystem;
+	ShadowPassSystem* shadowSystem;
+
+	Scene* scene = nullptr;
+
+	void AttachUI(const std::shared_ptr<UserInterface>& ui)
+	{
+		userInterfaces.emplace(ui->name, std::shared_ptr<UserInterface>(ui));
+	}
+
+	void DetachUI(const std::shared_ptr<UserInterface>& ui)
+	{
+		userInterfaces.erase(ui->name);
+	}
 };

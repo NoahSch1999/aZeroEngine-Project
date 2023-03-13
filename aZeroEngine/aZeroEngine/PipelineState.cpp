@@ -21,10 +21,16 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, c
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
 	ZeroMemory(&desc, sizeof(desc));
 	ID3DBlob* vShader = Helper::LoadBlobFromFile(_vsPath);
-	ID3DBlob* pShader = Helper::LoadBlobFromFile(_psPath);
+	ID3DBlob* pShader = nullptr;
 	ID3DBlob* dShader = nullptr;
 	ID3DBlob* hShader = nullptr;
 	ID3DBlob* gShader = nullptr;
+
+	if (!_psPath.empty())
+	{
+		pShader = Helper::LoadBlobFromFile(_psPath);
+		desc.PS = { reinterpret_cast<BYTE*>(pShader->GetBufferPointer()), pShader->GetBufferSize() };
+	}
 	if (!_dsPath.empty())
 	{
 		dShader = Helper::LoadBlobFromFile(_dsPath);
@@ -45,7 +51,6 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, c
 	desc.InputLayout = { &_inputLayout.descs[0], 3 };
 	desc.pRootSignature = _rootSignature->GetSignature();
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
-	desc.PS = { reinterpret_cast<BYTE*>(pShader->GetBufferPointer()), pShader->GetBufferSize() };
 	desc.RasterizerState = _rasterState.GetDesc();
 
 	//D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
@@ -81,7 +86,7 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, c
 
 	// Solve this by using a comptr
 	vShader->Release();
-	pShader->Release();
+	//pShader->Release();
 	//dShader->Release();
 	//hShader->Release();
 	//gShader->Release();

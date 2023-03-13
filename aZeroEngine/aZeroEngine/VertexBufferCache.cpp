@@ -1,47 +1,51 @@
 #include "VertexBufferCache.h"
 
-VertexBufferCache::~VertexBufferCache()
-{
-	
-}
+VertexBufferCache::VertexBufferCache(ResourceEngine& _resourceEngine)
+	:ResourceCache(_resourceEngine) { }
 
-void VertexBufferCache::LoadResource(ID3D12Device* _device, CommandList& _cmdList, const std::string& _name)
+VertexBufferCache::~VertexBufferCache() { }
+
+void VertexBufferCache::LoadResource(ID3D12Device* _device, const std::string& _name, const std::string& _directory)
 {
-	if (resourceMVec.Exists(_name))
+	if (resources.Exists(_name))
 		return;
+
 	VertexBuffer temp;
-	ID3D12Resource* intermediateResource;
-	LoadVertexDataFromFile(_device, _cmdList, intermediateResource, "..\\meshes\\" + _name, temp);
+	ID3D12Resource* intermediateResource = nullptr;
+	LoadVertexDataFromFile(_device, resourceEngine, intermediateResource, _directory + _name, temp);
 	temp.SetFileName(_name);
-	resourceMVec.Add(_name, temp);
-	intermediateResources.emplace_back(intermediateResource);
+	resources.Add(_name, temp);
+	resourceEngine.RemoveResource(intermediateResource);
+
 }
 
-void VertexBufferCache::RemoveResource(const std::string& _name)
+void VertexBufferCache::RemoveResource(const std::string& _key)
 {
-	resourceMVec.Remove(_name);
+	if (resources.Exists(_key))
+	{
+		int id = resources.GetID(_key);
+		VertexBuffer* vb = resources.GetObjectByKey(id);
+		resourceEngine.RemoveResource(*vb);
+		resources.Remove(id);
+	}
 }
 
-bool VertexBufferCache::Exists(const std::string& _name)
+void VertexBufferCache::RemoveResource(int _key)
 {
-	if (resourceMVec.Exists(_name) > 0)
-		return true;
-	return false;
+	if (resources.Exists(_key))
+	{
+		VertexBuffer* vb = resources.GetObjectByKey(_key);
+		resourceEngine.RemoveResource(vb->GetMainResource());
+		resources.Remove(_key);
+	}
 }
 
-bool VertexBufferCache::Exists(int _ID)
-{
-	if (resourceMVec.Exists(_ID) > 0)
-		return true;
-	return false;
-}
-
-void VertexBufferCache::LoadVertexDataFromFile(ID3D12Device* _device, CommandList& _cmdList, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer)
+void VertexBufferCache::LoadVertexDataFromFile(ID3D12Device* _device, ResourceEngine& _resourceEngine, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer)
 {
 	Helper::BasicVertexListInfo vertexInfo;
 	Helper::LoadVertexListFromFile(&vertexInfo, _path);
 	std::wstring wstr(_path.begin(), _path.end());
-	_vBuffer.InitStatic(_device, &_cmdList, vertexInfo.verticeData.data(), vertexInfo.verticeData.size() * sizeof(BasicVertex), (int)vertexInfo.verticeData.size(), wstr);
+	_resourceEngine.CreateResource(_device, _vBuffer, vertexInfo.verticeData.data(), vertexInfo.verticeData.size() * sizeof(BasicVertex), (int)vertexInfo.verticeData.size(), _path);
 	_vBuffer.SetNumVertices((int)vertexInfo.verticeData.size());
 	_intermediateResource = _vBuffer.GetIntermediateResource();
 }

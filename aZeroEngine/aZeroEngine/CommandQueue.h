@@ -6,15 +6,10 @@
 class CommandQueue
 {
 private:
-	bool FenceReached(UINT _fenceValue);
-	int PollCurrentFenceValue();
-
 	ID3D12CommandQueue* queue;
 	ID3D12Fence* fence;
 	UINT nextFenceValue;
-	UINT lastReachedValue;
 	D3D12_COMMAND_LIST_TYPE type;
-	HANDLE eventHandle;
 
 public:
 	CommandQueue() = default;
@@ -44,25 +39,9 @@ public:
 
 	/**Executes the commands recorded on the input CommandList.
 	@param _cmdList CommandList which should have it's commands executed.
-	@return int To the fence value which can be used in conjunction with the CommandQueue::Flush() methods.
+	@return UINT64 To the fence value which can be used in conjunction with the CommandQueue::Flush() methods.
 	*/
-	int Execute(CommandList& _cmdList);
-
-	/**Stalls the CPU until the recorded commands on the CommandList has been executed using CommandQueue::Execute().
-	* The input fence value is returned from CommandQueue::Execute() and should be stored in order to input it as an argument to this method.
-	@param _fenceValue Fence value recorded within a CommandList that CPU should wait for.
-	@param _allocator Allocator which was used to create the input CommandList. It will be reset using CommandAllocator::Reset() whenever the CPU stall is completed.
-	@param _cmdList CommandList that contains the commands executed using CommandQueue::Execute(). It will be reset using CommandList::Reset() whenever the CPU stall is completed.
-	@return void
-	*/
-	void Flush(UINT _fenceValue, CommandAllocator& _allocator, CommandList& _cmdList);
-
-	/**Stalls the CPU until the recorded commands on the CommandList has been executed using CommandQueue::Execute().
-	* The input fence value is returned from CommandQueue::Execute() and should be stored in order to input it as an argument to this method.
-	@param _fenceValue Fence value recorded within a CommandList that CPU should wait for.
-	@return void
-	*/
-	void Flush(UINT _fenceValue);
+	UINT64 Execute(CommandList& _cmdList);
 
 	/**Returns the internal ID3D12CommandQueue* object.
 	@return ID3D12CommandQueue*
@@ -73,5 +52,21 @@ public:
 	@return D3D12_COMMAND_LIST_TYPE
 	*/
 	D3D12_COMMAND_LIST_TYPE GetType() const { return type; }
+
+	/**Stalls the CPU until the internal ID3D12Fence has been signaled the input value.
+	@param _valueToWaitFor Value to wait for. The value is returned from CommandQueue::Execute().
+	@return void
+	*/
+	void StallCPU(int _valueToWaitFor);
+
+	/**Stalls this CommandQueue on the GPU-side until the input CommandQueues' ID3D12Fence has been signaled the input value.
+	* The input value is returned using CommandQueue::Execute() with the input CommandQueue.
+	@param _other CommandQueue to add a GPU-side wait for.
+	@param _valueToWaitFor Value to wait for. The value is returned from CommandQueue::Execute().
+	@return void
+	*/
+	void WaitForOther(CommandQueue& _other, int _valueToWaitFor);
+
+	void WaitForFence(int _valueToWaitFor);
 };
 

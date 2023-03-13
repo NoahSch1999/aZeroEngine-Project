@@ -18,7 +18,6 @@ CommandQueue::CommandQueue(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type,
 
 	type = _type;
 	nextFenceValue = 0;
-	lastReachedValue = 0;
 }
 
 CommandQueue::~CommandQueue()
@@ -45,62 +44,102 @@ void CommandQueue::Init(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type, D3
 
 	type = _type;
 	nextFenceValue = 0;
-	lastReachedValue = 0;
+	//lastReachedValue = 0;
 }
 
-int CommandQueue::Execute(CommandList& _cmdList)
+
+
+//void CommandQueue::Flush(UINT _fenceValue, CommandAllocator& _allocator, CommandList& _cmdList)
+//{
+//	if(FenceReached(_fenceValue))
+//	{
+//		_allocator.Reset();
+//		_cmdList.ResetGraphic(_allocator);
+//		return;
+//	}
+//	fence->SetEventOnCompletion(_fenceValue, eventHandle);
+//	WaitForSingleObjectEx(eventHandle, INFINITE, false);
+//	lastReachedValue = _fenceValue;
+//	_allocator.Reset();
+//	_cmdList.ResetGraphic(_allocator);
+//}
+
+//void CommandQueue::Flush(UINT _fenceValue)
+//{
+//	if (FenceReached(_fenceValue))
+//	{
+//		return;
+//	}
+//	fence->SetEventOnCompletion(_fenceValue, eventHandle);
+//	WaitForSingleObjectEx(eventHandle, INFINITE, false);
+//	lastReachedValue = _fenceValue;
+//}
+
+UINT64 CommandQueue::Execute(CommandList& _cmdList)
 {
+	// Close the graphics list to enable execution
 	_cmdList.CloseGraphic();
+
+	// Execute the command list
 	ID3D12CommandList* cmdLists = { _cmdList.GetBaseList() };
 	queue->ExecuteCommandLists(1, &cmdLists);
+
+	// Set a command queue signal for the fence and then return it.
 	queue->Signal(fence, nextFenceValue);
-	return nextFenceValue++;
+	return nextFenceValue++; // Postincrements the value. This means that the nextFenceValue that is returned equals nextFenceValue without ++.
 }
 
-void CommandQueue::Flush(UINT _fenceValue, CommandAllocator& _allocator, CommandList& _cmdList)
+// Waits for the signaled value returned from CommandQueue::Execute()
+void CommandQueue::StallCPU(int _valueToWaitFor)
 {
-	if(FenceReached(_fenceValue))
-	{
-		_allocator.Reset();
-		_cmdList.ResetGraphic(_allocator);
-		return;
-	}
-	fence->SetEventOnCompletion(_fenceValue, eventHandle);
-	WaitForSingleObjectEx(eventHandle, INFINITE, false);
-	lastReachedValue = _fenceValue;
-	_allocator.Reset();
-	_cmdList.ResetGraphic(_allocator);
-}
+	// Get last fence value reached 
+	// The fence is automatically updated whenever the ID3D12CommandQueue reaches a signal command for the fence.
+	int currentFenceValue = fence->GetCompletedValue();
 
-void CommandQueue::Flush(UINT _fenceValue)
-{
-	if (FenceReached(_fenceValue))
+	// Check if the fence has reached _valueToWaitFor. _valueToWaitFor has to have been set using ID3D12CommandQueue::Signal()
+	// Simply return if the fence value has been reached since nothing on the queue is pending that was executed before _valueToWaitFor was signaled for the fence.
+	if (_valueToWaitFor <= currentFenceValue)
 	{
 		return;
 	}
-	fence->SetEventOnCompletion(_fenceValue, eventHandle);
-	WaitForSingleObjectEx(eventHandle, INFINITE, false);
-	lastReachedValue = _fenceValue;
-}
-
-bool CommandQueue::FenceReached(UINT _fenceValue)
-{
-	if (_fenceValue > lastReachedValue)
-	{
-		lastReachedValue = PollCurrentFenceValue();
-	}
-
-	if (lastReachedValue >= _fenceValue)
-		return true;
 	
-	return false;
+	// Set an event handle that will be notified, and thus stop locking, once the fence has reached _valueToWaitFor.
+	// Nullptr will result in an INFINITE wait until the fence has been signaled.
+	fence->SetEventOnCompletion(_valueToWaitFor, nullptr);
+
+	return;
 }
 
-int CommandQueue::PollCurrentFenceValue()
+// Waits for the input CommandQueue and its signaled value
+void CommandQueue::WaitForOther(CommandQueue& _other, int _valueToWaitFor)
 {
-	if (lastReachedValue <= fence->GetCompletedValue())
-	{
-		lastReachedValue = (UINT)fence->GetCompletedValue();
-	}
-	return lastReachedValue;
+	queue->Wait(_other.fence, _valueToWaitFor);
+	//_other.WaitForValue(_valueToWaitFor);
 }
+
+void CommandQueue::WaitForFence(int _valueToWaitFor)
+{
+	queue->Wait(fence, _valueToWaitFor);
+}
+
+//bool CommandQueue::FenceReached(UINT _fenceValue)
+//{
+//	if (_fenceValue > lastReachedValue)
+//	{
+//		lastReachedValue = PollCurrentFenceValue();
+//	}
+//
+//	if (lastReachedValue >= _fenceValue)
+//		return true;
+//	
+//	return false;
+//}
+//
+//int CommandQueue::PollCurrentFenceValue()
+//{
+//	if (lastReachedValue <= fence->GetCompletedValue())
+//	{
+//		lastReachedValue = (UINT)fence->GetCompletedValue();
+//	}
+//	return lastReachedValue;
+//}

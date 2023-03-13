@@ -7,6 +7,14 @@
 
 namespace Helper
 {
+	struct STBIImageData
+	{
+		unsigned char* rawData = nullptr;
+		int height = -1;
+		int width = -1;
+		int channels = -1;
+	};
+
 	ID3DBlob* LoadBlobFromFile(const std::wstring& _filePath);
 
 	struct BasicVertexListInfo
@@ -42,7 +50,7 @@ namespace Helper
 	{
 		if constexpr (std::is_same_v<T, std::string>)
 		{
-			int len = _data.length();
+			int len = (int)_data.length();
 			_file.write((char*)&len, sizeof(int));
 			_file.write(_data.c_str(), len);
 		}
@@ -67,4 +75,12 @@ namespace Helper
 			static_assert(std::is_same_v<T, std::string>, "T is an invalid input.");
 		}
 	}
+
+	STBIImageData LoadSTBIImage(const std::string& _fileName);
+
+	/** @brief Opens the file dialog and returns true if the user selects a file that ends with the input .xxx extension. Otherwise it returns false.
+	* If it returns true, it will also copy the filename.xxx to the input _storeFileStr argument.
+	@return TRUE: File with extension selected, FALSE: File with extension not selected
+	*/
+	bool OpenFileDialogForExtension(const std::string& _extension, std::string& _storeFileStr);
 }

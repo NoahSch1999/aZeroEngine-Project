@@ -13,8 +13,8 @@ Github: https://github.com/NoahSch1999
 #include <bitset>
 #include <type_traits>
 #include <queue>
-#include "VertexBuffer.h"
-#include "ConstantBuffer.h"
+#include "ResourceEngine.h"
+#include <deque>
 
 class BaseResource;
 class VertexBuffer;
@@ -31,7 +31,7 @@ static const int MAXCOMPONENTS = 10;
 */
 namespace COMPONENTENUM
 {	
-	enum COMPONENTBITID { TRANSFORM, MESH, MATERIAL, LIGHT };
+	enum COMPONENTBITID { TRANSFORM, MESH, MATERIAL, PLIGHT, DLIGHT };
 }
 
 // ---------------	SOURCE CODE EXAMPLES	----------------------
@@ -58,8 +58,6 @@ namespace COMPONENTENUM
 class Transform
 {
 private:
-//	Matrix worldMatrix;
-
 	Vector3 translation = Vector3::Zero;
 	Vector3 rotation = Vector3::Zero;
 	Vector3 scale = Vector3(1.f, 1.f, 1.f);
@@ -157,9 +155,12 @@ public:
 	Vector3& GetRotation() { return rotation; }
 	Vector3& GetScale() { return scale; }
 
-	Matrix Compose()
+	Matrix matrix = Matrix::Identity;
+
+	Matrix& Compose()
 	{
-		return (Matrix::CreateScale(scale)) * Matrix::CreateFromYawPitchRoll(rotation) *  Matrix::CreateTranslation(translation);
+		matrix = (Matrix::CreateScale(scale)) * Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(translation);
+		return matrix;
 	}
 
 	void Delete()
@@ -172,56 +173,58 @@ public:
 
 	Transform() = default;
 
-	Transform(ID3D12Device* _device, CommandList* _cmdList)
+	Transform(ID3D12Device* _device, ResourceEngine& _resourceEngine)
 	{
 		Matrix temp = Matrix::Identity;
-		cb.InitDynamic(_device, _cmdList, (void*)&temp, sizeof(Matrix), true, L"");
+		_resourceEngine.CreateResource(_device, cb, (void*)&temp, sizeof(Matrix), true, true);
 	}
 
 	// Used for non-trippleframed resources
-	void Update()
+	void Update(ResourceEngine& _resourceEngine, int _frameIndex)
 	{
 		Matrix temp = Compose();
-		cb.Update((void*)&temp, sizeof(Matrix));
-	}
-
-	void Update(CommandList* _cmdList, int _frameIndex)
-	{
-		Matrix temp = Compose();
-		cb.Update(_cmdList, (void*)&temp, sizeof(Matrix), _frameIndex);
+		_resourceEngine.Update(cb, (void*)&temp, _frameIndex);
 	}
 };
 
 class Mesh
 {
-	// SHOULD THE COMPONENT HAVE A VERTEX BUFFER OR AN INDEX TO THE VERTEX BUFFER WITHIN THE VERTEXBUFFERCACHE (SAME AS WITH THE MATERIAL COMPONENT)?
-	// PROS WITH HAVING ITS OWN VERTEX BUFFER: 
-	//		DOESN'T NEED TO GO THROUGH THE VERTEXBUFFERCACHE
-	// PROS WITH HAVING ONLY AN INDEX: 
-	//		LESS MEMORY CONSUMPTION
-	//		IF VERTEX BUFFER CHANGES MID-APPLICATION, THE CHANGE IS APPLIED TO EVERY MESH COMPONENT THAT HAS AN ID TO THE SAME VERTEX BUFFER
 private:
-	int vbIndex;
+	int vbID;
 public:
 	Mesh() = default;
-	Mesh(int _vbIndex) :vbIndex(_vbIndex) {};
-	void SetVBIndex(int _vbIndex) { vbIndex = _vbIndex; }
-	int GetVBIndex() { return vbIndex; }
+	Mesh(int _vbID) :vbID(_vbID) {};
+	void SetID(int _vbID) { vbID = _vbID; }
+	int GetID() { return vbID; }
+
+	bool castShadows = false;
+	float receiveShadows = 1.f;
 };
 
-class MaterialComponent
+enum MATERIALTYPE { PHONG, PBR };
+
+struct MaterialComponent
 {
-private:
-	int materialID;
 public:
 	MaterialComponent() = default;
 	MaterialComponent(int _materialID) :materialID(_materialID) {};
-	void SetMaterialID(int _materialID) { materialID = _materialID; }
-	int GetMaterialID() { return materialID; }
+
+	int materialID = -1;
+	MATERIALTYPE type = MATERIALTYPE::PHONG;
 };
 
 // Light component
+struct PointLightComponent
+{
+	PointLightComponent() = default;
+	int id = -1;
+};
 
+struct DirectionalLightComponent
+{
+	DirectionalLightComponent() = default;
+	int id = -1;
+};
 //
 
 /** @brief Contains an ID and std::bitset which a user can register components for using the ComponentManager class.
@@ -234,23 +237,184 @@ struct Entity
 	bool disabled = false;
 };
 
-/// \private
+/** @brief A data structure which contains a contiguous array of elements that can be accessed through an ID.
+*/
 template<typename T>
-struct BiDirectionalMap
+class SlottedMap
 {
+private:
 	std::unordered_map<int, int> idToIndex;
 	std::unordered_map<int, int> indexToId;
 	std::vector<T> objects;
+public:
 
-	BiDirectionalMap() = default;
+	SlottedMap() = default;
 
-	void Insert(const Entity& _entity, const T& _value);
+	void Insert(int _id, const T& _value);
 
-	void Remove(const Entity& _entity);
+	void Remove(int _id);
 
 	void Clear();
 
+	bool Exists(int _id)
+	{
+		return idToIndex.count(_id) > 0;
+	}
+
 	T* GetObjectByID(int _id){ return &objects[idToIndex.at(_id)]; }
+
+	std::vector<T>& GetObjects() { return objects; }
+};
+
+/** @brief A data structure which contains a contiguous array of elements that can be accessed through an ID (int) or key(string).
+*/
+template <typename T>
+class NamedSlottedMap
+{
+private:
+	SlottedMap<T>map;
+	int currentMax = 0;
+	int incPerEmpty = 0;
+	std::deque<int> freeIDs;
+	std::unordered_map<std::string, int>strToID;
+	std::unordered_map<int, std::string>IDtoStr;
+public:
+	NamedSlottedMap(int _startMax, int _incPerEmpty = 100)
+		:currentMax(_startMax), incPerEmpty(_incPerEmpty)
+	{
+		for (int i = 0; i < currentMax; i++)
+		{
+			freeIDs.push_back(i);
+		}
+	}
+
+	void Reset()
+	{
+		freeIDs.clear();
+		for (int i = 0; i < currentMax; i++)
+		{
+			freeIDs.push_back(i);
+		}
+		strToID.clear();
+		IDtoStr.clear();
+		map.Clear();
+	}
+
+	/** Adds an element to the last position in the array and creates a string key to access it through NamedSlottedMap::GetObjectByStr()
+	@param _key String key which will be used to access the object.
+	@param _data Data to copy to the object.
+	@return int The ID that can be used to access the element through NamedSlottedMap::GetObjectByID(). If an object with _key value already exists, the method returns -1.
+	*/
+	int Add(const std::string& _key, const T& _data)
+	{
+		if (strToID.count(_key) > 0)
+			return -1;
+
+		if (freeIDs.empty())
+		{
+			for (int i = currentMax; i < currentMax + incPerEmpty; i++)
+			{
+				freeIDs.push_back(i);
+			}
+		}
+
+		int id = freeIDs.front();
+		freeIDs.pop_front();
+
+		map.Insert(id, _data);
+
+		strToID.emplace(_key, id);
+		IDtoStr.emplace(id, _key);
+
+		return id;
+	}
+
+	/** Removes the element matching the input _key.
+	@param _key The key of the element to remove.
+	@return void
+	*/
+
+	void Remove(const std::string& _key)
+	{
+		if (strToID.count(_key) == 0)
+			return;
+
+		int id = strToID.at(_key);
+		map.Remove(id);
+		strToID.erase(_key);
+		IDtoStr.erase(id);
+		freeIDs.push_front(id);
+	}
+
+	void Remove(int _key)
+	{
+		if (!map.Exists(_key))
+			return;
+
+		map.Remove(_key);
+		strToID.erase(IDtoStr.at(_key));
+		IDtoStr.erase(_key);
+		freeIDs.push_front(_key);
+	}
+
+	bool Exists(const std::string& _key)
+	{
+		if (strToID.count(_key) > 0)
+			return true;
+
+		return false;
+	}
+
+	bool Exists(int _key)
+	{
+		return map.Exists(_key);
+	}
+
+	T* GetObjectByKey(const std::string& _key)
+	{
+		if (strToID.count(_key) == 0)
+			return nullptr;
+
+		return map.GetObjectByID(strToID.at(_key));
+	}
+
+	T* GetObjectByKey(int _key)
+	{
+		if (!map.Exists(_key))
+			return nullptr;
+
+		return map.GetObjectByID(_key);
+	}
+
+	/** Returns a reference to all the objects.
+	@return std::vector<T>&
+	*/
+	std::vector<T>& GetObjects() { return map.GetObjects(); }
+
+	/** Returns a reference to a map containing the names of the objects and their respective IDs.
+	@return std::unordered_map<std::string, int>&
+	*/
+	std::unordered_map<std::string, int>& GetStrToIndexMap() { return strToID; }
+
+	/** Returns a reference to all the objects.
+	@param _key Key to be used to get the object ID.
+	@return int The ID of the object matching _key. If the object doesn't exist it returns -1
+	*/
+	int GetID(const std::string _key) const
+	{ 
+		if (strToID.count(_key) == 0)
+			return -1;
+
+		return strToID.at(_key);
+	}
+
+	std::string GetString(int _key)
+	{
+		if (IDtoStr.count(_key) == 0)
+			return "";
+
+		return IDtoStr.at(_key);
+	}
 };
 
 /** @brief An abstract base class for systems used within the ECS framework. New systems should inherit from this and implement appropriate functionality for the ECSystem::Update() pure virtual method.
@@ -258,7 +422,7 @@ struct BiDirectionalMap
 class ECSystem
 {
 protected:
-	BiDirectionalMap<Entity> entityIDMap; /**< A bi-directional map containing an internal std::vector of copies of bound Entity objects.*/
+	SlottedMap<Entity> entityIDMap; /**< A bi-directional map containing an internal std::vector of copies of bound Entity objects.*/
 public:
 
 	std::bitset<MAXCOMPONENTS> componentMask; /**<Describes what type of components a bound Entity should have registered. This should be overwritten in the constructor of an inheriting class.*/
@@ -271,6 +435,8 @@ public:
 	*/
 	void Bind(const Entity& _entity)
 	{
+		if (entityIDMap.Exists(_entity.id))
+			return;
 		// Note - CHANGE THIS TO BITWISE OPERATOR... HOW TO DO THAT WHEN U WANNA CHECK FOR PATTERN?
 		for (int i = 0; i < MAXCOMPONENTS; ++i)
 		{
@@ -284,7 +450,7 @@ public:
 			}
 		}
 
-		entityIDMap.Insert(_entity, _entity);
+		entityIDMap.Insert(_entity.id, _entity);
 
 		return;
 	}
@@ -298,7 +464,7 @@ public:
 	*/
 	void BindFast(const Entity& _entity)
 	{
-		entityIDMap.Insert(_entity, _entity);
+		entityIDMap.Insert(_entity.id, _entity);
 	}
 
 	/**Used to unbind an Entity object from the ECSystem.
@@ -307,7 +473,14 @@ public:
 	*/
 	void UnBind(const Entity& _entity)
 	{
-		entityIDMap.Remove(_entity);
+		if (!entityIDMap.Exists(_entity.id))
+			return;
+		entityIDMap.Remove(_entity.id);
+	}
+
+	void UnBindFast(const Entity& _entity)
+	{
+		entityIDMap.Remove(_entity.id);
 	}
 
 	/**Clears the list of Entity objects bound to the system.
@@ -360,9 +533,11 @@ private:
 	//BiDirectionalMap<Comp2>comp2Map;
 	//BiDirectionalMap<Comp3>comp3Map;
 	// ---------------------------------------------------------------
-	BiDirectionalMap<Transform> transformMap;
-	BiDirectionalMap<Mesh> meshMap;
-	BiDirectionalMap<MaterialComponent> materialMap;
+	SlottedMap<Transform> transformMap;
+	SlottedMap<Mesh> meshMap;
+	SlottedMap<MaterialComponent> materialMap;
+	SlottedMap<PointLightComponent> pLightMap;
+	SlottedMap<DirectionalLightComponent> dLightMap;
 
 public:
 	ComponentManager() = default;
@@ -523,14 +698,15 @@ public:
 		// Call for each ECSystem
 		//tSystem.UnBind(_entity); // Works regardless if it's bound or not
 
-		Transform* tf = componentManager.GetComponent<Transform>(_entity);
-		tf->Delete();
-
 		componentManager.RemoveComponent<Transform>(_entity);
 
 		componentManager.RemoveComponent<Mesh>(_entity);
 
 		componentManager.RemoveComponent<MaterialComponent>(_entity);
+
+		componentManager.RemoveComponent<PointLightComponent>(_entity);
+
+		componentManager.RemoveComponent<DirectionalLightComponent>(_entity);
 
 		entityManager.RemoveEntity(_entity);
 	}
@@ -540,33 +716,51 @@ public:
 };
 
 template<typename T>
-inline void BiDirectionalMap<T>::Insert(const Entity& _entity, const T& _value)
+inline void SlottedMap<T>::Insert(int _id, const T& _value)
 {
-	int insertIndex = (int)objects.size();
-	objects.emplace_back(_value);
-	idToIndex.emplace(_entity.id, insertIndex);
-	indexToId.emplace(insertIndex, _entity.id);
-}
-
-template<typename T>
-inline void BiDirectionalMap<T>::Remove(const Entity& _entity)
-{
-	if (idToIndex.count(_entity.id) == 0)
+	if (Exists(_id))
 		return;
-	int indexToRemove = idToIndex.at(_entity.id);		// Get index of the entity to remove
-	int lastIndex = (int)objects.size() - 1;				// Get the last index in the array (to avoid multiple .size() calls)
 
-	objects[indexToRemove] = objects[lastIndex];	// Replace element to remove with the last element
-	objects.resize(lastIndex);						// Resize array to fit new number of elements
-	int tempId = indexToId.at(lastIndex);			// Get id for the element at the last index
-	idToIndex.at(tempId) = indexToRemove;			// ID of last element remapped to the same elements new index
-	indexToId.at(indexToRemove) = tempId;			// Index of the element that was moved remapped to match the id of the element moved
-	idToIndex.erase(_entity.id);						// Remove the id->index pair since that id wont be mapped to anything anymore
-	indexToId.erase(lastIndex);
+	int index = objects.size();
+	objects.emplace_back(_value);
+	idToIndex.emplace(_id, index);
+	indexToId[index] = _id;
 }
 
 template<typename T>
-inline void BiDirectionalMap<T>::Clear()
+inline void SlottedMap<T>::Remove(int _id)
+{
+	if (!Exists(_id))
+		return;
+
+	int index = idToIndex.at(_id);
+	idToIndex.erase(_id);
+
+	if (objects.size() == 1)
+	{
+		indexToId.erase(index);
+		objects.resize(0);
+		return;
+	}
+
+	int indexOfLast = objects.size() - 1;
+
+	if (indexOfLast == index)
+	{
+		indexToId.erase(index);
+		objects.resize(objects.size() - 1);
+		return;
+	}
+
+	indexToId.at(index) = indexToId.at(indexOfLast);
+	objects[index] = objects[indexOfLast];
+	int idToMove = indexToId.at(indexOfLast);
+	idToIndex.at(indexToId.at(indexOfLast)) = index;
+	objects.resize(objects.size() - 1);
+}
+
+template<typename T>
+inline void SlottedMap<T>::Clear()
 {
 	idToIndex.clear();
 	indexToId.clear();
@@ -611,7 +805,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _initVal
 		if (!_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
 		{
 			_entity.componentMask.set(COMPONENTENUM::TRANSFORM);
-			transformMap.Insert(_entity, _initValue);
+			transformMap.Insert(_entity.id, _initValue);
 			return transformMap.GetObjectByID(_entity.id);
 		}
 	}
@@ -620,7 +814,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _initVal
 		if (!_entity.componentMask.test(COMPONENTENUM::MESH))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MESH);
-			meshMap.Insert(_entity, _initValue);
+			meshMap.Insert(_entity.id, _initValue);
 			return meshMap.GetObjectByID(_entity.id);
 		}
 	}
@@ -629,8 +823,26 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _initVal
 		if (!_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MATERIAL);
-			materialMap.Insert(_entity, _initValue);
+			materialMap.Insert(_entity.id, _initValue);
 			return materialMap.GetObjectByID(_entity.id);
+		}
+	}
+	else if constexpr (std::is_same_v<T, PointLightComponent>)
+	{
+		if (!_entity.componentMask.test(COMPONENTENUM::PLIGHT))
+		{
+			_entity.componentMask.set(COMPONENTENUM::PLIGHT);
+			pLightMap.Insert(_entity.id, _initValue);
+			return pLightMap.GetObjectByID(_entity.id);
+		}
+	}
+	else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
+	{
+		if (!_entity.componentMask.test(COMPONENTENUM::DLIGHT))
+		{
+			_entity.componentMask.set(COMPONENTENUM::DLIGHT);
+			dLightMap.Insert(_entity.id, _initValue);
+			return dLightMap.GetObjectByID(_entity.id);
 		}
 	}
 
@@ -672,7 +884,7 @@ inline void ComponentManager::RemoveComponent(Entity& _entity)
 		if (_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
 		{
 			_entity.componentMask.set(COMPONENTENUM::TRANSFORM, false);
-			transformMap.Remove(_entity);
+			transformMap.Remove(_entity.id);
 		}
 	}
 	else if constexpr (std::is_same_v<T, Mesh>)
@@ -680,7 +892,7 @@ inline void ComponentManager::RemoveComponent(Entity& _entity)
 		if (_entity.componentMask.test(COMPONENTENUM::MESH))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MESH, false);
-			meshMap.Remove(_entity);
+			meshMap.Remove(_entity.id);
 		}
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
@@ -688,7 +900,23 @@ inline void ComponentManager::RemoveComponent(Entity& _entity)
 		if (_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MATERIAL, false);
-			materialMap.Remove(_entity);
+			materialMap.Remove(_entity.id);
+		}
+	}
+	else if constexpr (std::is_same_v<T, PointLightComponent>)
+	{
+		if (_entity.componentMask.test(COMPONENTENUM::PLIGHT))
+		{
+			_entity.componentMask.set(COMPONENTENUM::PLIGHT, false);
+			pLightMap.Remove(_entity.id);
+		}
+	}
+	else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
+	{
+		if (_entity.componentMask.test(COMPONENTENUM::DLIGHT))
+		{
+			_entity.componentMask.set(COMPONENTENUM::DLIGHT, false);
+			dLightMap.Remove(_entity.id);
 		}
 	}
 }
@@ -723,21 +951,35 @@ inline T* ComponentManager::GetComponent(const Entity& _entity)
 	if constexpr (std::is_same_v<T, Transform>)
 	{
 		if (_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
-			return &transformMap.objects[transformMap.idToIndex.at(_entity.id)];
+			return transformMap.GetObjectByID(_entity.id);
 		else
 			return nullptr;
 	}
 	else if constexpr (std::is_same_v<T, Mesh>)
 	{
 		if (_entity.componentMask.test(COMPONENTENUM::MESH))
-			return &meshMap.objects[meshMap.idToIndex.at(_entity.id)];
+			return meshMap.GetObjectByID(_entity.id);
 		else
 			return nullptr;
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
 		if (_entity.componentMask.test(COMPONENTENUM::MATERIAL))
-			return &materialMap.objects[materialMap.idToIndex.at(_entity.id)];
+			return materialMap.GetObjectByID(_entity.id);
+		else
+			return nullptr;
+	}
+	else if constexpr (std::is_same_v<T, PointLightComponent>)
+	{
+		if (_entity.componentMask.test(COMPONENTENUM::PLIGHT))
+			return pLightMap.GetObjectByID(_entity.id);
+		else
+			return nullptr;
+	}
+	else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
+	{
+		if (_entity.componentMask.test(COMPONENTENUM::DLIGHT))
+			return dLightMap.GetObjectByID(_entity.id);
 		else
 			return nullptr;
 	}
@@ -765,15 +1007,23 @@ inline T* ComponentManager::GetComponentFast(const Entity& _entity)
 
 	if constexpr (std::is_same_v<T, Transform>)
 	{
-		return &transformMap.objects[transformMap.idToIndex.at(_entity.id)];
+		return transformMap.GetObjectByID(_entity.id);
 	}
 	else if constexpr (std::is_same_v<T, Mesh>)
 	{
-		return &meshMap.objects[meshMap.idToIndex.at(_entity.id)];
+		return meshMap.GetObjectByID(_entity.id);
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
 	{
-		return &materialMap.objects[materialMap.idToIndex.at(_entity.id)];
+		return materialMap.GetObjectByID(_entity.id);
+	}
+	else if constexpr (std::is_same_v<T, PointLightComponent>)
+	{
+		return pLightMap.GetObjectByID(_entity.id);
+	}
+	else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
+	{
+		return dLightMap.GetObjectByID(_entity.id);
 	}
 
 	return nullptr;

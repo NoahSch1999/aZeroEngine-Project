@@ -2,13 +2,6 @@
 #include "BaseResource.h"
 #include "ShaderDescriptorHeap.h"
 
-class BaseResource;
-class ShaderDescriptorHeap;
-
-/*
-I HAVE TO FIX SO THIS USES REAL TRIPPLE BUFFERING INSTEAD OF MEMCPY STUFF (WITH THIS I MEAN THE SAME WAY THAT THE CONSTANT BUFFER IS IMPLEMENTED).
-*/
-
 /** @brief Encapsulates a structured buffer resource.
 */
 class StructuredBuffer : public BaseResource
@@ -17,10 +10,6 @@ private:
 	int sizeOfElement = -1;
 	int numElements = -1;
 
-	// Inherited via BaseResource
-	// Disabled
-	virtual void InitStatic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, const std::wstring& _mainResourceName) override;
-	virtual void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, bool _trippleBuffered, const std::wstring& _mainResourceName) override;
 public:
 	StructuredBuffer()
 		:BaseResource()
@@ -28,28 +17,62 @@ public:
 
 	}
 
-	virtual ~StructuredBuffer()
+	virtual ~StructuredBuffer(){ }
+
+	void InitBase(ID3D12Device* _device, CommandList& _copyList, void*& _initData, int _numBytes, int _numElements, bool _dynamic = true, bool _tripple = true)
 	{
-		//uploadBuffer->Release();
+		numElements = _numElements;
+		sizeOfElement = _numBytes / _numElements;
+		sizePerSubresource = _numBytes;
+
+		D3D12_RESOURCE_DESC rDesc;
+		ZeroMemory(&rDesc, sizeof(D3D12_RESOURCE_DESC));
+		rDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		rDesc.Width = sizePerSubresource;
+		rDesc.Height = 1;
+		rDesc.DepthOrArraySize = 1;
+		rDesc.MipLevels = 1;
+		rDesc.SampleDesc.Count = 1;
+		rDesc.SampleDesc.Quality = 0;
+		rDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		rDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		rDesc.Format = DXGI_FORMAT_UNKNOWN;
+
+		if (_initData == nullptr)
+		{
+			_initData = new char[_numBytes]; // mem leak
+			ZeroMemory(_initData, _numBytes);
+		}
+
+		D3D12_HEAP_PROPERTIES heapProps = {};
+		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+		HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &rDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&mainResource));
+		if (FAILED(hr))
+			throw;
+
+		mainResourceState = D3D12_RESOURCE_STATE_COMMON;
+
+		isTrippleBuffered = _tripple;
+		if (isTrippleBuffered)
+			rDesc.Width = rDesc.Width * 3;
+
+		heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+		hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &rDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&intermediateResource));
+		if (FAILED(hr))
+			throw;
+
+		intermediateResource->Map(0, NULL, reinterpret_cast<void**>(&mappedBuffer));
+
+		intermediateResourceState = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+		D3D12_SUBRESOURCE_DATA sData = {};
+		sData.pData = _initData;
+		sData.RowPitch = sizePerSubresource;
+		sData.SlicePitch = sizePerSubresource;
+
+		UpdateSubresources(_copyList.GetGraphicList(), mainResource, intermediateResource, 0, 0, 1, &sData);
+
+		gpuAddress = mainResource->GetGPUVirtualAddress();
 	}
-
-	using BaseResource::GetGPUAddress;
-
-	/**Updates the specified element with the input data. Use this when the resource is SINGLE BUFFERED.
-	@param _elementIndex Index of the element to update.
-	@param _data Data to copy to the specified element.
-	@param _size Size of the specified element.
-	@return void
-	*/
-	void Update(int _elementIndex, void* _data, int _size);
-
-	/**Returns the virtual GPU address for the specified frame index.
-	@param _frameIndex Frame index to use.
-	@return D3D12_GPU_VIRTUAL_ADDRESS
-	*/
-	D3D12_GPU_VIRTUAL_ADDRESS const GetGPUAddress(int _frameIndex);
-
-	// Redesign for "new" tripple buffer version
-	void InitDynamic(ID3D12Device* _device, CommandList* _cmdList, void* _initData, int _numBytes, int _numElements, bool _isTrippleBuffered, const std::wstring& _mainResourceName);
 };
-

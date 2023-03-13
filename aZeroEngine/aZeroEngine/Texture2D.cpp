@@ -33,7 +33,6 @@ void Texture2D::Init(ID3D12Device* _device, CommandList* _cmdList, ID3D12Resourc
 	// Load texture data
 	std::string newPath = _path + _name;
 	const char* filePath = newPath.c_str();
-	int width, height;
 	unsigned char* image = stbi_load(filePath, &width, &height, nullptr, STBI_rgb_alpha);
 
 	format = _format;
