@@ -18,7 +18,6 @@ private:
 	NamedSlottedMap<PhongMaterial>phongMaterials;
 	NamedSlottedMap<PBRMaterial>pbrMaterials;
 
-	DescriptorManager& dManager;
 	Texture2DCache& textureCache;
 	ResourceEngine& resourceEngine;
 public:
@@ -26,38 +25,35 @@ public:
 	/** The input references to ResourceEngine, DescriptorManager, and Texture2DCache are copied to the member variable references.
 	@param _device The main ID3D12Device instance used for creating the neccessary resources.
 	*/
-	MaterialManager(ResourceEngine& _resourceEngine, DescriptorManager& _dManager, Texture2DCache& _textureCache);
+	MaterialManager(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache);
 
 	/** Clears all the stored materials from CPU-memory and calls ResourceEngine::RemoveResource() on the materials constant buffer.
 	*/
 	~MaterialManager();
 
 	/** Initiates the MaterialManager object and creates two default materials (one for the Phong shading model and one for the PBR shading model).
-	@param _device The main ID3D12Device instance used for creating the neccessary resources.
 	@return void
 	*/
-	void Init(ID3D12Device* _device);
+	void Init();
 
 	/** Clears all the stored materials from CPU-memory and calls ResourceEngine::RemoveResource() on the materials constant buffer.
 	@return void
 	*/
 	void ShutDown();
 
-	/** Creates a new material and adds it to the internal MappedVector for the template specified material type.
-	@param _device The main ID3D12Device instance used
+	/** Creates a new material and adds it to the internal NameSlottedMap for the template specified material type.
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
 	@return void
 	*/
 	template<typename T>
-	void CreateMaterial(ID3D12Device* _device, const std::string _materialName);
+	void CreateMaterial(const std::string _materialName);
 
-	/** Loads a material (.azm) file from disk and adds it to the internal MappedVector for the template specified material type.
-	@param _device The main ID3D12Device instance used
+	/** Loads a material (.azm) file from disk and adds it to the internal NameSlottedMap for the template specified material type.
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
 	@return void
 	*/
 	template<typename T>
-	void LoadMaterial(ID3D12Device* _device, const std::string _materialName);
+	void LoadMaterial(const std::string _materialName);
 
 	/** Removes the material of the template specified type with the input key (std::string).
 	* Immediately removed the CPU-side memory, but also prepares to delete the GPU-side resources using the dependency injected ResourceEngine.
@@ -96,7 +92,7 @@ public:
 	@return int The ID that should be used from this point forward for access of the Material subclass object. Returns -1 if the Material doesn't exist.
 	*/
 	template<typename T>
-	int GetReferenceID(const std::string& _materialName);
+	int GetReferenceID(const std::string& _materialName) const;
 
 	/** Returns a reference to the (std::string, int) std::unordered_map for the currently stored PhongMaterial objects.
 	* The std::string represents the unique Material name and the int is the ID (the same ID returned by MaterialManager::GetReferenceID()).
@@ -130,7 +126,7 @@ public:
 	@return bool TRUE: If the Material exist, FALSE: If the Material doesn't exist.
 	*/
 	template<typename MaterialType>
-	bool Exists(const std::string& _key);
+	bool Exists(const std::string& _key) const;
 
 	/** Checks if a Material subclass with the input key is currently stored (int).
 	* Template specification has to be used to control what Material subclass to check for.
@@ -139,32 +135,96 @@ public:
 	@return bool TRUE: If the Material exist, FALSE: If the Material doesn't exist.
 	*/
 	template<typename MaterialType>
-	bool Exists(int _key);
+	bool Exists(int _key) const;
 };
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* _device, const std::string _materialName)
+inline void MaterialManager::CreateMaterial(const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Add(_materialName, PhongMaterial(_device, resourceEngine, textureCache, _materialName));
+		phongMaterials.Add(_materialName, PhongMaterial(resourceEngine, textureCache, _materialName));
+
+#ifdef _DEBUG
+		PhongMaterial* mat = phongMaterials.GetObjectByKey(_materialName);
+
+		if (mat)
+		{
+			std::string tName(_materialName + " Phong Main Resource");
+			std::wstring wstrName(tName.begin(), tName.end());
+			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
+
+			tName = _materialName + " Phong Intermediate Resource";
+			wstrName = std::wstring(tName.begin(), tName.end());
+			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
+		}
+
+#endif // _DEBUG
 	}
 	else if constexpr (std::is_same_v<T, PBRMaterial>)
 	{
-		pbrMaterials.Add(_materialName, PBRMaterial(_device, resourceEngine, textureCache, _materialName));
+		pbrMaterials.Add(_materialName, PBRMaterial(resourceEngine, textureCache, _materialName));
+
+#ifdef _DEBUG
+		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_materialName);
+
+		if (mat)
+		{
+			std::string tName(_materialName + " PBR Main Resource");
+			std::wstring wstrName(tName.begin(), tName.end());
+			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
+
+			tName = _materialName + " PBR Intermediate Resource";
+			wstrName = std::wstring(tName.begin(), tName.end());
+			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
+		}
+
+#endif // _DEBUG
 	}
 }
 
 template<typename T>
-inline void MaterialManager::LoadMaterial(ID3D12Device* _device, const std::string _materialName)
+inline void MaterialManager::LoadMaterial(const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
-		phongMaterials.Add(_materialName, PhongMaterial(_device, resourceEngine, dManager, textureCache, _materialName));
+		phongMaterials.Add(_materialName, PhongMaterial(resourceEngine, textureCache, "../materials/", _materialName));
+
+#ifdef _DEBUG
+		PhongMaterial* mat = phongMaterials.GetObjectByKey(_materialName);
+
+		if (mat)
+		{
+			std::string tName(_materialName + " Phong Main Resource");
+			std::wstring wstrName(tName.begin(), tName.end());
+			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
+
+			tName = _materialName + " Phong Intermediate Resource";
+			wstrName = std::wstring(tName.begin(), tName.end());
+			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
+		}
+
+#endif // _DEBUG
 	}
 	else if constexpr (std::is_same_v<T, PBRMaterial>)
 	{
-		pbrMaterials.Add(_materialName, PBRMaterial(_device, resourceEngine, dManager, textureCache, _materialName));
+		pbrMaterials.Add(_materialName, PBRMaterial(resourceEngine, textureCache, "../materials/", _materialName));
+
+#ifdef _DEBUG
+		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_materialName);
+
+		if (mat)
+		{
+			std::string tName(_materialName + " PBR Main Resource");
+			std::wstring wstrName(tName.begin(), tName.end());
+			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
+
+			tName = _materialName + " PBR Intermediate Resource";
+			wstrName = std::wstring(tName.begin(), tName.end());
+			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
+		}
+
+#endif // _DEBUG
 	}
 }
 
@@ -176,7 +236,7 @@ inline void MaterialManager::RemoveMaterial(const std::string& _key)
 		PhongMaterial* mat = phongMaterials.GetObjectByKey(_key);
 		if (mat)
 		{
-			resourceEngine.RemoveResource(mat->GetBufferPtr());
+			resourceEngine.RemoveResource(mat->GetBuffer());
 			phongMaterials.Remove(_key);
 		}
 	}
@@ -185,7 +245,7 @@ inline void MaterialManager::RemoveMaterial(const std::string& _key)
 		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_key);
 		if (mat)
 		{
-			resourceEngine.RemoveResource(mat->GetBufferPtr());
+			resourceEngine.RemoveResource(mat->GetBuffer());
 			pbrMaterials.Remove(_key);
 		}
 	}
@@ -199,7 +259,7 @@ inline void MaterialManager::RemoveMaterial(int _key)
 		PhongMaterial* mat = phongMaterials.GetObjectByKey(_key);
 		if (mat)
 		{
-			resourceEngine.RemoveResource(mat->GetBufferPtr());
+			resourceEngine.RemoveResource(mat->GetBuffer());
 			phongMaterials.Remove(_key);
 		}
 	}
@@ -208,7 +268,7 @@ inline void MaterialManager::RemoveMaterial(int _key)
 		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_key);
 		if (mat)
 		{
-			resourceEngine.RemoveResource(mat->GetBufferPtr());
+			resourceEngine.RemoveResource(mat->GetBuffer());
 			pbrMaterials.Remove(_key);
 		}
 	}
@@ -245,7 +305,7 @@ inline MaterialType* MaterialManager::GetMaterial(int _key)
 }
 
 template<typename T>
-inline int MaterialManager::GetReferenceID(const std::string& _materialName)
+inline int MaterialManager::GetReferenceID(const std::string& _materialName) const
 {
 	if constexpr (std::is_same_v<T, PhongMaterial>)
 	{
@@ -260,7 +320,7 @@ inline int MaterialManager::GetReferenceID(const std::string& _materialName)
 }
 
 template<typename MaterialType>
-inline bool MaterialManager::Exists(const std::string& _key)
+inline bool MaterialManager::Exists(const std::string& _key) const
 {
 	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
 	{
@@ -275,7 +335,7 @@ inline bool MaterialManager::Exists(const std::string& _key)
 }
 
 template<typename MaterialType>
-inline bool MaterialManager::Exists(int _key)
+inline bool MaterialManager::Exists(int _key) const
 {
 	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
 	{

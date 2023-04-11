@@ -22,11 +22,11 @@ void EditorUI::ShowPerformanceData()
 	ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), 0, overlay, -1.0f, 5000.0f, ImVec2(0, 80.0f));
 
 	{
-		ImGui::Text("Camera Transform");
+		/*ImGui::Text("Camera Transform");
 		std::string p = "Position: ";
-		Vector3 po = graphics.renderSystem->camera.position;
+		Vector3 po = graphics.renderSystem->GetMainCameraGeo()->GetPosition();
 		p += std::to_string(po.x) + " " + std::to_string(po.y) + " " + std::to_string(po.z);
-		ImGui::Text(p.c_str());
+		ImGui::Text(p.c_str());*/
 
 	}
 
@@ -37,33 +37,40 @@ void EditorUI::ShowPerformanceData()
 
 void EditorUI::Update()
 {
-	newScene = false;
-	closeScene = false;
+//	if (editorMode)
+//	{
+//		ShowSceneManager();
+//		ShowEntityEditor();
+//		ShowMaterialEditor();
+//		ShowGlobalLightingManager();
+//		//ShowDebugTextures();
+//
+//		ImGui::Begin("Resources");
+//		ShowLoadedVertexBuffers();
+//		ShowLoadedTextures();
+//		ImGui::End();
+//
+//		//ImGui::ShowDemoWindow();
+//		//ImGui::ShowStyleEditor();
+//		ShowPerformanceData();
+//		
+	//}
 
-	if (editorMode)
-	{
-		ShowSceneManager();
-		ShowEntityEditor();
-		ShowMaterialEditor();
+	//// TEMP
+	//if (selectedEntityID != -1)
+	//{
+	//	MaterialComponent* temp = graphics.scene->GetComponentForEntity<MaterialComponent>(graphics.scene->GetEntity(selectedEntityID));
+	//	if (temp)
+	//	{
+	//		temp->materialID = graphics.materialManager.GetReferenceID<PBRMaterial>("GoblinMaterial");
+	//	}
+	//}
 
-		ImGui::Begin("Resources");
-		ShowLoadedVertexBuffers();
-		ShowLoadedTextures();
-		ImGui::End();
-
-		ImGui::ShowDemoWindow();
-		ShowPerformanceData();
-		
-	}
-
-	if (showPreview)
-	{
-		DrawMaterialPreview();
-		ShowMaterialPreview();
-	}
-
-	lastSelectedEntityStr = selectedEntityStr;
-	lastSelectedEntityID = selectedEntityID;
+	//if (showPreview)
+	//{
+	//	DrawMaterialPreview();
+	//	ShowMaterialPreview();
+	//}
 }
 
 void EditorUI::ShowSettings()
@@ -152,41 +159,42 @@ void EditorUI::ShowEntityEditor()
 
 		//------------------------Entity Editor------------------------
 
-		if (graphics.scene->entities.GetObjects().size() > 0)
-		{
-			if (ImGui::BeginListBox("Entities"))
-			{
-				for (auto& ent : graphics.scene->entities.GetObjects())
-				{
-					const std::string name = graphics.scene->GetEntityName(ent);
-					bool selected = false;
-					if (name == selectedEntityStr)
-						selected = true;
+		//if (graphics.scene->entities.GetObjects().size() > 0)
+		//{
+		//	if (ImGui::BeginListBox("Entities"))
+		//	{
+		//		for (auto& ent : graphics.scene->entities.GetObjects())
+		//		{
+		//			const std::string name = graphics.scene->GetEntityName(ent);
+		//			bool selected = false;
+		//			if (ent.id == selectedEntityID)
+		//				selected = true;
 
-					if (ImGui::Selectable(std::string(name).c_str(), selected))
-					{
-						selectedEntityStr = name;
-						selectedEntityID = ent.id;
-						break;
-					}
-				}
-				ImGui::EndListBox();
+		//			if (ImGui::Selectable(std::string(name).c_str(), selected))
+		//			{
+		//				//selectedEntityStr = name;
+		//				selectedEntityID = ent.id;
+		//				break;
+		//			}
+		//		}
+		//		ImGui::EndListBox();
 
-				ImGui::Text("Selected Entity: ");
-				ImGui::SameLine();
-				ImGui::Text(selectedEntityStr.c_str());
-			}
-		}
+		//		ImGui::Text("Selected Entity: ");
+		//		ImGui::SameLine();
+		//		if(selectedEntityID != -1)
+		//			ImGui::Text(graphics.scene->GetEntityName(graphics.scene->GetEntity(selectedEntityID)).c_str());
+		//	}
+		//}
 		//-----------------------------------------------------------------
 
 		//------------------------Create New Entity------------------------------
 		static int counter = 0;
 		if (ImGui::Button("Create Entity"))
 		{
-			Entity& ent = graphics.scene->CreateEntity(graphics.device, graphics.resourceEngine);
-			selectedEntityStr = graphics.scene->GetEntityName(ent);
-			selectedEntityID = ent.id;
-			counter++;
+			//Entity& ent = graphics.scene->CreateEntity(graphics.device, graphics.resourceEngine);
+			////selectedEntityStr = graphics.scene->GetEntityName(ent);
+			//selectedEntityID = ent.id;
+			//counter++;
 		}
 		//-----------------------------------------------------------------------
 
@@ -195,9 +203,8 @@ void EditorUI::ShowEntityEditor()
 			//----------------------------Delete Entity------------------------------
 			if (ImGui::Button("Delete Entity"))
 			{
-				graphics.renderSystem->UnBind(graphics.scene->GetEntity(selectedEntityID));
 				graphics.scene->DeleteEntity(selectedEntityID);
-				selectedEntityStr = "";
+				//selectedEntityStr = "";
 				selectedEntityID = -1;
 			}
 			//-----------------------------------------------------------------------
@@ -213,8 +220,8 @@ void EditorUI::ShowEntityEditor()
 				{
 					if (!graphics.scene->EntityExists(newNameStr))
 					{
-						graphics.scene->RenameEntity(selectedEntityStr, newName);
-						selectedEntityStr = newName;
+						graphics.scene->RenameEntity(graphics.scene->GetEntityName(graphics.scene->GetEntity(selectedEntityID)), newName);
+						//selectedEntityStr = newName;
 						ZeroMemory(newName, ARRAYSIZE(newName));
 					}
 				}
@@ -240,7 +247,7 @@ void EditorUI::ShowEntityEditor()
 				ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 				Matrix editMat = tf->Compose();
 
-				if (ImGuizmo::Manipulate(&graphics.renderSystem->camera.view._11, &graphics.renderSystem->camera.proj._11, mCurrentGizmoOperation, mCurrentGizmoMode, &editMat._11, NULL, 0))
+				/*if (ImGuizmo::Manipulate(&graphics.renderSystem->GetMainCameraGeo()->GetView()._11, &graphics.renderSystem->GetMainCameraGeo()->GetProj()._11, mCurrentGizmoOperation, mCurrentGizmoMode, &editMat._11, NULL, 0))
 				{
 					Quaternion tempRotDegrees(tf->GetRotation());
 					editMat.Decompose(tf->GetScale(), tempRotDegrees, tf->GetTranslation());
@@ -249,11 +256,11 @@ void EditorUI::ShowEntityEditor()
 					tf->SetRotation(tempRotRad);
 
 					tf->Update(graphics.resourceEngine, graphics.frameIndex);
-				}
+				}*/
 			}
 
 			//------------------------Components For Selected Entity------------------------
-			const char* comps[] = { "Transform", "Mesh", "Material", "Point Light", "Directional Light"};
+			const char* comps[] = { "Transform", "Mesh", "Material", "Point Light"};
 			if (ImGui::TreeNode("Components"))
 			{
 				//graphics.WaitForGPU();
@@ -268,7 +275,7 @@ void EditorUI::ShowEntityEditor()
 
 							if (ImGui::InputFloat3("Translation", &tf->GetTranslation().x))
 							{
-								tf->Update(graphics.resourceEngine, graphics.frameIndex);
+								tf->Update(graphics.resourceEngine);
 							}
 
 							Quaternion rotInDegrees(tf->GetRotation());
@@ -280,12 +287,12 @@ void EditorUI::ShowEntityEditor()
 							{
 								Vector3 rotInRad = Vector3(rotInDeg.x / (180 / 3.14f), rotInDeg.y / (180 / 3.14f), rotInDeg.z / (180 / 3.14f));
 								tf->SetRotation(rotInRad);
-								tf->Update(graphics.resourceEngine, graphics.frameIndex);
+								tf->Update(graphics.resourceEngine);
 							}
 
 							if (ImGui::InputFloat3("Scale", &tf->GetScale().x))
 							{
-								tf->Update(graphics.resourceEngine, graphics.frameIndex);
+								tf->Update(graphics.resourceEngine);
 							}
 
 							break;
@@ -304,7 +311,7 @@ void EditorUI::ShowEntityEditor()
 									std::string::size_type const p(fbxNameWithExt.find_last_of('.'));
 									std::string fileNameWithoutExt = fbxNameWithExt.substr(0, p);
 
-									graphics.vbCache.LoadResource(graphics.device, fileNameWithoutExt, "..\\meshes\\");
+									graphics.vbCache.LoadResource(fileNameWithoutExt, "..\\meshes\\");
 									if (meshComp == nullptr)
 									{
 										Mesh tempMesh(graphics.vbCache.GetID(fileNameWithoutExt));
@@ -312,7 +319,6 @@ void EditorUI::ShowEntityEditor()
 
 										MaterialComponent tempMat(graphics.materialManager.GetReferenceID<PhongMaterial>("DefaultPhongMaterial"));
 										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->GetEntity(selectedEntityID), tempMat);
-										graphics.renderSystem->Bind(graphics.scene->GetEntity(selectedEntityID));
 									}
 									else
 									{
@@ -334,7 +340,6 @@ void EditorUI::ShowEntityEditor()
 										MaterialComponent tempMat(graphics.materialManager.GetReferenceID<PhongMaterial>("DefaultPhongMaterial"));
 										tempMat.type = MATERIALTYPE::PHONG;
 										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->GetEntity(selectedEntityID), tempMat);
-										graphics.renderSystem->Bind(graphics.scene->GetEntity(selectedEntityID));
 									}
 									else
 									{
@@ -345,20 +350,10 @@ void EditorUI::ShowEntityEditor()
 
 							if (meshComp != nullptr)
 							{
-								std::string vbName = "Current Vertex Buffer: " + graphics.vbCache.GetResource(meshComp->GetID())->GetFileName();
+								std::string vbName = "Current Vertex Buffer: " + graphics.vbCache.GetResource(meshComp->GetID())->GetName();
 								ImGui::Text(vbName.c_str());
 
-								if (ImGui::Checkbox("Cast Shadows", &meshComp->castShadows))
-								{
-									if (meshComp->castShadows)
-									{
-										graphics.shadowSystem->Bind(graphics.scene->GetEntity(selectedEntityID));
-									}
-									else
-									{
-										graphics.shadowSystem->UnBind(graphics.scene->GetEntity(selectedEntityID));
-									}
-								}
+								if (ImGui::Checkbox("Cast Shadows", &meshComp->castShadows));
 
 								bool recShadows = false;
 								if (meshComp->receiveShadows == 1.f)
@@ -400,7 +395,6 @@ void EditorUI::ShowEntityEditor()
 										MaterialComponent tempMat(graphics.materialManager.GetReferenceID<PhongMaterial>(selectedPhongMaterialStr));
 										tempMat.type = MATERIALTYPE::PHONG;
 										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->GetEntity(selectedEntityID), tempMat);
-										graphics.renderSystem->Bind(graphics.scene->GetEntity(selectedEntityID));
 									}
 									else
 									{
@@ -422,7 +416,6 @@ void EditorUI::ShowEntityEditor()
 										MaterialComponent tempMat(graphics.materialManager.GetReferenceID<PBRMaterial>(selectedPBRMaterialStr));
 										tempMat.type = MATERIALTYPE::PBR;
 										graphics.scene->AddComponentToEntity<MaterialComponent>(graphics.scene->GetEntity(selectedEntityID), tempMat);
-										graphics.renderSystem->Bind(graphics.scene->GetEntity(selectedEntityID));
 									}
 									else
 									{
@@ -473,15 +466,13 @@ void EditorUI::ShowEntityEditor()
 								editingPLight = false;
 								if (ImGui::Button("Add Point Light"))
 								{
-									PointLight pLight;
 									PointLightComponent pComp;
-									graphics.lManager.AddLight(graphics.device, pComp.id, pLight, graphics.frameIndex);
 									graphics.scene->AddComponentToEntity<PointLightComponent>(graphics.scene->GetEntity(selectedEntityID), pComp);
 								}
 							}
 							else
 							{
-								PointLight* pLight = graphics.lManager.GetLight<PointLight>(plComp->id);
+								PointLight* pLight = graphics.lightSystem->GetLightManager()->GetLight<PointLight>(plComp->id);
 								if (pLight)
 								{
 
@@ -500,7 +491,7 @@ void EditorUI::ShowEntityEditor()
 
 										Matrix lightMat = Matrix::CreateTranslation(pLight->position.x, pLight->position.y, pLight->position.z);
 
-										if (ImGuizmo::Manipulate(&graphics.renderSystem->camera.view._11, &graphics.renderSystem->camera.proj._11, imGuizmoOpPLight, mCurrentGizmoMode, &lightMat._11, NULL, 0))
+										/*if (ImGuizmo::Manipulate(&graphics.renderSystem->GetMainCameraGeo()->GetView()._11, &graphics.renderSystem->GetMainCameraGeo()->GetProj()._11, imGuizmoOpPLight, mCurrentGizmoMode, &lightMat._11, NULL, 0))
 										{
 											Quaternion emptyRot;
 											Vector3 emptyScale;
@@ -508,11 +499,8 @@ void EditorUI::ShowEntityEditor()
 											lightMat.Decompose(emptyScale, emptyRot, tempTransLight);
 											pLight->position = Vector3(tempTransLight.x, tempTransLight.y, tempTransLight.z);
 
-											graphics.lManager.UpdateLight(*plComp, *pLight, graphics.frameIndex);
-
-											std::cout << pLight->position.x << " " << pLight->position.y << " " << pLight->position.z << "\n";
-
-										}
+											graphics.lightSystem->UpdateLight(*plComp, *pLight);
+										}*/
 									}
 
 									// Bug caused of not all lights being copied. So if ex. one light has been copied from subresource 0, and then a light is modified and copied from subr 1, the first light
@@ -524,7 +512,7 @@ void EditorUI::ShowEntityEditor()
 										pLight->position.x = pos[0];
 										pLight->position.y = pos[1];
 										pLight->position.z = pos[2];
-										graphics.lManager.UpdateLight(*plComp, *pLight, graphics.frameIndex);
+										graphics.lightSystem->UpdateLight(*plComp, *pLight);
 									}
 
 									float col[3]{ pLight->color.x, pLight->color.y, pLight->color.z };
@@ -533,107 +521,31 @@ void EditorUI::ShowEntityEditor()
 										pLight->color.x = col[0];
 										pLight->color.y = col[1];
 										pLight->color.z = col[2];
-										graphics.lManager.UpdateLight(*plComp, *pLight, graphics.frameIndex);
+										graphics.lightSystem->UpdateLight(*plComp, *pLight);
 									}
 
 									float intensity = pLight->intensity;
 									if (ImGui::InputFloat("Intensity", &intensity, 0.f, FLT_MAX))
 									{
 										pLight->intensity = intensity;
-										graphics.lManager.UpdateLight(*plComp, *pLight, graphics.frameIndex);
+										graphics.lightSystem->UpdateLight(*plComp, *pLight);
 									}
 
 									float range = pLight->range;
 									if (ImGui::InputFloat("Range", &range, 0.f, FLT_MAX))
 									{
 										pLight->range = range;
-										graphics.lManager.UpdateLight(*plComp, *pLight, graphics.frameIndex);
+										graphics.lightSystem->UpdateLight(*plComp, *pLight);
 									}
 
 									if (ImGui::Button("Delete Point Light"))
 									{
-										graphics.lManager.RemoveLight(*plComp, graphics.frameIndex);
 										graphics.scene->RemoveComponentFromEntity<PointLightComponent>(graphics.scene->GetEntity(selectedEntityID));
 									}
 								}
 							}
 
 							break;
-						}
-						case 4:	// DLight
-						{
-							DirectionalLightComponent* dlComp = graphics.scene->GetComponentForEntity<DirectionalLightComponent>(graphics.scene->GetEntity(selectedEntityID));
-							if (!dlComp)
-							{
-								if (graphics.lManager.numLightsData.numDirectionalLights == 0)
-								{
-									if (ImGui::Button("Add Directional Light"))
-									{
-										DirectionalLight dLight;
-										DirectionalLightComponent dComp;
-										graphics.lManager.AddLight(graphics.device, dComp.id, dLight, graphics.frameIndex);
-										graphics.scene->AddComponentToEntity<DirectionalLightComponent>(graphics.scene->GetEntity(selectedEntityID), dComp);
-									}
-								}
-							}
-							else
-							{
-								DirectionalLight* dLight = graphics.lManager.GetLight<DirectionalLight>(dlComp->id);
-								if (dLight)
-								{
-
-									if (ImGui::Button("Remove Directional Light"))
-									{
-										graphics.lManager.RemoveLight(*dlComp, graphics.frameIndex);
-										graphics.scene->RemoveComponentFromEntity<DirectionalLightComponent>(graphics.scene->GetEntity(selectedEntityID));
-										break;
-									}
-
-									if (ImGui::Button("Edit Light Position"))
-									{
-										editingDLight = !editingDLight;
-									}
-
-									if (editingDLight)
-									{
-										ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
-
-										Matrix lightMat = Matrix::CreateFromYawPitchRoll(dLight->direction.x, dLight->direction.y, dLight->direction.z) * Matrix::CreateTranslation(tf->GetTranslation());
-
-										if (ImGuizmo::Manipulate(&graphics.renderSystem->camera.view._11, &graphics.renderSystem->camera.proj._11, mCurrentGizmoOperation, mCurrentGizmoMode, &lightMat._11, NULL, 0))
-										{
-											Quaternion rot;
-											Vector3 scale;
-											Vector3 tempTransLight;
-											lightMat.Decompose(scale, rot, tempTransLight);
-											Vector3 tempRotRad = rot.ToEuler();
-
-											dLight->direction = Vector3(tempRotRad.x, tempRotRad.y, tempRotRad.z);
-
-											graphics.lManager.UpdateLight(*dlComp, *dLight, graphics.frameIndex);
-
-										}
-
-										float dir[3]{ dLight->direction.x, dLight->direction.y, dLight->direction.z };
-										if (ImGui::InputFloat3("Direction", dir))
-										{
-											dLight->direction.x = dir[0];
-											dLight->direction.y = dir[1];
-											dLight->direction.z = dir[2];
-											graphics.lManager.UpdateLight(*dlComp, *dLight, graphics.frameIndex);
-										}
-
-										float col[3]{ dLight->color.x, dLight->color.y, dLight->color.z };
-										if (ImGui::ColorEdit3("Color", col))
-										{
-											dLight->color.x = col[0];
-											dLight->color.y = col[1];
-											dLight->color.z = col[2];
-											graphics.lManager.UpdateLight(*dlComp, *dLight, graphics.frameIndex);
-										}
-									}
-								}
-							}
 						}
 						}
 
@@ -660,7 +572,8 @@ void EditorUI::ShowSceneManager()
 
 		if (ImGui::Button("New Scene"))
 		{
-			graphics.scene = new Scene(graphics.ecs, graphics.vbCache, graphics.materialManager, graphics.descriptorManager, graphics.textureCache, graphics.lManager);
+			/*graphics.scene = new Scene(&graphics.ecs, &graphics.vbCache, &graphics.materialManager, &graphics.descriptorManager,
+				&graphics.textureCache, graphics.lightSystem);*/
 		}
 	}
 	else
@@ -679,22 +592,18 @@ void EditorUI::ShowSceneManager()
 			
 			if (graphics.scene)
 			{
-				graphics.scene->ShutDown(*graphics.renderSystem, *graphics.shadowSystem, graphics.resourceEngine, graphics.frameIndex);
+				//graphics.scene->ShutDown(graphics.resourceEngine, graphics.frameIndex);
 				delete graphics.scene;
 			}
 
-			graphics.scene = new Scene(graphics.ecs, graphics.vbCache, graphics.materialManager, graphics.descriptorManager, graphics.textureCache, graphics.lManager);
-			graphics.scene->Load(graphics.device, graphics.resourceEngine, graphics.frameIndex, "..\\scenes\\", sceneNameWithoutExt);
-
-			for (auto& ent : graphics.scene->entities.GetObjects())
-			{
-				graphics.renderSystem->Bind(ent);
-				graphics.shadowSystem->Bind(ent);
-			}
+			// temp
+		/*	graphics.scene = new Scene(&graphics.ecs, &graphics.vbCache, &graphics.materialManager, 
+				&graphics.descriptorManager, &graphics.textureCache, graphics.lightSystem);*/
+			//graphics.scene->Load(graphics.device, graphics.resourceEngine, graphics.frameIndex, "..\\scenes\\", sceneNameWithoutExt);
 
 			editingDLight = false;
 			editingPLight = false;
-			selectedEntityStr = "";
+			//selectedEntityStr = "";
 			selectedEntityID = -1;
 		}
 	}
@@ -703,13 +612,13 @@ void EditorUI::ShowSceneManager()
 	{
 		if (ImGui::Button("Close Scene"))
 		{
-			graphics.scene->ShutDown(*graphics.renderSystem, *graphics.shadowSystem, graphics.resourceEngine, graphics.frameIndex);
+			//graphics.scene->ShutDown(graphics.resourceEngine, graphics.frameIndex);
 			delete graphics.scene;
 			graphics.scene = nullptr;
 
 			editingDLight = false;
 			editingPLight = false;
-			selectedEntityStr = "";
+			//selectedEntityStr = "";
 			selectedEntityID = -1;
 		}
 
@@ -720,11 +629,11 @@ void EditorUI::ShowSceneManager()
 			const std::string sceneName(sceneNameBuffer);
 			if (sceneName.size() == 0)
 			{
-				graphics.scene->Save("..\\scenes\\", graphics.scene->GetName().c_str(), false);
+				graphics.scene->Save("..\\scenes\\", graphics.scene->GetName().c_str());
 			}
 			else
 			{
-				graphics.scene->Save("..\\scenes\\", sceneName.c_str(), false);
+				graphics.scene->Save("..\\scenes\\", sceneName.c_str());
 			}
 
 			ZeroMemory(sceneNameBuffer, sizeof(sceneNameBuffer));
@@ -741,7 +650,7 @@ void EditorUI::ShowLoadedVertexBuffers()
 	{
 		for (auto& vb : graphics.vbCache.GetAllResources())
 		{
-			const std::string name = vb.GetFileName();
+			const std::string name = vb.GetName();
 			if (ImGui::Selectable(name.c_str()))
 			{
 				selectedMeshStr = name;
@@ -769,7 +678,7 @@ void EditorUI::ShowLoadedVertexBuffers()
 		{
 			int extIndex = fileName.find_last_of(".");
 			fileName.assign(fileName.begin(), fileName.begin() + extIndex);
-			graphics.vbCache.LoadResource(graphics.device, fileName, "..\\meshes\\");
+			graphics.vbCache.LoadResource(fileName, "..\\meshes\\");
 		}
 	}
 
@@ -781,7 +690,7 @@ void EditorUI::ShowLoadedVertexBuffers()
 			{
 				if (graphics.vbCache.Exists(selectedMeshID))
 				{
-					if (graphics.scene)
+					/*if (graphics.scene)
 					{
 						for (auto& ent : graphics.scene->entities.GetObjects())
 						{
@@ -791,7 +700,7 @@ void EditorUI::ShowLoadedVertexBuffers()
 								meshComp->SetID(graphics.vbCache.GetID("demoCube"));
 							}
 						}
-					}
+					}*/
 
 					graphics.vbCache.RemoveResource(selectedMeshID);
 					selectedMeshID = -1;
@@ -808,11 +717,11 @@ void EditorUI::ShowLoadedTextures()
 	{
 		for (auto& texture : graphics.textureCache.GetAllResources())
 		{
-			const std::string name = texture.GetFileName();
+			const std::string name = texture.GetName();
 			if (ImGui::Selectable(name.c_str()))
 			{
 				selectedTextureStr = name;
-				selectedTextureID = graphics.textureCache.GetTextureHeapID(name);
+				selectedTextureID = graphics.textureCache.GetID(name);
 			}
 		}
 
@@ -824,7 +733,7 @@ void EditorUI::ShowLoadedTextures()
 		std::string fileName = "";
 		if (Helper::OpenFileDialogForExtension(".png", fileName))
 		{
-			graphics.textureCache.LoadResource(graphics.device, fileName, "..\\textures\\");
+			graphics.textureCache.LoadResource(fileName, "..\\textures\\");
 		}
 	}
 
@@ -850,7 +759,7 @@ void EditorUI::ShowLoadedTextures()
 					if (mat.GetInfoPtr().diffuseTextureID == graphics.textureCache.GetResource(selectedTextureID)->GetHandle().GetHeapIndex())
 					{
 						mat.GetInfoPtr().diffuseTextureID = graphics.textureCache.GetResource("defaultDiffuse.png")->GetHandle().GetHeapIndex();
-						mat.Update(graphics.resourceEngine, graphics.frameIndex);
+						mat.Update(graphics.resourceEngine);
 					}
 				}
 
@@ -859,17 +768,17 @@ void EditorUI::ShowLoadedTextures()
 					if (mat.GetInfoPtr().albedoMapIndex == graphics.textureCache.GetResource(selectedTextureID)->GetHandle().GetHeapIndex())
 					{
 						mat.GetInfoPtr().albedoMapIndex = graphics.textureCache.GetResource("defaultDiffuse.png")->GetHandle().GetHeapIndex();
-						mat.Update(graphics.resourceEngine, graphics.frameIndex);
+						mat.Update(graphics.resourceEngine);
 					}
 					else if(mat.GetInfoPtr().roughnessMapIndex == graphics.textureCache.GetResource(selectedTextureID)->GetHandle().GetHeapIndex())
 					{
 						mat.GetInfoPtr().roughnessMapIndex = -1;
-						mat.Update(graphics.resourceEngine, graphics.frameIndex);
+						mat.Update(graphics.resourceEngine);
 					}
 					else if (mat.GetInfoPtr().metallicMapIndex == graphics.textureCache.GetResource(selectedTextureID)->GetHandle().GetHeapIndex())
 					{
 						mat.GetInfoPtr().metallicMapIndex = -1;
-						mat.Update(graphics.resourceEngine, graphics.frameIndex);
+						mat.Update(graphics.resourceEngine);
 					}
 				}
 
@@ -878,6 +787,47 @@ void EditorUI::ShowLoadedTextures()
 				selectedTextureStr = "";
 			}
 		}
+	}
+}
+
+void EditorUI::ShowGlobalLightingManager()
+{
+	if (ImGui::Begin("Global Lighting Manager"))
+	{
+
+		ImGui::Text("Directional Light");
+		static float pitch = 0.f;
+		static float yaw = 0.f;
+		static float roll = 0.f;
+		ImGui::SliderAngle("Pitch", &pitch);
+		ImGui::SliderAngle("Yaw", &yaw);
+
+		Matrix view = Matrix::CreateFromYawPitchRoll(yaw, pitch, roll);
+		view = Matrix::CreateLookAt(Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0));
+		Matrix proj = Matrix::CreateOrthographic(10.f, 10.f, 1.f, 10.f);
+		graphics.lightSystem->GetLightManager()->dLightData.VPMatrix = proj * view;
+
+		ImGui::End();
+	}
+}
+
+void EditorUI::ShowDebugTextures()
+{
+	if (ImGui::Begin("Debug Textures"))
+	{
+		if (ImGui::BeginTabBar("Textures"))
+		{
+			if (ImGui::BeginTabItem("Picking RTV"))
+			{
+				graphics.pickingSystem->GetPickingRTV()->Transition(graphics.resourceEngine.renderPassList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				ImGui::Image((ImTextureID)graphics.pickingSystem->GetPickingRTV()->GetSrvHandle().GetGPUHandle().ptr, ImVec2(800, 800));
+				graphics.pickingSystem->GetPickingRTV()->Transition(graphics.resourceEngine.renderPassList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				ImGui::EndTabItem();
+			}
+
+			ImGui::EndTabBar();
+		}
+		ImGui::End();
 	}
 }
 
@@ -910,7 +860,7 @@ void EditorUI::PBRMatEditing()
 				if (t)
 				{
 					info.albedoMapIndex = t->GetHandle().GetHeapIndex();
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 
@@ -929,7 +879,7 @@ void EditorUI::PBRMatEditing()
 				if (t)
 				{
 					info.roughnessMapIndex = t->GetHandle().GetHeapIndex();
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 
@@ -938,7 +888,7 @@ void EditorUI::PBRMatEditing()
 				if (ImGui::Button("Remove Texture##0"))
 				{
 					info.roughnessMapIndex = -1;
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 
@@ -946,7 +896,7 @@ void EditorUI::PBRMatEditing()
 			{
 				if (ImGui::SliderFloat("Roughness Factor##0", (float*)&info.roughnessFactor, 0.f, 1.f))
 				{
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 
@@ -965,17 +915,16 @@ void EditorUI::PBRMatEditing()
 				if (tt)
 				{
 					info.metallicMapIndex = tt->GetHandle().GetHeapIndex();
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 
 			if (info.metallicMapIndex != -1)
 			{
-				// bug since two buttons caant have the same name...
 				if (ImGui::Button("Remove Texture##00"))
 				{
 					info.metallicMapIndex = -1;
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 
@@ -983,7 +932,35 @@ void EditorUI::PBRMatEditing()
 			{
 				if (ImGui::SliderFloat("Metallic Factor##0", (float*)&info.metallicFactor, 0.f, 1.f))
 				{
-					pbrMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pbrMat->Update(graphics.resourceEngine);
+				}
+			}
+
+			// Normal Map
+			ImGui::Text("Normal Map");
+			t = graphics.textureCache.GetResource(graphics.textureCache.GetTextureName(info.normalMapIndex));
+			if (t)
+				ImGui::Image((ImTextureID)t->GetHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+			else
+				ImGui::Text("NULL");
+
+			ImGui::SameLine();
+			if (ImGui::Button("Apply Selected Texture##0000"))
+			{
+				Texture2D* tt = graphics.textureCache.GetResource(selectedTextureID);
+				if (tt)
+				{
+					info.normalMapIndex = tt->GetHandle().GetHeapIndex();
+					pbrMat->Update(graphics.resourceEngine);
+				}
+			}
+
+			if (info.normalMapIndex != -1)
+			{
+				if (ImGui::Button("Remove Texture##000"))
+				{
+					info.normalMapIndex = -1;
+					pbrMat->Update(graphics.resourceEngine);
 				}
 			}
 		}
@@ -1019,7 +996,7 @@ void EditorUI::PhongMatEditing()
 					if (t)
 					{
 						info.diffuseTextureID = t->GetHandle().GetHeapIndex();
-						pMat->Update(graphics.resourceEngine, graphics.frameIndex);
+						pMat->Update(graphics.resourceEngine);
 					}
 				}
 			}
@@ -1030,7 +1007,7 @@ void EditorUI::PhongMatEditing()
 				if (Helper::OpenFileDialogForExtension(".png", textureNameWithExt))
 				{
 					if (!graphics.textureCache.Exists(textureNameWithExt))
-						graphics.textureCache.LoadResource(graphics.device, textureNameWithExt, "..\\textures\\");
+						graphics.textureCache.LoadResource(textureNameWithExt, "..\\textures\\");
 
 					Texture2D* t = graphics.textureCache.GetResource(textureNameWithExt);
 					if (t)
@@ -1038,7 +1015,7 @@ void EditorUI::PhongMatEditing()
 					else
 						info.diffuseTextureID = 0;
 
-					pMat->Update(graphics.resourceEngine, graphics.frameIndex);
+					pMat->Update(graphics.resourceEngine);
 				}
 			}
 			ImGui::SameLine();
@@ -1048,18 +1025,18 @@ void EditorUI::PhongMatEditing()
 
 			if (ImGui::ColorEdit3("Diffuse Absorbation", (float*)&info.ambientAbsorbation.x))
 			{
-				pMat->Update(graphics.resourceEngine, graphics.frameIndex);
+				pMat->Update(graphics.resourceEngine);
 
 			}
 
 			if (ImGui::ColorEdit3("Specular Absorbation", (float*)&info.specularAbsorbation.x))
 			{
-				pMat->Update(graphics.resourceEngine, graphics.frameIndex);
+				pMat->Update(graphics.resourceEngine);
 			}
 
 			if (ImGui::InputFloat("Specular Exponent", (float*)&info.specularShine))
 			{
-				pMat->Update(graphics.resourceEngine, graphics.frameIndex);
+				pMat->Update(graphics.resourceEngine);
 			}
 		}
 	}
@@ -1075,7 +1052,7 @@ void EditorUI::DrawMaterialPreview()
 		rot += 0.001f;
 		tempMatPrev.world = world;
 
-		graphics.resourceEngine.Update(cbMaterialPrev, (void*)&tempMatPrev, graphics.frameIndex);
+		//graphics.resourceEngine.Update(cbMaterialPrev, (void*)&tempMatPrev, graphics.frameIndex);
 
 		graphics.resourceEngine.renderPassList.GetGraphicList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		graphics.resourceEngine.renderPassList.GetGraphicList()->SetPipelineState(psoMatPrev.GetPipelineState());
@@ -1085,13 +1062,10 @@ void EditorUI::DrawMaterialPreview()
 		graphics.resourceEngine.renderPassList.GetGraphicList()->ClearDepthStencilView(matPrevDSV.GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
 		graphics.resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &matPrevRTV.GetHandle().GetCPUHandleRef(), false, &matPrevDSV.GetHandle().GetCPUHandleRef());
 		graphics.resourceEngine.renderPassList.GetGraphicList()->IASetVertexBuffers(0, 1, &graphics.vbCache.GetResource("demoCube")->GetView());
-		//graphics.resourceEngine.endPassList.GetGraphicList()->RSSetScissorRects(1, &scissorRect);
 		graphics.resourceEngine.renderPassList.GetGraphicList()->RSSetViewports(1, &viewport);
 
 		graphics.resourceEngine.renderPassList.GetGraphicList()->SetGraphicsRootConstantBufferView(0, cbMaterialPrev.GetGPUAddress());
-		graphics.resourceEngine.renderPassList.GetGraphicList()->SetGraphicsRootDescriptorTable(1, graphics.descriptorManager.GetTexture2DStartAddress());
-		graphics.resourceEngine.renderPassList.GetGraphicList()->SetGraphicsRootConstantBufferView(2, graphics.materialManager.GetMaterial<PhongMaterial>(selectedPhongMaterialID)->GetGPUAddress());
-		graphics.resourceEngine.renderPassList.GetGraphicList()->SetGraphicsRootDescriptorTable(3, graphics.renderSystem->defaultSampler.GetHandle().GetGPUHandle());
+		graphics.resourceEngine.renderPassList.GetGraphicList()->SetGraphicsRootConstantBufferView(1, graphics.materialManager.GetMaterial<PhongMaterial>(selectedPhongMaterialID)->GetGPUAddress());
 
 		graphics.resourceEngine.renderPassList.GetGraphicList()->DrawInstanced(graphics.vbCache.GetResource("demoCube")->GetNumVertices(), 1, 0, 0);
 

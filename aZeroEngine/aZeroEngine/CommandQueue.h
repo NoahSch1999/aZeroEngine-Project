@@ -6,8 +6,8 @@
 class CommandQueue
 {
 private:
-	ID3D12CommandQueue* queue;
-	ID3D12Fence* fence;
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> queue;
+	Microsoft::WRL::ComPtr<ID3D12Fence> fence;
 	UINT nextFenceValue;
 	D3D12_COMMAND_LIST_TYPE type;
 
@@ -25,7 +25,7 @@ public:
 
 	/**Releases the internal ID3D12CommandQueue and ID3D12Fence objects.
 	*/
-	~CommandQueue();
+	~CommandQueue() { };
 
 	/**Initiates the CommandQueue object. 
 	* Usually used whenever the CommandQueue is a non-pointer object.
@@ -46,7 +46,7 @@ public:
 	/**Returns the internal ID3D12CommandQueue* object.
 	@return ID3D12CommandQueue*
 	*/
-	ID3D12CommandQueue* GetQueue() { return queue; }
+	ID3D12CommandQueue* GetQueue() { return queue.Get(); }
 
 	/**Returns the D3D12_COMMAND_LIST_TYPE of the CommandQueue.
 	@return D3D12_COMMAND_LIST_TYPE
@@ -67,6 +67,11 @@ public:
 	*/
 	void WaitForOther(CommandQueue& _other, int _valueToWaitFor);
 
+	/**Stalls this CommandQueue on the GPU-side until this CommandQueue fence has been signaled the input value.
+	* The input value is returned using CommandQueue::Execute() with the CommandQueue.
+	@param _valueToWaitFor Value to wait for. The value is returned from CommandQueue::Execute().
+	@return void
+	*/
 	void WaitForFence(int _valueToWaitFor);
 };
 

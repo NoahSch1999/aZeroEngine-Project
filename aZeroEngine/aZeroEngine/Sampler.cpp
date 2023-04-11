@@ -53,7 +53,7 @@ void Sampler::Init(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER
 	desc.AddressV = _addressModeV;
 	desc.AddressW = _addressModeW;
 	desc.BorderColor[0] = _borderColor.x;
-	desc.BorderColor[1] = _borderColor.y;
+	desc.BorderColor[1] =/* _borderColor.y*/0;
 	desc.BorderColor[2] = _borderColor.z;
 	desc.BorderColor[3] = _borderColor.w;
 	desc.ComparisonFunc = _comparisonFunc;

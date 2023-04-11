@@ -1,12 +1,18 @@
 #pragma once
 #include "D3D12Include.h"
 #include "VertexDefinitions.h"
-#include "CommandList.h"
 #include <fstream>
 #include <type_traits>
+#include "CommandList.h"
 
 namespace Helper
 {
+#ifndef NDEBUG
+#define DEBUGLOG(x) std::cout << x << std::endl
+#else
+#define DEBUGLOG(x)
+#endif
+
 	struct STBIImageData
 	{
 		unsigned char* rawData = nullptr;
@@ -83,4 +89,23 @@ namespace Helper
 	@return TRUE: File with extension selected, FALSE: File with extension not selected
 	*/
 	bool OpenFileDialogForExtension(const std::string& _extension, std::string& _storeFileStr);
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateReadbackBuffer(ID3D12Device* _device, int _rowPitch, int _numRows);
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* _device, int _width, D3D12_HEAP_TYPE _heapType);
+
+	void CreateBufferResource(ID3D12Device* _device, CommandList& _cmdList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource, int _gpuOnlyWidth, Microsoft::WRL::ComPtr<ID3D12Resource>& _mappedResource, int _mappedWidth, void* _data);
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* _device, D3D12_RESOURCE_DESC& _desc, int _width, int _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_HEAP_TYPE _heapType,
+		D3D12_CLEAR_VALUE _clearValue, D3D12_RESOURCE_STATES& _initialState);
+
+	void CreateTextureResource(ID3D12Device* _device, CommandList& _transitionList, CommandList& _copyList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource,
+		Microsoft::WRL::ComPtr<ID3D12Resource>& _intermediateResource, void* _data, int _width, int _height, int _channels, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState);
+
+	void CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+
+	void CreateDSVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+
+	void CreateSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+
 }

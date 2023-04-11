@@ -1,15 +1,22 @@
 #define myTex2DSpace space1
 #define myTexCubeSpace space2
 
-Texture2D Texture2DTable[] : register(t0, myTex2DSpace);
-
 cbuffer PBRConstants : register(b0)
 {
     int albedoMapIndex;
     int roughnessMapIndex;
     int metallicMapIndex;
+    int normalMapIndex;
     float roughnessFactor;
     float metallicFactor;
+};
+
+// Lights
+cbuffer LightConstants : register(b1)
+{
+    int numPointLights;
+    int numSpotLights;
+    int pad;
 };
 
 cbuffer Camera : register(b2)
@@ -18,23 +25,31 @@ cbuffer Camera : register(b2)
     float4 cameraPos;
 }
 
-SamplerState basicSampler : register(s0);
+cbuffer ShadowMap : register(b3)
+{
+    int shadowMapIndex;
+}
+
+cbuffer PerDrawConstants : register(b4)
+{
+    int receiveShadows;
+}
+
+cbuffer DirectionalLight : register(b5)
+{
+    float4 direction;
+    float3 color;
+    float pad2;
+};
 
 struct FragmentInput
 {
     float4 position : SV_Position;
     float3 worldPosition : WORLDPOSITION;
+    float4 lightPosition : LIGHTPOSITION;
     float2 uv : UV;
     float3 normal : NORMAL;
-};
-
-// Lights
-cbuffer LightConstants : register(b1)
-{
-    int numDirectionalLights;
-    int numPointLights;
-    int numSpotLights;
-    int pad;
+    float3x3 TBN : TBN;
 };
 
 struct PointLight
@@ -45,16 +60,14 @@ struct PointLight
     float range;
 };
 
-struct DirectionalLight
-{
-    float4 direction;
-    float3 color;
-    float pad;
-};
+//struct DirectionalLight
+//{
+//    float4 direction;
+//    float3 color;
+//    float pad;
+//};
 
 StructuredBuffer<PointLight> pointLights : register(t0, space0);
-
-StructuredBuffer<DirectionalLight> dLights : register(t2, space0);
 
 /*
 _normalDotHalf Is the dot product of the fragment normal and the half vector
@@ -62,11 +75,9 @@ _roughness Is the roughness sampled from the roughness texture (or taken from th
 */
 float REITZGGXNormalDistFunc(float _normalDotHalf, float _roughness)
 {
-    float alpha2 = _roughness;
-    
-    float d = _normalDotHalf * _normalDotHalf * (alpha2 - 1.f) + 1.f;
-    
-    float ggxdistrib = alpha2 / (3.14f * d * d);
+    float d = _normalDotHalf * _normalDotHalf * (_roughness - 1.f) + 1.f;
+    d = max(d, 0.0001); // To avoid division by zero which on nvidia results in infinite with the same sign value
+    float ggxdistrib = _roughness / (3.14f * d * d);
     
     return ggxdistrib;
 }
@@ -110,12 +121,19 @@ float3 CalcPBRPointLight(PointLight _pLight, float3 _albedoColor, float3 _fragNo
     
     lightIntensity /= (ligthDistance * ligthDistance);
     
+    float nDotL = dot(_fragNormal, lightVec);
+    
+    // Remove lights that are behind the face or parallell (angle is 90deg or more from face normal and incidence vector)
+    if(nDotL <= 0)
+        return float3(0.f, 0.f, 0.f);
+    
+    nDotL = max(nDotL, 0.f);
+    
     float3 viewVec = normalize(cameraPos.xyz - _fragWorldPos);
     float3 halfVec = normalize(viewVec + lightVec);
     
     float nDotH = max(dot(_fragNormal, halfVec), 0.f);
     float vDotH = max(dot(viewVec, halfVec), 0.f);
-    float nDotL = max(dot(_fragNormal, lightVec), 0.f);
     float nDotV = max(dot(_fragNormal, viewVec), 0.f);
     
     float3 fresnel = SCHLICKFresnelFunc(vDotH, _albedoColor, _metallic);
@@ -145,22 +163,39 @@ float3 CalcPBRPointLight(PointLight _pLight, float3 _albedoColor, float3 _fragNo
 
 float4 main(FragmentInput input) : SV_Target
 {
+    SamplerState basicSampler = SamplerDescriptorHeap[0];
     float3 fragNDCPos = input.position;
-    float3 fragNormal = input.normal;
     float3 fragWorldPos = input.worldPosition;
     
-    float4 albedoColor = Texture2DTable[albedoMapIndex].Sample(basicSampler, input.uv);
+    float3 fragNormal = input.normal;
+    
+    if(normalMapIndex != -1)
+    {
+        Texture2D<float4> normalTexture = ResourceDescriptorHeap[normalMapIndex];
+      //  fragNormal = Texture2DTable[normalMapIndex].Sample(basicSampler, input.uv);
+        fragNormal = normalTexture.Sample(basicSampler, input.uv);
+        fragNormal = normalize(fragNormal * 2.0 - 1.0);
+        fragNormal = normalize(mul(fragNormal, input.TBN));
+    }
+    
+    Texture2D<float4> albedoTexture = ResourceDescriptorHeap[albedoMapIndex];
+    float4 albedoColor = albedoTexture.Sample(basicSampler, input.uv);
+    albedoColor = pow(albedoColor, 2.2f);
     
     float roughness = roughnessFactor;
     if(roughnessMapIndex != -1)
     {
-        roughness = Texture2DTable[roughnessMapIndex].Sample(basicSampler, input.uv).x;
+        Texture2D<float4> roughnessTexture = ResourceDescriptorHeap[roughnessMapIndex];
+        roughness = roughnessTexture.Sample(basicSampler, input.uv).x;
+        //roughness = Texture2DTable[roughnessMapIndex].Sample(basicSampler, input.uv).x;
     }
     
     float metallic = metallicFactor;
     if (metallicMapIndex != -1)
     {
-        metallic = Texture2DTable[metallicMapIndex].Sample(basicSampler, input.uv).x;
+        Texture2D<float4> metallicTexture = ResourceDescriptorHeap[metallicMapIndex];
+        metallic = metallicTexture.Sample(basicSampler, input.uv).x;
+       // metallic = Texture2DTable[metallicMapIndex].Sample(basicSampler, input.uv).x;
     }
     
     float3 totalLighting = float3(0.f, 0.f, 0.f);
@@ -170,6 +205,29 @@ float4 main(FragmentInput input) : SV_Target
     }
     
     totalLighting = totalLighting / (totalLighting + float3(1.f, 1.f, 1.f));
-    //return float4(totalLighting, 1.f);
-    return float4(pow(totalLighting, float3(1.f / 2.2f, 1.f / 2.2f, 1.f / 2.2f)), 1.f);
+    
+    float shadow = 1.f;
+    if (receiveShadows == 1) // If receive shadows is true
+    {
+        float3 projCoords = input.lightPosition.xyz / input.lightPosition.w;
+        float2 sampleIndices = float2(0.5f * projCoords.x + 0.5f, -0.5f * projCoords.y + 0.5f);
+        
+        SamplerState shadowSampler = SamplerDescriptorHeap[1];
+        Texture2D shadowMap = ResourceDescriptorHeap[shadowMapIndex];
+        
+        float depth = shadowMap.Sample(shadowSampler, sampleIndices).r;
+        shadow = (depth + 0.005f < projCoords.z) ? 0.0f : 1.0f;
+    
+        if (sampleIndices.x > 1.0f || sampleIndices.x < 0.0f ||
+        sampleIndices.y > 1.0f || sampleIndices.y < 0.0f ||
+        projCoords.z > 1.0f || projCoords.z < 0.0f)
+            shadow = 1.0f;
+    
+        if (shadow == 0.f)
+            shadow += 0.4f;
+    }
+    
+    totalLighting *= shadow;
+    
+    return float4(totalLighting, albedoColor.a);
 }

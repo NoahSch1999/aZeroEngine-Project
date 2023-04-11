@@ -31,10 +31,11 @@ public:
 	@param _hsPath Path for the hull shader.
 	@param _gsPath Path for the geometry shader.
 	@param _primitiveType Primitive topology type to be used.
+	@return void
 	*/
 	void Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, const RasterState& _rasterState, int _numRenderTargets, DXGI_FORMAT _rtvFormat,
 		DXGI_FORMAT _dsvFormat, const std::wstring& _vsPath, const std::wstring& _psPath,
-		const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath,
+		const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath, bool _enableBlending = true,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE _primitiveType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
 	/** @brief Returns a pointer to the internal ID3D12PipelineState* object.

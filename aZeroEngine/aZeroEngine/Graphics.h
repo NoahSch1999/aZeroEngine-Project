@@ -5,6 +5,8 @@
 #include "Scene.h"
 #include "UserInterface.h"
 #include "ResourceEngine.h"
+#include "LightSystem.h"
+#include "PickingSystem.h"
 
 class Graphics
 {
@@ -21,6 +23,7 @@ public:
 
 	ID3D12Device* device;
 	AppWindow& window;
+	std::shared_ptr<SwapChain>swapChain;
 
 	RenderTarget* currentBackBuffer;
 	int nextSyncSignal = 0;
@@ -32,23 +35,52 @@ public:
 
 	DescriptorManager descriptorManager;
 	MaterialManager materialManager;
-	LightManager lManager;
 
 	VertexBufferCache vbCache;
 	Texture2DCache textureCache;
 
-	BasicRendererSystem* renderSystem;
-	ShadowPassSystem* shadowSystem;
+	std::shared_ptr<RendererSystem> renderSystem;
+	std::shared_ptr<LightSystem> lightSystem;
+	std::shared_ptr<PickingSystem> pickingSystem;
 
 	Scene* scene = nullptr;
 
+	std::shared_ptr<Camera> camera;
+
 	void AttachUI(const std::shared_ptr<UserInterface>& ui)
 	{
-		userInterfaces.emplace(ui->name, std::shared_ptr<UserInterface>(ui));
+		userInterfaces.emplace(ui->GetName(), std::shared_ptr<UserInterface>(ui));
 	}
 
 	void DetachUI(const std::shared_ptr<UserInterface>& ui)
 	{
-		userInterfaces.erase(ui->name);
+		userInterfaces.erase(ui->GetName());
 	}
+
+	void Resize(int _width, int _height)
+	{
+		resourceEngine.FlushDirectQueue();
+
+		for (int i = 0; i < swapChain->backBuffers.size(); i++)
+		{
+			swapChain->backBuffers[i]->GetGPUOnlyResource()->Release();
+		}
+
+		window.Resize(_width, _height);
+		swapChain->swapChain->ResizeBuffers(swapChain->numBackBuffers, _width, _height, swapChain->bbFormat, NULL);
+
+		for (int i = 0; i < swapChain->numBackBuffers; i++)
+		{
+			swapChain->swapChain->GetBuffer(i, IID_PPV_ARGS(&swapChain->backBuffers[i]->GetGPUOnlyResource()));
+			device->CreateRenderTargetView(swapChain->backBuffers[i]->GetGPUOnlyResource().Get(), NULL, swapChain->backBuffers[i]->GetHandle().GetCPUHandle());
+		}
+
+		swapChain->viewport.Width = _width;
+		swapChain->viewport.Height = _height;
+		swapChain->scissorRect.right = _width;
+		swapChain->scissorRect.bottom = _height;
+		
+		
+	}
+
 };

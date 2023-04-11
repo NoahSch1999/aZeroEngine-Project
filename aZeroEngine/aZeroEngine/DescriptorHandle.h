@@ -11,6 +11,7 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 	int heapIndex;
+
 public:
 	/** Sets both GPU and CPU handles to NULL and the descriptor heap index to -1.
 	*/
@@ -46,61 +47,52 @@ public:
 
 	~DescriptorHandle() = default;
 
-	/** Copies the input data to the handle. 
-	* If T is D3D12_CPU_DESCRIPTOR_HANDLE, the CPU handle will be set. 
-	* If T is D3D12_GPU_DESCRIPTOR_HANDLE, the GPU handle will be set.
-	* If T is DescriptorHandle, the DescriptorHandle will be copied to this object
+	/** Copies the input data to the handle.
 	@param _handle Handle to copy to the internal handle.
+	@return void
 	*/
-	template<typename T>
-	void SetHandle(const T& _handle);
+	void SetHandle(D3D12_CPU_DESCRIPTOR_HANDLE _CPUHandle) { cpuHandle = _CPUHandle; }
+
+	/** Copies the input data to the handle.
+	@param _handle Handle to copy to the internal handle.
+	@return void
+	*/
+	void SetHandle(D3D12_GPU_DESCRIPTOR_HANDLE _GPUHandle) { gpuHandle = _GPUHandle; }
+
+	/** Copies the input data to the handle.
+	@param _handle Handle to copy to the internal handle.
+	@return void
+	*/
+	void SetHandle(DescriptorHandle _handle) { gpuHandle = _handle.GetGPUHandle(); cpuHandle = _handle.GetCPUHandle(); heapIndex = _handle.GetHeapIndex(); }
 
 	/** Set internal heap index to the input value.
 	@param _index Value to set the heap index to.
+	@return void
 	*/
 	void SetHeapIndex(int _index) { heapIndex = _index; }
 
 	/** Returns a constant copy of the CPU handle.
+	@return void
 	*/
-	const D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle()const { return cpuHandle; }
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle() const { return cpuHandle; }
 
 	/** Returns a constant copy of the GPU handle.
+	@return void
 	*/
-	const D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle()const { return gpuHandle; }
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle() const { return gpuHandle; }
 
 	/** Returns a constant copy of the heap index.
+	@return void
 	*/
-	const int GetHeapIndex()const { return heapIndex; }
+	const int GetHeapIndex() const { return heapIndex; }
 
 	/** Returns a reference to the CPU handle.
+	@return void
 	*/
 	D3D12_CPU_DESCRIPTOR_HANDLE& GetCPUHandleRef() { return cpuHandle; }
 
 	/** Returns a reference to the GPU handle.
+	@return void
 	*/
 	D3D12_GPU_DESCRIPTOR_HANDLE& GetGPUHandleRef() { return gpuHandle; }
 };
-
-template<typename T>
-inline void DescriptorHandle::SetHandle(const T& _handle)
-{
-	if constexpr (std::is_same_v<T, D3D12_CPU_DESCRIPTOR_HANDLE>)
-	{
-		cpuHandle = _handle;
-	}
-	else if constexpr (std::is_same_v<T, D3D12_GPU_DESCRIPTOR_HANDLE>)
-	{
-		gpuHandle = _handle;
-	}
-	else if constexpr (std::is_same_v<T, DescriptorHandle>)
-	{
-		cpuHandle = _handle.GetCPUHandle();
-		gpuHandle = _handle.GetGPUHandle();
-		heapIndex = _handle.GetHeapIndex();
-	}
-	else
-	{
-		static_assert(std::is_same_v<T, D3D12_CPU_DESCRIPTOR_HANDLE> || std::is_same_v<T, D3D12_GPU_DESCRIPTOR_HANDLE> || std::is_same_v<T, DescriptorHandle>, "T is an invalid input.");
-		//using FailureType = typename std::enable_if<false, T>::type; // SFINAE
-	}
-}

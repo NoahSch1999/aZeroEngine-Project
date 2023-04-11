@@ -6,7 +6,7 @@
 class CommandList
 {
 private:
-	ID3D12CommandList* basic;
+	Microsoft::WRL::ComPtr<ID3D12CommandList> basic;
 	ID3D12GraphicsCommandList* graphic;
 	D3D12_COMMAND_LIST_TYPE type;
 
@@ -21,7 +21,7 @@ public:
 
 	/**Releases the internal ID3D12CommandList object.
 	*/
-	~CommandList();
+	~CommandList() { };
 
 	/**Initiates the command list to the input CommandAllocator object using the input ID3D12Device*.
 	* Usually used whenever the CommandList is a non-pointer object.
@@ -39,7 +39,7 @@ public:
 	/**Returns the internal ID3D12CommandList* object.
 	@return ID3D12CommandList*
 	*/
-	ID3D12CommandList* GetBaseList() { return basic; }
+	ID3D12CommandList* GetBaseList() { return basic.Get(); }
 
 	/**Returns the D3D12_COMMAND_LIST_TYPE of the CommandList.
 	@return D3D12_COMMAND_LIST_TYPE

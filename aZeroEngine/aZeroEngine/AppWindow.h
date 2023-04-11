@@ -3,6 +3,11 @@
 #include <string>
 #include "imgui.h"
 #include "SwapChain.h"
+#include "InputHandler.h"
+#include <optional>
+#include <iostream>
+
+inline bool WINDOWQUIT;
 
 // https://learn.microsoft.com/en-us/windows/win32/gdi/positioning-objects-on-multiple-display-monitors
 // https://walbourn.github.io/care-and-feeding-of-modern-swap-chains-3/
@@ -14,9 +19,9 @@ private:
 	HINSTANCE instance;
 	UINT message;
 	WNDCLASS wc = { 0 };
-	SwapChain swapChain;
-	DXGI_FORMAT dsvFormat;
-	DXGI_FORMAT bbFormat;
+	bool cursorShown = true;
+	bool cursorConfined = true;
+	
 public:
 
 	AppWindow() = default;
@@ -31,67 +36,84 @@ public:
 	void Init(T* _wndProc, HINSTANCE _instance, int _width, int _height,
 		const std::wstring& _smallIconPath, const std::wstring& _bigIconPath);
 
-	void InitSwapChain(ID3D12Device* _device, ResourceEngine& _resourceEngine,
-		DescriptorHandle _dsvHandle,
-		std::vector<DescriptorHandle> _bbHandles,
-		int _numBackBuffers);
-
 	bool Update();
 
-	HCURSOR& GetCursor() { return cursor; }
+	std::optional<Vector2> GetCursorPosition() {
+		POINT point;
+		if (GetCursorPos(&point))
+		{
+			if (ScreenToClient(handle, &point))
+			{
+				return Vector2(point.x, point.y);
+			}
+		}
+		return {};
+	}
 
 	Vector2 GetClientSize();
 
 	Vector2 GetWindowSize();
 
+	uint32_t GetAspectRatio() { return GetClientSize().x / GetClientSize().y; }
+
 	HWND& GetHandle() { return handle; }
 	HINSTANCE& GetInstance() { return instance; }
 
-	DXGI_FORMAT GetDSVFormat() { return dsvFormat; }
-	DXGI_FORMAT GetBBFormat() { return bbFormat; }
-	SwapChain& GetSwapChain() { return swapChain; }
+	void Resize(int _width, int _height)
+	{
+		SetWindowPos(handle, handle, 0, 0, _width, _height, SWP_SHOWWINDOW | SWP_NOZORDER);
+	}
+
+	void DisplayCursor(bool _show)
+	{
+		if (cursorShown == _show)
+			return;
+
+		ShowCursor(_show);
+		cursorShown = _show;
+	}
+
+	void ConfineCursor(bool _confine)
+	{
+		if (cursorConfined == _confine)
+			return;
+
+		if (_confine)
+		{
+			RECT rect;
+			GetClientRect(handle, &rect);
+
+			POINT ul;
+			ul.x = rect.left;
+			ul.y = rect.top;
+
+			POINT lr;
+			lr.x = rect.right;
+			lr.y = rect.bottom;
+
+			MapWindowPoints(handle, nullptr, &ul, 1);
+			MapWindowPoints(handle, nullptr, &lr, 1);
+
+			rect.left = ul.x;
+			rect.top = ul.y;
+
+			rect.right = lr.x;
+			rect.bottom = lr.y;
+
+			ClipCursor(&rect);
+		}
+		else
+		{
+			ClipCursor(nullptr);
+		}
+
+		cursorConfined = _confine;
+	}
 };
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-static inline LRESULT CALLBACK WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
-{
-	static bool minimized = false;
-	static bool paused = false;
-
-	if (ImGui_ImplWin32_WndProcHandler(_hWnd, _msg, _wParam, _lParam))
-		return true;
-
-	switch (_msg)
-	{
-		case WM_DESTROY:
-		{
-			PostQuitMessage(0);
-			return 0;
-		}
-		case WM_SIZE:
-		{
-
-			if (_wParam == SIZE_MINIMIZED)
-			{
-				if (!minimized)
-				{
-					minimized = true;
-					printf("MINIMIZED\n");
-				}
-			}
-			else if (minimized)
-			{
-				minimized = false;
-				printf("MAXIMIZED\n");
-			}
-
-			break;
-		}
-	}
-
-	return DefWindowProc(_hWnd, _msg, _wParam, _lParam);
-}
+LRESULT CALLBACK WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam);
 
 template<typename T>
 inline AppWindow::AppWindow(T* _wndProc, HINSTANCE _instance, int _width, int _height,
@@ -138,9 +160,24 @@ inline void AppWindow::Init(
 
 	ShowWindow(handle, SW_SHOW);
 	UpdateWindow(handle);
+	DisplayCursor(false);
 
 	instance = _instance;
 
 	SendMessage(handle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
 	SendMessage(handle, WM_SETICON, ICON_BIG, (LPARAM)bigIcon);
-}
+
+	RAWINPUTDEVICE rid;
+
+	rid.usUsagePage = 0x0001;          // HID_USAGE_PAGE_GENERIC
+	rid.usUsage = 0x02;              // HID_USAGE_GENERIC_GAMEPAD
+	rid.dwFlags = 0;                 // adds game pad
+	rid.hwndTarget = handle;
+
+	if (RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)) == FALSE)
+	{
+		throw;
+	}
+
+	WINDOWQUIT = false;
+};

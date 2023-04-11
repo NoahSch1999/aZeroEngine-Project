@@ -20,6 +20,9 @@ public:
 	*/
 	virtual ~ResourceCache();
 
+	/**Clears all the resources within the unordered map
+	@return void
+	*/
 	void ShutDown();
 
 	/**Returns a reference to the resources.
@@ -34,12 +37,11 @@ public:
 
 	/** Pure virtual method that should be overwritten by the inheriting subclass.
 	* Loads resources from file.
-	@param _device ID3D12Device used to create the neccessary resources.
 	@param _name Name of the resource to load.
 	@param _directory The directory of the resource to load.
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device* _device, const std::string& _name, const std::string& _directory) = 0;
+	virtual void LoadResource(const std::string& _name, const std::string& _directory) = 0;
 
 	/** Pure virtual method that should be overwritten by the inheriting subclass.
 	* Removes resources by filename.
@@ -107,14 +109,7 @@ public:
 };
 
 template<typename T>
-inline ResourceCache<T>::~ResourceCache()
-{
-	/*for (auto& res : resources.GetObjects())
-	{
-		resourceEngine.RemoveResource(res);
-	}
-	resources.Reset();*/
-}
+inline ResourceCache<T>::~ResourceCache() { }
 
 template<typename T>
 inline void ResourceCache<T>::ShutDown()

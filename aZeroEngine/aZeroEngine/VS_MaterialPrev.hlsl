@@ -10,6 +10,7 @@ struct VertexIn
     float3 position : POSITION;
     float2 uv : UV;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
 };
 
 struct VertexOut
@@ -17,6 +18,7 @@ struct VertexOut
     float4 position : SV_Position;
     float2 uv : UV;
     float3 normal : NORMAL;
+    float3x3 TBN : TBN;
 };
 
 VertexOut main(VertexIn input)
@@ -29,8 +31,13 @@ VertexOut main(VertexIn input)
     
     output.uv = input.uv;
 
-    float4 normal = normalize(mul(world, float4(input.normal, 0.f)));
-    output.normal = normal.xyz;
+    float3 normal = normalize(mul(world, float4(input.normal, 0.f))).xyz;
+
+    float3 tangent = normalize(mul(world, float4(input.tangent, 0.f))).xyz;
+    float3 bitangent = normalize(cross(tangent, normal));
+    
+    output.TBN = float3x3(tangent, bitangent, normal);
+    output.normal = normal;
     
     return output;
 }

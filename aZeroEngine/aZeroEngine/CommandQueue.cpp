@@ -4,11 +4,11 @@ CommandQueue::CommandQueue(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type,
 	D3D12_COMMAND_QUEUE_FLAGS _flags = D3D12_COMMAND_QUEUE_FLAG_NONE)
 {
 	D3D12_COMMAND_QUEUE_DESC desc{ _type, _prio, _flags, 0 };
-	HRESULT hr = _device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue));
+	HRESULT hr = _device->CreateCommandQueue(&desc, IID_PPV_ARGS(queue.GetAddressOf()));
 	if (FAILED(hr))
 		throw;
 
-	hr = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+	hr = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf()));
 	if (FAILED(hr))
 		throw;
 
@@ -18,23 +18,17 @@ CommandQueue::CommandQueue(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type,
 
 	type = _type;
 	nextFenceValue = 0;
-}
-
-CommandQueue::~CommandQueue()
-{
-	queue->Release();
-	fence->Release();
 }
 
 void CommandQueue::Init(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type, D3D12_COMMAND_QUEUE_PRIORITY _prio = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 	D3D12_COMMAND_QUEUE_FLAGS _flags = D3D12_COMMAND_QUEUE_FLAG_NONE)
 {
 	D3D12_COMMAND_QUEUE_DESC desc{ _type, _prio, _flags, 0 };
-	HRESULT hr = _device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue));
+	HRESULT hr = _device->CreateCommandQueue(&desc, IID_PPV_ARGS(queue.GetAddressOf()));
 	if (FAILED(hr))
 		throw;
 
-	hr = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+	hr = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf()));
 	if (FAILED(hr))
 		throw;
 
@@ -44,36 +38,7 @@ void CommandQueue::Init(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type, D3
 
 	type = _type;
 	nextFenceValue = 0;
-	//lastReachedValue = 0;
 }
-
-
-
-//void CommandQueue::Flush(UINT _fenceValue, CommandAllocator& _allocator, CommandList& _cmdList)
-//{
-//	if(FenceReached(_fenceValue))
-//	{
-//		_allocator.Reset();
-//		_cmdList.ResetGraphic(_allocator);
-//		return;
-//	}
-//	fence->SetEventOnCompletion(_fenceValue, eventHandle);
-//	WaitForSingleObjectEx(eventHandle, INFINITE, false);
-//	lastReachedValue = _fenceValue;
-//	_allocator.Reset();
-//	_cmdList.ResetGraphic(_allocator);
-//}
-
-//void CommandQueue::Flush(UINT _fenceValue)
-//{
-//	if (FenceReached(_fenceValue))
-//	{
-//		return;
-//	}
-//	fence->SetEventOnCompletion(_fenceValue, eventHandle);
-//	WaitForSingleObjectEx(eventHandle, INFINITE, false);
-//	lastReachedValue = _fenceValue;
-//}
 
 UINT64 CommandQueue::Execute(CommandList& _cmdList)
 {
@@ -85,7 +50,7 @@ UINT64 CommandQueue::Execute(CommandList& _cmdList)
 	queue->ExecuteCommandLists(1, &cmdLists);
 
 	// Set a command queue signal for the fence and then return it.
-	queue->Signal(fence, nextFenceValue);
+	queue->Signal(fence.Get(), nextFenceValue);
 	return nextFenceValue++; // Postincrements the value. This means that the nextFenceValue that is returned equals nextFenceValue without ++.
 }
 
@@ -113,33 +78,11 @@ void CommandQueue::StallCPU(int _valueToWaitFor)
 // Waits for the input CommandQueue and its signaled value
 void CommandQueue::WaitForOther(CommandQueue& _other, int _valueToWaitFor)
 {
-	queue->Wait(_other.fence, _valueToWaitFor);
+	queue->Wait(_other.fence.Get(), _valueToWaitFor);
 	//_other.WaitForValue(_valueToWaitFor);
 }
 
 void CommandQueue::WaitForFence(int _valueToWaitFor)
 {
-	queue->Wait(fence, _valueToWaitFor);
+	queue->Wait(fence.Get(), _valueToWaitFor);
 }
-
-//bool CommandQueue::FenceReached(UINT _fenceValue)
-//{
-//	if (_fenceValue > lastReachedValue)
-//	{
-//		lastReachedValue = PollCurrentFenceValue();
-//	}
-//
-//	if (lastReachedValue >= _fenceValue)
-//		return true;
-//	
-//	return false;
-//}
-//
-//int CommandQueue::PollCurrentFenceValue()
-//{
-//	if (lastReachedValue <= fence->GetCompletedValue())
-//	{
-//		lastReachedValue = (UINT)fence->GetCompletedValue();
-//	}
-//	return lastReachedValue;
-//}

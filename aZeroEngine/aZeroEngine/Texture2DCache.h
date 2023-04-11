@@ -13,7 +13,6 @@ class Texture2DCache : public ResourceCache<Texture2D>
 {
 private:
 	std::unordered_map<int, std::string> heapIndexToStr;
-	DescriptorManager& dManager;
 
 public:
 
@@ -22,16 +21,15 @@ public:
 	@param _resourceEngine ResourceEngine used for D3D12 resource creations.
 	@param _dManager DescriptorManager used to get available DescriptorHandle objects from.
 	*/
-	Texture2DCache(ResourceEngine& _resourceEngine, DescriptorManager& _dManager);
+	Texture2DCache(ResourceEngine& _resourceEngine);
 
 	virtual ~Texture2DCache();
 
 	/**Initiates the Texture2DCache object.
-	* It also creates a default texture using a texture within the texture-folder called DefaultTexture.png.
-	@param _device ID3D12Device used for D3D12 resource creations.
+	* It also loads a default texture using a texture within the texture-folder called DefaultTexture.png.
 	@return void
 	*/
-	void Init(ID3D12Device* _device);
+	void Init();
 
 	/**Loads a 2D texture from the disk from the specified directory.
 	@param _device ID3D12Device used for D3D12 resource creations.
@@ -39,7 +37,7 @@ public:
 	@param _directory Directory where the texture file should be located. Default value is the "../textures/" folder.
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device* _device, const std::string& _name, const std::string& _directory = "../textures/") override;
+	virtual void LoadResource(const std::string& _name, const std::string& _directory = "../textures/") override;
 
 	/**Immediately removes the Texture2D from the CPU-side memory and queues the GPU-side resource to be removed ASAP.
 	@param _key Name of the Texture2D to remove. Is the same as the name used during Texture2DCache::LoadResource()

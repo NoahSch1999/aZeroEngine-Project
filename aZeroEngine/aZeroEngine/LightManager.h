@@ -8,19 +8,20 @@ struct PointLight
 	float intensity = 1.f;
 	Vector3 position = Vector3(0.f, 0.f, 0.f);
 	float range = 10.f;
+	//int shadowMapIndex = -1;
 };
 
 struct DirectionalLight
 {
-	Vector3 direction = Vector3(0.f, -1.f, 0.f);
-	float intensity = 1.f;
-	Vector3 color = Vector3(1.f, 1.f, 1.f);
+	Matrix VPMatrix = Matrix::Identity;
+	Vector3 direction = Vector3(0.f, 0.f, 1.f);
 	float pad = 0;
+	Vector3 color = Vector3(1.f, 1.f, 1.f);
+	float intensity = 1.f;
 };
 
 struct NumLights
 {
-	int numDirectionalLights = 0;
 	int numPointLights = 0;
 	int numSpotLights = 0;
 };
@@ -33,11 +34,12 @@ public:
 	NumLights numLightsData;
 	ConstantBuffer numLightsCB;
 	StructuredList<PointLight>pLightList;
-	StructuredList<DirectionalLight>dLightList;
 	ResourceEngine& resourceEngine;
 
+	ConstantBuffer dLightBuffer;
+	DirectionalLight dLightData;
+
 	bool pLigthDirty = false;
-	bool dLigthDirty = false;
 	bool numLightDirty = false;
 
 	LightManager(ResourceEngine& _resourceEngine)
@@ -46,40 +48,46 @@ public:
 
 	}
 
+	LightManager(ResourceEngine& _resourceEngine, int _numPLights = 100)
+		:resourceEngine(_resourceEngine)
+	{
+		Init(_numPLights);
+	}
+
 	void ShutDown()
 	{
 		resourceEngine.RemoveResource(pLightList.dataBuffer);
-		resourceEngine.RemoveResource(dLightList.dataBuffer);
 		resourceEngine.RemoveResource(numLightsCB);
+		resourceEngine.RemoveResource(dLightBuffer);
 	}
 
-	void Init(ID3D12Device* _device)
+	void Init(int _numPLights = 100)
 	{
-		pLightList.Init(_device, resourceEngine, 100, true, true);
-		dLightList.Init(_device, resourceEngine, 1, true, true);
-		resourceEngine.CreateResource(_device, numLightsCB, (void*)&numLightsData, sizeof(NumLights), true, true);
-
+		pLightList.Init(resourceEngine, _numPLights, true, true);
+		resourceEngine.CreateResource(numLightsCB, (void*)&numLightsData, sizeof(NumLights), true, true);
+		resourceEngine.CreateResource(dLightBuffer, (void*)&dLightData, sizeof(DirectionalLight), true, true);
 #ifdef _DEBUG
-		numLightsCB.GetMainResource()->SetName(L"Num Lights Main Resource");
-		numLightsCB.GetIntermediateResource()->SetName(L"Num Lights Inermediate Resource");
+		pLightList.dataBuffer.GetGPUOnlyResource()->SetName(L"LightManager Point Light List Main Resource");
+		pLightList.dataBuffer.GetUploadResource()->SetName(L"LightManager Point Light List Interm Resource");
+
+		dLightBuffer.GetGPUOnlyResource()->SetName(L"LightManager Directional Light CB Main Resource");
+		dLightBuffer.GetUploadResource()->SetName(L"LightManager Directional Light CB Interm Resource");
+
+		numLightsCB.GetGPUOnlyResource()->SetName(L"LightManager Num Lights Main Resource");
+		numLightsCB.GetUploadResource()->SetName(L"LightManager Num Lights Interm Resource");
 #endif // DEBUG
 	}
 
-	void Update(int _frameIndex)
+	void Update()
 	{
 		if (pLigthDirty)
 		{
-			resourceEngine.Update(pLightList.dataBuffer, (void*)pLightList.data.GetObjects().data(), _frameIndex);
+			resourceEngine.Update(pLightList.dataBuffer, (void*)pLightList.data.GetObjects().data());
 			pLigthDirty = false;
-		}
-		if (dLigthDirty)
-		{
-			resourceEngine.Update(dLightList.dataBuffer, (void*)dLightList.data.GetObjects().data(), _frameIndex);
-			dLigthDirty = false;
 		}
 		if (numLightDirty)
 		{
-			resourceEngine.Update(numLightsCB, (void*)&numLightsData, _frameIndex);
+			resourceEngine.Update(numLightsCB, (void*)&numLightsData);
 			numLightDirty = false;
 		}
 	}
@@ -92,42 +100,29 @@ public:
 			if(pLightList.data.Exists(_id))
 				return pLightList.data.GetObjectByID(_id);
 		}
-		else if constexpr (std::is_same_v<T, DirectionalLight>)
-		{
-			if (dLightList.data.Exists(_id))
-				return dLightList.data.GetObjectByID(_id);
-		}
 
 		return nullptr;
 	}
 
 	template<typename T>
-	void AddLight(ID3D12Device* _device, int& _id, T& _light, int _frameIndex)
+	void AddLight(int& _id, const T& _light)
 	{
 		if constexpr (std::is_same_v<T, PointLight>)
 		{
-			_id = pLightList.AddElement(resourceEngine, _light, _frameIndex);
+			_id = pLightList.AddElement(resourceEngine, _light, resourceEngine.GetFrameIndex());
 			numLightsData.numPointLights++;
 			pLigthDirty = true;
-			numLightDirty = true;
-			return;
-		}
-		else if constexpr (std::is_same_v<T, DirectionalLight>)
-		{
-			_id = dLightList.AddElement(resourceEngine, _light, _frameIndex);
-			numLightsData.numDirectionalLights++;
-			dLigthDirty = true;
 			numLightDirty = true;
 			return;
 		}
 	}
 
 	template<typename T>
-	void RemoveLight(T& _lightComponent, int _frameIndex)
+	void RemoveLight(T& _lightComponent)
 	{
 		if constexpr (std::is_same_v<T, PointLightComponent>)
 		{
-			if (!pLightList.RemoveElement(resourceEngine, _lightComponent.id, _frameIndex))
+			if (!pLightList.RemoveElement(resourceEngine, _lightComponent.id, resourceEngine.GetFrameIndex()))
 				return;
 
 			numLightsData.numPointLights--;
@@ -135,48 +130,27 @@ public:
 			numLightDirty = true;
 			return;
 		}
-		else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
-		{
-			if (!dLightList.RemoveElement(resourceEngine, _lightComponent.id, _frameIndex))
-				return;
-
-			numLightsData.numDirectionalLights--;
-			dLigthDirty = true;
-			numLightDirty = true;
-			return;
-		}
 	}
 
 	template<typename T, typename D>
-	void UpdateLight(const T& _lightComponent, const D& _data, int _frameIndex)
+	void UpdateLight(const T& _lightComponent, const D& _data)
 	{
 		if constexpr (std::is_same_v<T, PointLightComponent>)
 		{
 			if constexpr (std::is_same_v<D, PointLight>)
 			{
-				pLightList.UpdateElement(resourceEngine, _data, _lightComponent.id, _frameIndex);
+				pLightList.UpdateElement(resourceEngine, _data, _lightComponent.id, resourceEngine.GetFrameIndex());
 				pLigthDirty = true;
 				return;
 			}
 			return;
-		}
-		else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
-		{
-			if constexpr (std::is_same_v<D, DirectionalLight>)
-			{
-				dLightList.UpdateElement(resourceEngine, _data, _lightComponent.id, _frameIndex);
-				dLigthDirty = true;
-				return;
-			}
 		}
 	}
 
 	void CleanseLights(int _frameIndex)
 	{
 		pLightList.Cleanse();
-		dLightList.Cleanse();
 		numLightsData.numPointLights = 0;
-		numLightsData.numDirectionalLights = 0;
 		numLightDirty = true;
 	}
 };

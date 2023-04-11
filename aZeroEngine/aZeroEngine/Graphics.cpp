@@ -3,20 +3,23 @@
 
 Graphics::Graphics(AppWindow& _window, HINSTANCE _instance)
 	:frameCount(0), frameIndex(0), ecs(1000), window(_window), 
-	lManager(resourceEngine), materialManager(resourceEngine, descriptorManager, textureCache), vbCache(resourceEngine), textureCache(resourceEngine, descriptorManager)
+	materialManager(resourceEngine, textureCache), vbCache(resourceEngine), textureCache(resourceEngine)
 {
 	Initialize(_window, _instance);
 }
 
 Graphics::~Graphics()
 {
+	if(scene)
+		delete scene;
+
+	resourceEngine.RemoveResource(camera->GetBuffer());
 	vbCache.ShutDown();
 	textureCache.ShutDown();
-	lManager.ShutDown();
 	materialManager.ShutDown();
-	delete shadowSystem;
-	delete renderSystem;
 
+	swapChain->swapChain->Release();
+	swapChain->dxgiFactory->Release();
 	resourceEngine.ShutDown();
 
 	device->Release();
@@ -28,14 +31,46 @@ void Graphics::Initialize(AppWindow& _window, HINSTANCE _instance)
 	if (FAILED(hr))
 		throw;
 
+#ifdef _DEBUG
+	device->SetName(L"Main Device");
+#endif // DEBUG
+
+	swapChain = std::make_shared<SwapChain>();
+
 	resourceEngine.Init(device);
 	descriptorManager.Init(device, 100, 1000);
-	textureCache.Init(device);
-	materialManager.Init(device);
-	lManager.Init(device);
-	vbCache.LoadResource(device, "demoCube", "..\\meshes\\");
+	textureCache.Init();
+	vbCache.Init();
+	materialManager.Init();
+	//lManager.Init(device);
 
-	resourceEngine.Execute(frameIndex);
+	resourceEngine.Execute();
+
+	//swapChain = std::make_shared<SwapChain>(device, resourceEngine, descriptorManager, _window.GetHandle(), _window.GetWindowSize().x, window.GetWindowSize().y,
+	//	DXGI_FORMAT_B8G8R8A8_UNORM);
+
+	renderSystem = ecs.RegisterSystem<RendererSystem>();
+	lightSystem = ecs.RegisterSystem<LightSystem>();
+	pickingSystem = ecs.RegisterSystem<PickingSystem>();
+
+	//lightSystem->Init(device, &resourceEngine, &frameIndex);
+
+	renderSystem->Init(device,
+		&resourceEngine,
+		&vbCache,
+		lightSystem->GetLightManager(),
+		&materialManager,
+		*swapChain.get(), _instance, window.GetHandle());
+
+	pickingSystem->Init(device, &resourceEngine, &vbCache, swapChain.get());
+
+	//camera = std::make_shared<Camera>(device, resourceEngine, _instance, _window.GetHandle(),
+	//	3.14f * 0.2f, (float)swapChain->width / (float)swapChain->height, 0.1f, 1000.f);
+
+	pickingSystem->SetCamera(camera);
+	renderSystem->SetMainCameraGeo(camera);
+
+	resourceEngine.Execute();
 
 	scene = nullptr;
 }
@@ -47,20 +82,17 @@ void Graphics::BeginFrame()
 	ImGui::NewFrame();
 	ImGuizmo::BeginFrame();
 
-	frameIndex = frameCount % window.GetSwapChain().numBackBuffers;
-	currentBackBuffer = window.GetSwapChain().backBuffers[frameIndex];
-	renderSystem->currentBackBuffer = currentBackBuffer;
-	renderSystem->dsv = &window.GetSwapChain().dsv;
+	frameIndex = frameCount % swapChain->numBackBuffers;
+	currentBackBuffer = swapChain->backBuffers[frameIndex].get();
+	renderSystem->SetBackBuffer(currentBackBuffer);
 
-	ID3D12DescriptorHeap * heap[] = { descriptorManager.GetResourceHeap(), descriptorManager.GetSamplerHeap() };
+	ID3D12DescriptorHeap* heap[] = { descriptorManager.GetResourceHeap(), descriptorManager.GetSamplerHeap() };
 	resourceEngine.renderPassList.GetGraphicList()->SetDescriptorHeaps(2, heap);
-	resourceEngine.renderPassList.GetGraphicList()->RSSetViewports(1, &window.GetSwapChain().viewport);
-	resourceEngine.renderPassList.GetGraphicList()->RSSetScissorRects(1, &window.GetSwapChain().scissorRect);
 
-	D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetMainResource(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &r);
 	resourceEngine.renderPassList.GetGraphicList()->ClearRenderTargetView(currentBackBuffer->GetHandle().GetCPUHandle(), clearColor, 0, nullptr);
-	resourceEngine.renderPassList.GetGraphicList()->ClearDepthStencilView(window.GetSwapChain().dsv.GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+	resourceEngine.renderPassList.GetGraphicList()->ClearDepthStencilView(swapChain->dsv.GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
 
 	for (auto& [name, ui] : userInterfaces)
 	{
@@ -71,34 +103,29 @@ void Graphics::BeginFrame()
 
 void Graphics::Render(AppWindow* _window)
 {
-	
-	// shadow pass
-	shadowSystem->Update();
-
-	// geometry pass
+	pickingSystem->Update();
 	renderSystem->Update();
+	lightSystem->Update();
 
 	for (auto& [name, ui] : userInterfaces)
 	{
 		ui->Update();
 	}
-
-	shadowSystem->End();
 }
 
 void Graphics::EndFrame()
 {
 
 	ImGui::Render();
-	resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &window.GetSwapChain().dsv.GetHandle().GetCPUHandleRef());
+	resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapChain->dsv.GetHandle().GetCPUHandleRef());
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), resourceEngine.renderPassList.GetGraphicList());
 
-	D3D12_RESOURCE_BARRIER x = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetMainResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	D3D12_RESOURCE_BARRIER x = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &x);
 
-	resourceEngine.Execute(frameIndex);
+	resourceEngine.Execute();
 
-	window.GetSwapChain().swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	swapChain->swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 
 	frameCount++;
 }

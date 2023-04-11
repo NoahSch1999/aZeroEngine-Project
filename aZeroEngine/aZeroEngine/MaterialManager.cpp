@@ -1,7 +1,7 @@
 #include "MaterialManager.h"
 
-MaterialManager::MaterialManager(ResourceEngine& _resourceEngine, DescriptorManager& _dManager, Texture2DCache& _textureCache)
-	:resourceEngine(_resourceEngine), dManager(_dManager), textureCache(_textureCache), phongMaterials(100), pbrMaterials(100)
+MaterialManager::MaterialManager(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache)
+	:resourceEngine(_resourceEngine), textureCache(_textureCache), phongMaterials(100), pbrMaterials(100)
 {
 }
 
@@ -10,20 +10,20 @@ MaterialManager::~MaterialManager()
 	std::vector<PhongMaterial>& pMats = phongMaterials.GetObjects();
 	for (auto& mat : pMats)
 	{
-		resourceEngine.RemoveResource(mat.GetBufferPtr());
+		resourceEngine.RemoveResource(mat.GetBuffer());
 	}
 
 	std::vector<PBRMaterial>& pbrMats = pbrMaterials.GetObjects();
 	for (auto& mat : pbrMats)
 	{
-		resourceEngine.RemoveResource(mat.GetBufferPtr());
+		resourceEngine.RemoveResource(mat.GetBuffer());
 	}
 }
 
-void MaterialManager::Init(ID3D12Device* _device)
+void MaterialManager::Init()
 {
-	CreateMaterial<PhongMaterial>(_device, "DefaultPhongMaterial");
-	CreateMaterial<PBRMaterial>(_device, "DefaultPBRMaterial");
+	CreateMaterial<PhongMaterial>("DefaultPhongMaterial");
+	CreateMaterial<PBRMaterial>("DefaultPBRMaterial");
 }
 
 void MaterialManager::ShutDown()
@@ -31,13 +31,13 @@ void MaterialManager::ShutDown()
 	std::vector<PhongMaterial>& pMats = phongMaterials.GetObjects();
 	for (auto& mat : pMats)
 	{
-		resourceEngine.RemoveResource(mat.GetBufferPtr());
+		resourceEngine.RemoveResource(mat.GetBuffer());
 	}
 
 	std::vector<PBRMaterial>& pbrMats = pbrMaterials.GetObjects();
 	for (auto& mat : pbrMats)
 	{
-		resourceEngine.RemoveResource(mat.GetBufferPtr());
+		resourceEngine.RemoveResource(mat.GetBuffer());
 	}
 }
 

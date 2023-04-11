@@ -1,7 +1,6 @@
 #define myTex2DSpace space1
 #define myTexCubeSpace space2
 
-Texture2D Texture2DTable[] : register(t0, myTex2DSpace);
 Texture2D shadowMap : register(t4, space0);
 
 cbuffer PhongMaterialConstants : register(b0)
@@ -12,8 +11,6 @@ cbuffer PhongMaterialConstants : register(b0)
     float specularExponent;
 };
 
-SamplerState basicSampler : register(s0);
-
 struct FragmentInput
 {
     float4 position : SV_Position;
@@ -21,6 +18,7 @@ struct FragmentInput
     float4 lightPosition : LIGHTPOSITION;
     float2 uv : UV;
     float3 normal : NORMAL;
+    float3x3 TBN : TBN;
 };
 
 // Lights
@@ -40,11 +38,11 @@ struct PointLight
     float range;
 };
 
-struct DirectionalLight
+cbuffer DirectionalLight : register(b4)
 {
-    float4 direction;
-    float3 color;
-    float pad;
+    float4 dLightDirection;
+    float3 dLightColor;
+    float pad2;
 };
 
 cbuffer CameraDir : register(b2)
@@ -59,11 +57,12 @@ cbuffer MeshConstants : register(b3)
 
 StructuredBuffer<PointLight>pointLights : register(t0, space0);
 
-StructuredBuffer<DirectionalLight> dLights : register(t2, space0);
 
 float4 main(FragmentInput input) : SV_Target
 {   
-    float4 diffuseTextureCol = Texture2DTable[diffuseIndex].Sample(basicSampler, input.uv);
+    SamplerState basicSampler = SamplerDescriptorHeap[0];
+    Texture2D diffuseTexture = ResourceDescriptorHeap[diffuseIndex];
+    float4 diffuseTextureCol = diffuseTexture.Sample(basicSampler, input.uv);
     
     float3 diffuseLighting = float3(0.f, 0.f, 0.f);
     float3 specularLighting = float3(0.f, 0.f, 0.f);
@@ -104,19 +103,13 @@ float4 main(FragmentInput input) : SV_Target
         specularLighting += saturate(lightSpecularAffect);
     }
     
-    float3 dLightColor = float3(0.f, 0.f, 0.f);
-    for (int j = 0; j < numDirectionalLights; j++)
-    {
-        DirectionalLight currentLight = dLights[j];
-        
-        float4 normal = normalize(float4(input.normal, 0.f));
+    float4 normal = normalize(float4(input.normal, 0.f));
 
-        float lightAffectDir = max(dot(normalize(currentLight.direction), normal), 0);
-        
-        if (lightAffectDir < 0)
-            continue;
-        
-        diffuseLighting += saturate(currentLight.color * lightAffectDir);
+    float lightAffectDir = max(dot(normalize(dLightDirection), normal), 0);
+    
+    if (lightAffectDir < 0)
+    {
+        diffuseLighting += saturate(dLightColor * lightAffectDir);
     }
     
     float shadow = 1.f;
@@ -137,6 +130,6 @@ float4 main(FragmentInput input) : SV_Target
             shadow += 0.4f;
     }
     
-    float4 finalColor = float4(diffuseTextureCol.xyz + ((diffuseLighting * ambientAbsorbation) + specularLighting * specularAbsorbation) * shadow + 0.2f, 1.f);
+    float4 finalColor = float4(diffuseTextureCol.xyz + ((diffuseLighting * ambientAbsorbation) + specularLighting * specularAbsorbation) * shadow + 0.2f, diffuseTextureCol.a);
     return finalColor;
 }

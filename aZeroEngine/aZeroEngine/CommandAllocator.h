@@ -7,7 +7,7 @@ class CommandAllocator
 {
 private:
 	D3D12_COMMAND_LIST_TYPE type;
-	ID3D12CommandAllocator* allocator;
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
 
 public:
 	CommandAllocator() = default;
@@ -21,7 +21,7 @@ public:
 
 	/**Releases the internal ID3D12CommandAllocator object.
 	*/
-	~CommandAllocator();
+	~CommandAllocator() { };
 
 	/**Initiates the allocator as the input argument D3D12_COMMAND_LIST_TYPE
 	* Usually used whenever the CommandAllocator is a non-pointer object.
@@ -34,12 +34,12 @@ public:
 	/**Returns the D3D12_COMMAND_LIST_TYPE of the ID3D12CommandAllocator.
 	@return D3D12_COMMAND_LIST_TYPE
 	*/
-	D3D12_COMMAND_LIST_TYPE GetType()const { return type; }
+	D3D12_COMMAND_LIST_TYPE GetType() const { return type; }
 
 	/**Returns the internal ID3D12CommandAllocator* object.
 	@return ID3D12CommandAllocator*
 	*/
-	ID3D12CommandAllocator* GetAllocator() { return allocator; }
+	ID3D12CommandAllocator* GetAllocator() { return allocator.Get(); }
 
 	/**Resets the ID3D12CommandAllocator
 	@return void

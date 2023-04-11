@@ -9,7 +9,7 @@
 class VertexBufferCache : public ResourceCache<VertexBuffer>
 {
 private:
-	void LoadVertexDataFromFile(ID3D12Device* _device, ResourceEngine& _resourceEngine, ID3D12Resource*& _intermediateResource, const std::string& _path, VertexBuffer& _vBuffer);
+	void LoadVertexDataFromFile(ResourceEngine& _resourceEngine, const std::string& _path, VertexBuffer& _vBuffer);
 
 public:
 	/**Initiates the VertexBufferCache object.
@@ -19,13 +19,18 @@ public:
 
 	virtual ~VertexBufferCache();
 
+	/**Initiates the VertexBufferCache object.
+	* It also loads default meshes.
+	@return void
+	*/
+	void Init();
+
 	/**Loads a vertex buffer from the disk from the specified directory.
-	@param _device ID3D12Device used for D3D12 resource creations.
 	@param _name Name of the fbx file resource residing on the disk. The name has to contain a the fbx extension.
 	@param _directory Directory where the fbx file should be located. Default value is the "../meshes/" folder.
 	@return void
 	*/
-	virtual void LoadResource(ID3D12Device* _device, const std::string& _name, const std::string& _directory = "../meshes/") override;
+	virtual void LoadResource(const std::string& _name, const std::string& _directory = "../meshes/") override;
 
 	/**Immediately removes the vertex buffer from the CPU-side memory and queues the GPU-side resource to be removed ASAP.
 	* The key is the std::string which is the same as the filename for the loaded resource.
