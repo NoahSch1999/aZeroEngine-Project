@@ -118,5 +118,4 @@ inline void ResourceCache<T>::ShutDown()
 	{
 		resourceEngine.RemoveResource(res);
 	}
-	resources.Reset();
 }

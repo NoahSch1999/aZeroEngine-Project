@@ -2,15 +2,22 @@
 #include "DescriptorHandle.h"
 #include "VertexDefinitions.h"
 
-class DescriptorHandle;
-
+/** @brief Encapsulates a sampler.
+NOTE! Will be reworked to reduce creation overhead and memory consumption.
+*/
 class Sampler
 {
 private:
 	DescriptorHandle handle;
-public:
 	D3D12_STATIC_SAMPLER_DESC staticDesc = D3D12_STATIC_SAMPLER_DESC();
+
+public:
 	Sampler() = default;
+
+	/* TO BE EDITED
+	@param
+	@return
+	*/
 	Sampler(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _filter,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeU = D3D12_TEXTURE_ADDRESS_MODE_WRAP, 
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
@@ -19,6 +26,10 @@ public:
 		int _maxAnisotropy = 16, Vector4 _borderColor = { 1,1,1,1 }, 
 		float _midLodBias = 0, float _minLod = 0, float _maxLod = D3D12_FLOAT32_MAX);
 
+	/* TO BE EDITED
+	@param
+	@return
+	*/
 	Sampler(D3D12_FILTER _filter, 
 		int _shaderRegister, D3D12_SHADER_VISIBILITY _shaderVisibility = D3D12_SHADER_VISIBILITY_ALL, int _registerSpace = 0,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeU = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
@@ -28,8 +39,12 @@ public:
 		int _maxAnisotropy = 16, Vector4 _borderColor = { 1,1,1,1 },
 		float _midLodBias = 0, float _minLod = 0, float _maxLod = D3D12_FLOAT32_MAX); // _maxLod has to be above 0 for some reason.
 
-	~Sampler();
+	~Sampler() = default;
 
+	/* TO BE EDITED
+	@param
+	@return
+	*/
 	void Init(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _filter,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeU = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 		D3D12_TEXTURE_ADDRESS_MODE _addressModeV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
@@ -38,7 +53,22 @@ public:
 		int _maxAnisotropy = 16, Vector4 _borderColor = { 1,1,1,1 },
 		float _midLodBias = 0, float _minLod = 0, float _maxLod = D3D12_FLOAT32_MAX);
 
+	/* TO BE EDITED
+	@param
+	@return
+	*/
+	D3D12_STATIC_SAMPLER_DESC GetStaticDesc() const { return staticDesc; }
+
+	/* TO BE EDITED
+	@param
+	@return
+	*/
 	DescriptorHandle GetHandle() const { return handle; }
+
+	/* TO BE EDITED
+	@param
+	@return
+	*/
 	void SetHandle(const DescriptorHandle& _handle) { handle = _handle; }
 };
 

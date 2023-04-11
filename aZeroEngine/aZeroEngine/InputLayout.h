@@ -3,7 +3,7 @@
 
 struct InputLayout
 {
-	D3D12_INPUT_ELEMENT_DESC descs[3];
+	D3D12_INPUT_ELEMENT_DESC descs[4];
 	InputLayout()
 	{
 		descs[0].SemanticName = "POSITION";
@@ -29,5 +29,13 @@ struct InputLayout
 		descs[2].AlignedByteOffset = 20;
 		descs[2].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 		descs[2].InstanceDataStepRate = 0;
+
+		descs[3].SemanticName = "TANGENT";
+		descs[3].SemanticIndex = 0;
+		descs[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+		descs[3].InputSlot = 0;
+		descs[3].AlignedByteOffset = 32;
+		descs[3].InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+		descs[3].InstanceDataStepRate = 0;
 	}
 };

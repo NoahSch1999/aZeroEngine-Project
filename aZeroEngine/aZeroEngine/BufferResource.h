@@ -4,6 +4,7 @@
 #include "HelperFunctions.h"
 
 /** @brief Base class for all buffer resources within aZero Engine.
+NOTE! CURRENTLY NOT SUPPORTING SINGLE BUFFERED DYNAMIC BufferResource objects.
 */
 class BufferResource
 {
@@ -25,7 +26,7 @@ protected:
 
 public:
 	BufferResource() = default;
-	virtual ~BufferResource(){}
+	virtual ~BufferResource() { }
 
 	/* Initializes the UniqueIntList object.
 	@param _device ID3D12Device for resource creations.
@@ -51,56 +52,56 @@ public:
 	/* Returns whether or not the BufferResource is tripplebuffered.
 	@return bool
 	*/
-	bool IsTrippleBuffered() { return isTrippleBuffered; }
+	bool IsTrippleBuffered() const { return isTrippleBuffered; }
 
 	/* Returns the D3D12_GPU_VIRTUAL_ADDRESS for the GPU-only buffer.
 	@return D3D12_GPU_VIRTUAL_ADDRESS
 	*/
 	D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const { return gpuAddress; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
 	Microsoft::WRL::ComPtr<ID3D12Resource>& GetGPUOnlyResource() { return gpuOnlyResource; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
 	D3D12_RESOURCE_STATES GetGPUOnlyResourceState() const { return gpuOnlyResourceState; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
 	void SetGPUOnlyResourceState(D3D12_RESOURCE_STATES _newState) { gpuOnlyResourceState = _newState; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
 	Microsoft::WRL::ComPtr<ID3D12Resource>& GetUploadResource() { return uploadResource; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
 	D3D12_RESOURCE_STATES GetUploadResourceState() const { return uploadResourceState; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
 	void SetUploadResourceState(D3D12_RESOURCE_STATES _newState) { uploadResourceState = _newState; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/
-	bool IsDynamic() { return isDynamic; }
+	bool IsDynamic() const { return isDynamic; }
 
-	/*
+	/* TO BE EDITED
 	@param
 	@return
 	*/

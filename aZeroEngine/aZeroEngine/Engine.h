@@ -77,7 +77,7 @@ namespace aZero
 				&vbCache,
 				lightSystem->GetLightManager(),
 				&materialManager,
-				*swapchain.get(), _appInstance, window->GetHandle());
+				swapchain.get(), _appInstance, window->GetHandle());
 
 			pickingSystem->Init(device.Get(), &resourceEngine, &vbCache, swapchain.get());
 
@@ -110,7 +110,7 @@ namespace aZero
 			window->Update();
 			resourceEngine.BeginFrame();
 
-			currentBackBuffer = swapchain->backBuffers[resourceEngine.GetFrameIndex()].get();
+			currentBackBuffer = swapchain->GetBackBuffer(resourceEngine.GetFrameIndex());
 			renderSystem->SetBackBuffer(currentBackBuffer);
 
 			ID3D12DescriptorHeap* heap[] = { resourceEngine.GetResourceHeap(), resourceEngine.GetSamplerHeap() };
@@ -119,7 +119,6 @@ namespace aZero
 			D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &r);
 			currentBackBuffer->Clear(resourceEngine.renderPassList);
-			swapchain->dsv.Clear(resourceEngine.renderPassList);
 
 			for (auto it = userInterfaces.cbegin(); it != userInterfaces.cend();)
 			{
@@ -160,7 +159,7 @@ namespace aZero
 		void EndFrame()
 		{
 			ImGui::Render();
-			resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapchain->dsv.GetHandle().GetCPUHandleRef());
+			resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, nullptr);
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), resourceEngine.renderPassList.GetGraphicList());
 
 			D3D12_RESOURCE_BARRIER x = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -169,7 +168,7 @@ namespace aZero
 			resourceEngine.Execute();
 			resourceEngine.EndFrame();
 
-			swapchain->swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+			swapchain->GetSwapChain()->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 		}
 
 		void AttachUI(std::shared_ptr<UserInterface> ui)

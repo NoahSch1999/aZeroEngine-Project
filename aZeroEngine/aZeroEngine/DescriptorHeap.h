@@ -28,7 +28,7 @@ public:
 	*/
 	DescriptorHeap(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS _flags);
 
-	~DescriptorHeap() {}
+	~DescriptorHeap() = default;
 
 	/** @brief Initiates the necessary variables.
 	@param _device Device to create the resources with.

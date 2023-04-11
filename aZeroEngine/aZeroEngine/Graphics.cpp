@@ -18,9 +18,9 @@ Graphics::~Graphics()
 	textureCache.ShutDown();
 	materialManager.ShutDown();
 
-	swapChain->swapChain->Release();
-	swapChain->dxgiFactory->Release();
-	resourceEngine.ShutDown();
+	/*swapChain->swapChain->Release();
+	swapChain->dxgiFactory->Release();*/
+	//resourceEngine.ShutDown();
 
 	device->Release();
 }
@@ -60,7 +60,7 @@ void Graphics::Initialize(AppWindow& _window, HINSTANCE _instance)
 		&vbCache,
 		lightSystem->GetLightManager(),
 		&materialManager,
-		*swapChain.get(), _instance, window.GetHandle());
+		swapChain.get(), _instance, window.GetHandle());
 
 	pickingSystem->Init(device, &resourceEngine, &vbCache, swapChain.get());
 
@@ -82,17 +82,17 @@ void Graphics::BeginFrame()
 	ImGui::NewFrame();
 	ImGuizmo::BeginFrame();
 
-	frameIndex = frameCount % swapChain->numBackBuffers;
-	currentBackBuffer = swapChain->backBuffers[frameIndex].get();
-	renderSystem->SetBackBuffer(currentBackBuffer);
+	//frameIndex = frameCount % swapChain->numBackBuffers;
+	//currentBackBuffer = swapChain->backBuffers[frameIndex].get();
+	//renderSystem->SetBackBuffer(currentBackBuffer);
 
-	ID3D12DescriptorHeap* heap[] = { descriptorManager.GetResourceHeap(), descriptorManager.GetSamplerHeap() };
-	resourceEngine.renderPassList.GetGraphicList()->SetDescriptorHeaps(2, heap);
+	//ID3D12DescriptorHeap* heap[] = { descriptorManager.GetResourceHeap(), descriptorManager.GetSamplerHeap() };
+	//resourceEngine.renderPassList.GetGraphicList()->SetDescriptorHeaps(2, heap);
 
-	D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &r);
-	resourceEngine.renderPassList.GetGraphicList()->ClearRenderTargetView(currentBackBuffer->GetHandle().GetCPUHandle(), clearColor, 0, nullptr);
-	resourceEngine.renderPassList.GetGraphicList()->ClearDepthStencilView(swapChain->dsv.GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+	//D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	//resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &r);
+	//resourceEngine.renderPassList.GetGraphicList()->ClearRenderTargetView(currentBackBuffer->GetHandle().GetCPUHandle(), clearColor, 0, nullptr);
+	//resourceEngine.renderPassList.GetGraphicList()->ClearDepthStencilView(swapChain->dsv.GetHandle().GetCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
 
 	for (auto& [name, ui] : userInterfaces)
 	{
@@ -117,7 +117,7 @@ void Graphics::EndFrame()
 {
 
 	ImGui::Render();
-	resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapChain->dsv.GetHandle().GetCPUHandleRef());
+	//resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapChain->dsv.GetHandle().GetCPUHandleRef());
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), resourceEngine.renderPassList.GetGraphicList());
 
 	D3D12_RESOURCE_BARRIER x = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -125,7 +125,7 @@ void Graphics::EndFrame()
 
 	resourceEngine.Execute();
 
-	swapChain->swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+//	swapChain->swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
 
 	frameCount++;
 }

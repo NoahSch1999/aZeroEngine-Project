@@ -2,7 +2,6 @@
 
 void TextureResource::Init(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource>& _uploadResource, CommandList& _transitionList, CommandList& _copyList, void* _data, int _width, int _height, int _bytePerTexel, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState)
 {
-
 	width = _width;
 	height = _height;
 	format = _format;
@@ -10,12 +9,10 @@ void TextureResource::Init(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12R
 	gpuOnlyResourceState = _initState;
 
 	Helper::CreateTextureResource(_device, _transitionList, _copyList, gpuOnlyResource, _uploadResource, _data, width, height, _bytePerTexel, _format, gpuOnlyResourceState);
-
 }
 
 void TextureResource::Init(ID3D12Device* _device, int _width, int _height, int _bytePerTexel, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState, D3D12_CLEAR_VALUE _clearValue, D3D12_RESOURCE_FLAGS _flags, bool _readback)
 {
-
 	width = _width;
 	height = _height;
 	format = _format;

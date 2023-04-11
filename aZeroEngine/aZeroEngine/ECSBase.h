@@ -220,14 +220,32 @@ private:
 	std::unordered_map<int, int> idToIndex;
 	std::unordered_map<int, int> indexToId;
 	std::vector<T> objects;
+
 public:
 
-	SlottedMap() = default;
+	/** Allocates space for number of T elements.
+	@param _startSize Number of spaces that should be allocated. Total allocation in bytes are _startSize * sizeof(T).
+	*/
+	SlottedMap(int _startSize = 100)
+	{
+		objects.reserve(_startSize);
+	}
 
-	void Insert(int _id, const T& _value)
+	/** Adds an element to the SlottedMap object so that it can be retrieved using the input _id using SlottedMap::GetObjectByID().
+	* It isn't added if an element with _id already exists within the SlottedMap.
+	@param _id The id which can be used to access the element within the SlottedMap.
+	@param _value The data to copy into the SlottedMap. It will always be added to the last index of the std::vector return by SlottedMap::GetObjects().
+	@return void
+	*/
+	void Add(int _id, const T& _value)
 	{
 		if (Exists(_id))
 			return;
+
+		if (objects.capacity() == objects.size())
+		{
+			objects.reserve(objects.size() + 100);
+		}
 
 		int index = objects.size();
 		objects.emplace_back(_value);
@@ -235,6 +253,11 @@ public:
 		indexToId[index] = _id;
 	}
 
+	/** Removes an element from the SlottedMap object.
+	* It isn't removed if no element with _id exists within the SlottedMap.
+	@param _id ID of the element to remove.
+	@return void
+	*/
 	void Remove(int _id)
 	{
 		if (!Exists(_id))
@@ -243,44 +266,55 @@ public:
 		int index = idToIndex.at(_id);
 		idToIndex.erase(_id);
 
-		if (objects.size() == 1)
-		{
-			indexToId.erase(index);
-			objects.resize(0);
-			return;
-		}
-
 		int indexOfLast = objects.size() - 1;
 
 		if (indexOfLast == index)
 		{
 			indexToId.erase(index);
-			objects.resize(objects.size() - 1);
+			objects.erase(objects.begin() + index);
 			return;
 		}
 
-		indexToId.at(index) = indexToId.at(indexOfLast);
 		objects[index] = objects[indexOfLast];
-		int idToMove = indexToId.at(indexOfLast);
-		idToIndex.at(indexToId.at(indexOfLast)) = index;
-		objects.resize(objects.size() - 1);
+
+		int idOfLast = indexToId.at(indexOfLast);
+		idToIndex.at(idOfLast) = index;
+
+		indexToId.at(index) = idOfLast;
+		indexToId.erase(indexOfLast);
+		objects.erase(objects.begin() + indexOfLast);
+
+		return;
 	}
 
-	void Clear()
+	/** Shrinks the internal std::vector to fit the number of elements inside it.
+	* Should be used whenever you want to reduce memory consumption.
+	@return void
+	*/
+	void ShrinkToFit()
 	{
-		idToIndex.clear();
-		indexToId.clear();
-		objects.clear();
-		objects.resize(0);
+		objects.shrink_to_fit();
 	}
 
+	/** Returns whether or not an element with the given ID exists.
+	@param _id ID to check for.
+	@return bool TRUE: Element exists, FALSE: No element exists.
+	*/
 	bool Exists(int _id) const
 	{
 		return idToIndex.count(_id) > 0;
 	}
 
+	/** Returns a pointer to the element at the given ID.
+	@param _id The ID to retrieve the element with.
+	@return T*
+	*/
 	T* GetObjectByID(int _id) { return &objects[idToIndex.at(_id)]; }
 
+	/** Returns a reference to the internal vector.
+	* To iterate over it in a safe manner, use structure binding with an iterator or loop using the std::vector::size().
+	@return std::vector<T>&
+	*/
 	std::vector<T>& GetObjects() { return objects; }
 };
 
@@ -306,18 +340,6 @@ public:
 		}
 	}
 
-	void Reset()
-	{
-		freeIDs.clear();
-		for (int i = 0; i < currentMax; i++)
-		{
-			freeIDs.push_back(i);
-		}
-		strToID.clear();
-		IDtoStr.clear();
-		map.Clear();
-	}
-
 	/** Adds an element to the last position in the array and creates a string key to access it through NamedSlottedMap::GetObjectByStr()
 	@param _key String key which will be used to access the object.
 	@param _data Data to copy to the object.
@@ -339,7 +361,7 @@ public:
 		int id = freeIDs.front();
 		freeIDs.pop_front();
 
-		map.Insert(id, _data);
+		map.Add(id, _data);
 
 		strToID.emplace(_key, id);
 		IDtoStr.emplace(id, _key);
@@ -571,7 +593,7 @@ public:
 		if (entityIDMap.Exists(_entity.id))
 			return true;
 
-		entityIDMap.Insert(_entity.id, _entity);
+		entityIDMap.Add(_entity.id, _entity);
 
 		return true;
 	}
@@ -585,7 +607,7 @@ public:
 	*/
 	virtual void BindFast(const Entity& _entity)
 	{
-		entityIDMap.Insert(_entity.id, _entity);
+		entityIDMap.Add(_entity.id, _entity);
 	}
 
 	/**Used to unbind an Entity object from the ECSystem.
@@ -603,14 +625,6 @@ public:
 	virtual void UnBindFast(const Entity& _entity)
 	{
 		entityIDMap.Remove(_entity.id);
-	}
-
-	/**Clears the list of Entity objects bound to the system.
-	@return void
-	*/
-	void RemoveEntities()
-	{
-		entityIDMap.Clear();
 	}
 
 	/** @brief A pure virtual function that should be implemented for an inheriting subclass. It should operate on the bound Entity objects, but that isn't mandatory.
@@ -832,7 +846,7 @@ inline void ComponentManager::RegisterComponent(Entity& _entity)
 		if (!_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
 		{
 			_entity.componentMask.set(COMPONENTENUM::TRANSFORM);
-			transformMap.Insert(_entity.id, Transform());
+			transformMap.Add(_entity.id, Transform());
 		}
 	}
 	else if constexpr (std::is_same_v<T, Mesh>)
@@ -840,7 +854,7 @@ inline void ComponentManager::RegisterComponent(Entity& _entity)
 		if (!_entity.componentMask.test(COMPONENTENUM::MESH))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MESH);
-			meshMap.Insert(_entity.id, Mesh());
+			meshMap.Add(_entity.id, Mesh());
 		}
 	}
 	else if constexpr (std::is_same_v<T, MaterialComponent>)
@@ -848,7 +862,7 @@ inline void ComponentManager::RegisterComponent(Entity& _entity)
 		if (!_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MATERIAL);
-			materialMap.Insert(_entity.id, MaterialComponent());
+			materialMap.Add(_entity.id, MaterialComponent());
 		}
 	}
 	else if constexpr (std::is_same_v<T, PointLightComponent>)
@@ -856,7 +870,7 @@ inline void ComponentManager::RegisterComponent(Entity& _entity)
 		if (!_entity.componentMask.test(COMPONENTENUM::PLIGHT))
 		{
 			_entity.componentMask.set(COMPONENTENUM::PLIGHT);
-			pLightMap.Insert(_entity.id, PointLightComponent());
+			pLightMap.Add(_entity.id, PointLightComponent());
 		}
 	}
 	else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
@@ -864,7 +878,7 @@ inline void ComponentManager::RegisterComponent(Entity& _entity)
 		if (!_entity.componentMask.test(COMPONENTENUM::DLIGHT))
 		{
 			_entity.componentMask.set(COMPONENTENUM::DLIGHT);
-			dLightMap.Insert(_entity.id, DirectionalLightComponent());
+			dLightMap.Add(_entity.id, DirectionalLightComponent());
 		}
 	}
 }
@@ -877,7 +891,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _data)
 		if (!_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
 		{
 			_entity.componentMask.set(COMPONENTENUM::TRANSFORM);
-			transformMap.Insert(_entity.id, _data);
+			transformMap.Add(_entity.id, _data);
 			return transformMap.GetObjectByID(_entity.id);
 		}
 	}
@@ -886,7 +900,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _data)
 		if (!_entity.componentMask.test(COMPONENTENUM::MESH))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MESH);
-			meshMap.Insert(_entity.id, _data);
+			meshMap.Add(_entity.id, _data);
 			return meshMap.GetObjectByID(_entity.id);
 		}
 	}
@@ -895,7 +909,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _data)
 		if (!_entity.componentMask.test(COMPONENTENUM::MATERIAL))
 		{
 			_entity.componentMask.set(COMPONENTENUM::MATERIAL);
-			materialMap.Insert(_entity.id, _data);
+			materialMap.Add(_entity.id, _data);
 			return materialMap.GetObjectByID(_entity.id);
 		}
 	}
@@ -904,7 +918,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _data)
 		if (!_entity.componentMask.test(COMPONENTENUM::PLIGHT))
 		{
 			_entity.componentMask.set(COMPONENTENUM::PLIGHT);
-			pLightMap.Insert(_entity.id, _data);
+			pLightMap.Add(_entity.id, _data);
 			return pLightMap.GetObjectByID(_entity.id);
 		}
 	}
@@ -913,7 +927,7 @@ inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _data)
 		if (!_entity.componentMask.test(COMPONENTENUM::DLIGHT))
 		{
 			_entity.componentMask.set(COMPONENTENUM::DLIGHT);
-			dLightMap.Insert(_entity.id, _data);
+			dLightMap.Add(_entity.id, _data);
 			return dLightMap.GetObjectByID(_entity.id);
 		}
 	}

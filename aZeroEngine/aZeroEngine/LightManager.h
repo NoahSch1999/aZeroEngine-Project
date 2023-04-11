@@ -8,7 +8,6 @@ struct PointLight
 	float intensity = 1.f;
 	Vector3 position = Vector3(0.f, 0.f, 0.f);
 	float range = 10.f;
-	//int shadowMapIndex = -1;
 };
 
 struct DirectionalLight
@@ -26,6 +25,7 @@ struct NumLights
 	int numSpotLights = 0;
 };
 
+// TODO - CLEANUP CLASS AND DOCUMENT IT ETC...
 class LightManager
 {
 private:

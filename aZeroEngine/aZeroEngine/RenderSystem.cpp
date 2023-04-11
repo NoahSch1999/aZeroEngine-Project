@@ -1,5 +1,44 @@
 #include "RenderSystem.h"
 
+void RendererSystem::Init(ID3D12Device* _device, ResourceEngine* _resourceEngine, VertexBufferCache* _vbCache,
+	std::shared_ptr<LightManager> _lManager, MaterialManager* _mManager, SwapChain* _swapChain, HINSTANCE _instance, HWND _winHandle)
+{
+	// Signature Setup
+	componentMask.set(false);
+	componentMask.set(COMPONENTENUM::TRANSFORM, true);
+	componentMask.set(COMPONENTENUM::MESH, true);
+	componentMask.set(COMPONENTENUM::MATERIAL, true);
+
+	// Dependency Injection Setup
+	resourceEngine = _resourceEngine;
+	vbCache = _vbCache;
+	lManager = _lManager;
+	mManager = _mManager;
+	swapChain = _swapChain;
+
+	// Shared Resources
+	solidRaster = RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_FRONT);
+	wireFrameRaster = RasterState(D3D12_FILL_MODE_WIREFRAME, D3D12_CULL_MODE_NONE);
+
+	anisotropicWrapSampler.Init(_device, resourceEngine->GetDescriptorManager().GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+
+	anisotropicBorderSampler.Init(_device, resourceEngine->GetDescriptorManager().GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
+
+	InitShadowPass(_device);
+	InitGeometryPass(_device);
+}
+
+void RendererSystem::Update()
+{
+	if (!mainCamera.expired())
+	{
+		ShadowPassBegin();
+		GeometryPass();
+	}
+}
+
 void RendererSystem::InitShadowPass(ID3D12Device* _device)
 {
 	RootParameters shadowParams;
@@ -14,9 +53,8 @@ void RendererSystem::InitShadowPass(ID3D12Device* _device)
 	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_ShadowPass.cso";
 #endif // DEBUG
 
-	shadowPso.Init(_device, &shadowRootSig, layout, solidRaster, swapChain->numBackBuffers, swapChain->bbFormat, swapChain->dsvFormat,
-		vsPath, L"",
-		L"", L"", L"");
+	shadowPso.Init(_device, &shadowRootSig, layout, solidRaster, swapChain->GetNumBackBuffers(), swapChain->GetBackBufferFormat(),
+		DXGI_FORMAT_D24_UNORM_S8_UINT,vsPath, L"", L"", L"", L"");
 
 	int sizeW = 4096;
 	int sizeH = 4096;
@@ -74,35 +112,8 @@ void RendererSystem::ShadowPassBegin()
 
 void RendererSystem::InitGeometryPass(ID3D12Device* _device)
 {
-	// Phong Setup
-	RootParameters paramsPhong;
-	paramsPhong.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// perdrawconstants 0
-	paramsPhong.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX, 0);			// world matrix 1
-	paramsPhong.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);											// camera 2
-	paramsPhong.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_SRV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// point light structs 3
-	paramsPhong.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);			// num lights 4
-	paramsPhong.AddRootDescriptor(4, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_PIXEL, 0);	// directional light cb 5
-	paramsPhong.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 1, D3D12_SHADER_VISIBILITY_PIXEL);	// Shadow Map 6
-	paramsPhong.AddRootConstants(2, 16, D3D12_SHADER_VISIBILITY_VERTEX); // dlight Light 7
-	paramsPhong.AddRootConstants(2, 4, D3D12_SHADER_VISIBILITY_PIXEL);											// camera 8
-	paramsPhong.AddRootConstants(3, 1, D3D12_SHADER_VISIBILITY_PIXEL);											// mesh draw constants 9
+	resourceEngine->CreateResource(geoPassDSV, swapChain->GetBackBufferDimensions().x, swapChain->GetBackBufferDimensions().y, false);
 
-	phongRootSig.Init(_device, &paramsPhong,
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
-		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
-		0, nullptr);
-
-	std::wstring vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_Basic.cso";
-	std::wstring psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/PS_Basic.cso";
-#ifdef _DEBUG
-	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Basic.cso";
-	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Basic.cso";
-#endif // _DEBUG
-
-	phongPso.Init(_device, &phongRootSig, layout, solidRaster, swapChain->numBackBuffers, swapChain->bbFormat, swapChain->dsvFormat,
-		vsPath, psPath,
-		L"", L"", L"");
 
 	// PBR Setup
 	RootParameters paramsPBR;
@@ -121,23 +132,23 @@ void RendererSystem::InitGeometryPass(ID3D12Device* _device)
 		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
-	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_PBR.cso";
-	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/PS_PBR.cso";
+	std::wstring vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_PBR.cso";
+	std::wstring psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/PS_PBR.cso";
 #ifdef _DEBUG
 	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_PBR.cso";
 	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_PBR.cso";
 #endif // _DEBUG
 
-	pbrPso.Init(_device, &pbrRootSig, layout, solidRaster, swapChain->numBackBuffers, swapChain->bbFormat, swapChain->dsvFormat,
+	pbrPso.Init(_device, &pbrRootSig, layout, solidRaster, swapChain->GetNumBackBuffers(), swapChain->GetBackBufferFormat(), geoPassDSV.GetFormat(),
 		vsPath, psPath,
 		L"", L"", L"");
 
 #ifdef _DEBUG
-	phongPso.GetPipelineState()->SetName(L"Geometry Pass Phong PSO");
-	phongRootSig.GetSignature()->SetName(L"Geometry Pass Phong Root Signature");
 
 	pbrPso.GetPipelineState()->SetName(L"Geometry Pass PBR PSO");
 	pbrRootSig.GetSignature()->SetName(L"Geometry Pass PBR Root Signature");
+
+	geoPassDSV.GetGPUOnlyResource()->SetName(L"Swap Chain Depth Stencil");
 #endif // DEBUG
 }
 
@@ -145,10 +156,11 @@ void RendererSystem::GeometryPass()
 {
 	std::shared_ptr<Camera> cam = mainCamera.lock();
 
-	resourceEngine->renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &swapChain->dsv.GetHandle().GetCPUHandleRef());
+	geoPassDSV.Clear(resourceEngine->renderPassList);
+	resourceEngine->renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, &geoPassDSV.GetHandle().GetCPUHandleRef());
 	resourceEngine->renderPassList.GetGraphicList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	resourceEngine->renderPassList.GetGraphicList()->RSSetScissorRects(1, &swapChain->scissorRect);
-	resourceEngine->renderPassList.GetGraphicList()->RSSetViewports(1, &swapChain->viewport);
+	resourceEngine->renderPassList.GetGraphicList()->RSSetScissorRects(1, &swapChain->GetScissorRect());
+	resourceEngine->renderPassList.GetGraphicList()->RSSetViewports(1, &swapChain->GetViewPort());
 
 	resourceEngine->renderPassList.GetGraphicList()->SetPipelineState(pbrPso.GetPipelineState());
 	resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRootSignature(pbrRootSig.GetSignature());

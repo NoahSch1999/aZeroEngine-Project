@@ -264,7 +264,7 @@ Entity& Scene::CreateEntity()
 {
 	Entity tempEnt = ecs->GetEntityManager().CreateEntity();
 	const std::string name = CheckName("Entity_" + std::to_string(tempEnt.id));
-	entities.Insert(tempEnt.id, tempEnt);
+	entities.Add(tempEnt.id, tempEnt);
 	entityNameToId.emplace(name, tempEnt.id);
 	entityIdToName.emplace(tempEnt.id, name);
 	Entity* entity = entities.GetObjectByID(tempEnt.id);
@@ -281,7 +281,7 @@ Entity& Scene::CreateEntity(const std::string& _name)
 {
 	Entity tempEnt = ecs->GetEntityManager().CreateEntity();
 	const std::string name = CheckName(_name);
-	entities.Insert(tempEnt.id, tempEnt);
+	entities.Add(tempEnt.id, tempEnt);
 	Entity* entity = entities.GetObjectByID(tempEnt.id);
 	std::wstring wName;
 	wName.assign(name.begin(), name.end());

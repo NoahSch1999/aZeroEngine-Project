@@ -464,16 +464,7 @@ void LevelEditorUI::ShowSceneWindow()
 		{
 			ImGuizmo::Enable(false);
 			if (ImGui::Button("New Scene"))
-			{
-				//std::string newName = "new";
-			//rep:
 				currentScene = engine->NewScene("Empty");
-				//if (!currentScene)
-				//{
-				//	newName += "x";
-				//	goto rep; // ;)
-				//}
-			}
 		}
 		else
 		{
@@ -490,9 +481,7 @@ void LevelEditorUI::ShowSceneWindow()
 				std::string sceneNameWithoutExt = sceneNameWithExt.substr(0, p);
 
 				if (currentScene)
-				{
 					currentScene.reset();
-				}
 
 				currentScene = engine->LoadScene("..\\scenes\\", sceneNameWithoutExt);
 
@@ -779,24 +768,27 @@ void LevelEditorUI::ShowMaterialWindow()
 		// Delete Material
 		if (selPBRMatID != -1)
 		{
-			if (ImGui::Button("Delete##0"))
+			if (selPBRMatName != "DefaultPBRMaterial")
 			{
-				if (currentScene)
+				if (ImGui::Button("Delete##0"))
 				{
-					int defaultID = mManager.GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
-					for (auto& ent : currentScene->GetEntityMap().GetObjects())
+					if (currentScene)
 					{
-						MaterialComponent* matComp = currentScene->GetComponentForEntity<MaterialComponent>(ent);
-						if (matComp != nullptr)
+						int defaultID = mManager.GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
+						for (auto& ent : currentScene->GetEntityMap().GetObjects())
 						{
-							if (matComp->materialID == selPBRMatID)
-								matComp->materialID = defaultID;
+							MaterialComponent* matComp = currentScene->GetComponentForEntity<MaterialComponent>(ent);
+							if (matComp != nullptr)
+							{
+								if (matComp->materialID == selPBRMatID)
+									matComp->materialID = defaultID;
+							}
 						}
 					}
+					mManager.RemoveMaterial<PBRMaterial>(selPBRMatID);
+					selPBRMatID = -1;
+					selPBRMatName = "";
 				}
-				mManager.RemoveMaterial<PBRMaterial>(selPBRMatID);
-				selPBRMatID = -1;
-				selPBRMatName = "";
 			}
 		}
 		// ----

@@ -2,12 +2,10 @@
 #include "BufferResource.h"
 
 /** @brief Encapsulates a constant buffer.
-Can be either static or dynamic (single or tripple-buffered).
 */
 class ConstantBuffer : public BufferResource
 {
 public:
-
 	ConstantBuffer() = default;
 	virtual ~ConstantBuffer() {};
 

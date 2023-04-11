@@ -23,10 +23,9 @@ void BufferResource::Init(ID3D12Device* _device, CommandList& _copyList, int _wi
 	}
 	else
 	{
-		void* tempData = new char[uploadWidth];
-		ZeroMemory(tempData, uploadWidth);
-		Helper::CreateBufferResource(_device, _copyList, gpuOnlyResource, sizePerSubresource, uploadResource, uploadWidth, tempData);
-		delete[] tempData;
+		std::unique_ptr<char[]>tempData = std::make_unique<char[]>(uploadWidth);
+		ZeroMemory(tempData.get(), uploadWidth);
+		Helper::CreateBufferResource(_device, _copyList, gpuOnlyResource, sizePerSubresource, uploadResource, uploadWidth, tempData.get());
 	}
 
 	if (isDynamic)

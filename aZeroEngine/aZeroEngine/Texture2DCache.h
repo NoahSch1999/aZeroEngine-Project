@@ -19,7 +19,6 @@ public:
 	/**Initiates the Texture2DCache object.
 	* It also creates a default texture using a texture within the texture-folder called DefaultTexture.png.
 	@param _resourceEngine ResourceEngine used for D3D12 resource creations.
-	@param _dManager DescriptorManager used to get available DescriptorHandle objects from.
 	*/
 	Texture2DCache(ResourceEngine& _resourceEngine);
 
@@ -32,7 +31,6 @@ public:
 	void Init();
 
 	/**Loads a 2D texture from the disk from the specified directory.
-	@param _device ID3D12Device used for D3D12 resource creations.
 	@param _name Name of the 2D texture resource residing on the disk. The name has to contain the png extension.
 	@param _directory Directory where the texture file should be located. Default value is the "../textures/" folder.
 	@return void

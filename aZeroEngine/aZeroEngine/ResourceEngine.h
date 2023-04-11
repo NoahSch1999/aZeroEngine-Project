@@ -8,6 +8,8 @@
 #include "CommandQueue.h"
 #include "DescriptorManager.h"
 
+/** @brief Handles everything related to descriptors, resources, and command queues in a GPU/CPU safe fashion.
+*/
 class ResourceEngine
 {
 private:
@@ -33,137 +35,10 @@ public:
 	CommandList renderPassList;
 	CommandList copyList;
 
-	ResourceEngine() = default;
-
-	/** Initializes the ResourceEngine object.
-	@param _device ID3D12Device to use for the DescriptorManager and CommandQueue objects.
-	*/
-	ResourceEngine(ID3D12Device* _device)
-	{
-		Init(_device);
-	}
-
-	/** Initializes the ResourceEngine object.
-	@param _device ID3D12Device to use for the DescriptorManager and CommandQueue objects.
-	@return void
-	*/
-	void Init(ID3D12Device* _device)
-	{
-		device = _device;
-		descriptorManager.Init(_device, 1000, 1000);
-
-		directQueue.Init(_device, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, D3D12_COMMAND_QUEUE_FLAG_NONE);
-		copyQueue.Init(_device, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, D3D12_COMMAND_QUEUE_FLAG_NONE);
-
-		renderPassAllocator.Init(_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-		renderPassList.Init(_device, renderPassAllocator);
-
-		copyAllocator.Init(_device, D3D12_COMMAND_LIST_TYPE_COPY);
-		copyList.Init(_device, copyAllocator);
-
-#ifdef _DEBUG
-		directQueue.GetQueue()->SetName(L"ResourceEngine Direct Queue");
-		copyQueue.GetQueue()->SetName(L"ResourceEngine Copy Queue");
-
-		copyAllocator.GetAllocator()->SetName(L"ResourceEngine Copy Allocator");
-
-		renderPassAllocator.GetAllocator()->SetName(L"ResourceEngine Render Pass Allocator");
-		renderPassList.GetBaseList()->SetName(L"ResourceEngine Render Pass Base List");
-		renderPassList.GetGraphicList()->SetName(L"ResourceEngine Render Pass Graphics List");
-
-		copyList.GetBaseList()->SetName(L"ResourceEngine Copy Base List");
-		copyList.GetGraphicList()->SetName(L"ResourceEngine Copy Graphics List");
-#endif // DEBUG
-	}
-
-	~ResourceEngine() = default;
-
+	// Getters :(
 	DescriptorManager& GetDescriptorManager() { return descriptorManager; }
 	ID3D12DescriptorHeap* GetResourceHeap() { return descriptorManager.GetResourceHeap(); }
 	ID3D12DescriptorHeap* GetSamplerHeap() { return descriptorManager.GetSamplerHeap(); }
-
-	/** Should be called ASAP each frame.
-	* Setups neccessary frame data for the ResourceEngine methods.
-	@return void
-	*/
-	void BeginFrame()
-	{
-		frameIndex = frameCount % 3; // % num back buffers
-	}
-
-	/** Should be called rigth before the end of each frame.
-	* Updates neccessary frame data for the ResourceEngine methods.
-	@return void
-	*/
-	void EndFrame()
-	{
-		frameCount++;
-	}
-
-	/** Returns the current frame index (0, 1, or 2).
-	@return UINT
-	*/
-	UINT GetFrameIndex() { return frameIndex; }
-
-	/** Starts a CPU-side wait and then deallocates the ResourceEngine objects members.
-	It also removes resources pending to be released that are added via ResourceEngine::RemoveResource().
-	@return void
-	*/
-	void ShutDown()
-	{
-		directQueue.StallCPU(lastSignal);
-
-		for (auto& resource : trashResources)
-		{
-			if (resource)
-			{
-				resource->Release();
-				resource = nullptr;
-			}
-		}
-	}
-
-	/** Requests a readback from the CPU for the input TextureResource which has been created with _readback parameter as true.
-	The data will be available once the Engine::EndFrame() has been called.
-
-	TO DO:
-	Enable the data to be available asap.
-
-	@param _readbackTexture A shared pointer to TextureResource resource to read queue a GPU readback from.
-	@return void
-	*/
-	void RequestReadback(std::shared_ptr<TextureResource> _readbackTexture)
-	{
-		//Footprint: It's a way to reinterpret a region of a buffer as if it was a texture, so that you can describe a 
-		//   texture copy operation that will read/write to the buffer
-
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footPrint[1];
-		UINT numRows = 0;
-		UINT64 rowSize = 0;
-		UINT64 totalSize = 0;
-
-		D3D12_RESOURCE_DESC desc[1] = { _readbackTexture->GetDesc() };
-		device->GetCopyableFootprints(desc, 0, 1, 0, footPrint, &numRows, &rowSize, &totalSize);
-
-		D3D12_TEXTURE_COPY_LOCATION dest;
-		dest.pResource = _readbackTexture->GetReadbackResource().Get();
-		dest.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		dest.PlacedFootprint.Offset = 0;
-		dest.PlacedFootprint = footPrint[0];
-
-		D3D12_TEXTURE_COPY_LOCATION source;
-		source.pResource = _readbackTexture->GetGPUOnlyResource().Get();
-		source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		source.SubresourceIndex = 0;
-
-		_readbackTexture->Transition(renderPassList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-
-		renderPassList.GetGraphicList()->CopyTextureRegion(&dest, 0, 0, 0, &source, nullptr);
-
-		_readbackTexture->Transition(renderPassList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		readbackTextures.push_back(_readbackTexture);
-	}
 
 	/** Returns the ID3D12CommandQueue used for direct commands.
 	@return ID3D12CommandQueue
@@ -175,16 +50,58 @@ public:
 	*/
 	ID3D12CommandQueue* GetCopyQueue() { return copyQueue.GetQueue(); }
 
+	//
+
+	ResourceEngine() = default;
+
+	/** Initializes the ResourceEngine object.
+	@param _device ID3D12Device to use for the DescriptorManager and CommandQueue objects.
+	*/
+	ResourceEngine(ID3D12Device* _device) { Init(_device); }
+
+	/** Initializes the ResourceEngine object.
+	@param _device ID3D12Device to use for the DescriptorManager and CommandQueue objects.
+	@return void
+	*/
+	void Init(ID3D12Device* _device);
+
+	~ResourceEngine();
+
+	/** Should be called ASAP each frame.
+	* Setups neccessary frame data for the ResourceEngine methods.
+	@return void
+	*/
+	void BeginFrame() { frameIndex = frameCount % 3; }
+
+	/** Should be called rigth before the end of each frame.
+	* Updates neccessary frame data for the ResourceEngine methods.
+	@return void
+	*/
+	void EndFrame() { frameCount++; }
+
+	/** Returns the current frame index (0, 1, or 2).
+	@return UINT
+	*/
+	UINT GetFrameIndex() { return frameIndex; }
+
+	/** Requests a readback from the CPU for the input TextureResource which has been created with _readback parameter as true.
+	The data will be available once the Engine::EndFrame() has been called.
+
+	TO DO:
+	Enable the data to be available asap.
+
+	@param _readbackTexture A shared pointer to TextureResource resource to read queue a GPU readback from.
+	@return void
+	*/
+	void RequestReadback(std::shared_ptr<TextureResource> _readbackTexture);
+
 	/** Starts a CPU-side wait for the direct CommandQueue to finnish.
 	NOTE! This method doesn't execute any CommandList commands etc. It should be used to guarantee the direct 
 	CommandQueue to be done with whathever it is executing, since ResourceEngine::Execute() doesn't add a CPU-side 
 	wait (except every 3rd frame (when ResourceEngine::GetFrameIndex() returns 0)).
 	@return void
 	*/
-	void FlushDirectQueue()
-	{
-		directQueue.StallCPU(lastSignal);
-	}
+	void FlushDirectQueue() { directQueue.StallCPU(lastSignal); }
 
 	/** Initializes the input ConstantBuffer with the provided data.
 	@param _resource ConstantBuffer object to initialize.
@@ -198,9 +115,7 @@ public:
 	{
 		_resource.Init(device, copyList, _data, _numBytes, _dynamic, _tripple);
 		if (!_dynamic)
-		{
 			RemoveResource(_resource.GetUploadResource());
-		}
 	}
 
 	/** Initializes the input StructuredBuffer with the provided data.
@@ -216,9 +131,7 @@ public:
 	{
 		_resource.Init(device, copyList, _data, _numBytes, _numElements, _dynamic, _tripple);
 		if (!_dynamic)
-		{
 			RemoveResource(_resource.GetUploadResource());
-		}
 	}
 
 	/** Initializes the input DepthStencil with the provided data as a DSV and optionally also a SRV depending on paramater input.
@@ -273,12 +186,6 @@ public:
 		Microsoft::WRL::ComPtr<ID3D12Resource>& tempInterm = GetFrameResource();
 		_resource.Init(device, renderPassList, copyList, tempInterm, descriptorManager.GetResourceDescriptor(), 
 			_data, _width, _height, _channels, _format, _name);
-
-#ifdef _DEBUG
-		const std::string tName(_name + " Intermediate Temp");
-		std::wstring wstr(tName.begin(), tName.end());
-		tempInterm->SetName(wstr.c_str());
-#endif // _DEBUG
 	}
 
 	/** Initializes the input VertexBuffer with the provided data.
@@ -453,45 +360,5 @@ public:
 	* Does a CPU-side wait every third frame to release GPU-side resources added via ResourceEngine::RemoveResource() or RemoveResource::GetFrameBuffer().
 	@return void
 	*/
-	void Execute()
-	{
-		UINT64 copySignal = copyQueue.Execute(copyList);
-
-		directQueue.WaitForOther(copyQueue, copySignal);
-		UINT64 renderPassSignal = directQueue.Execute(renderPassList);
-
-		if (frameIndex % 3 == 0)
-		{
-			directQueue.StallCPU(renderPassSignal);
-
-			copyAllocator.Reset();
-			renderPassAllocator.Reset();
-
-			if (trashResources.size() > 0)
-			{
-				trashResources.clear();
-			}
-		}
-		else
-		{
-			directQueue.WaitForFence(renderPassSignal);
-			
-		}
-
-		if (readbackTextures.size() > 0)
-		{
-			D3D12_RANGE emptyRange{ 0,0 };
-			for (auto& readbackTexture : readbackTextures)
-			{
-				D3D12_RANGE readbackBufferRange{ 0, readbackTexture->GetReadbackSize() };
-
-				readbackTexture->GetReadbackResource()->Map(0, &readbackBufferRange, reinterpret_cast<void**>(&readbackTexture->GetReadbackData()));
-				readbackTexture->GetReadbackResource()->Unmap(0, &emptyRange);
-			}
-			readbackTextures.clear();
-		}
-
-		copyList.ResetGraphic(copyAllocator);
-		renderPassList.ResetGraphic(renderPassAllocator);
-	}
+	void Execute();
 };

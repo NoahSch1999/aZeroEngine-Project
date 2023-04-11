@@ -49,7 +49,7 @@ public:
 
 		usedIDs.push_back(ID);
 
-		data.Insert(ID, _data);
+		data.Add(ID, _data);
 
 		return ID;
 	}
@@ -93,7 +93,5 @@ public:
 		}
 
 		usedIDs.clear();
-
-		data.Clear();
 	}
 };

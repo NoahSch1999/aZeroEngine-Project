@@ -10,6 +10,9 @@
 #include "AppWindow.h"
 #include "Camera.h"
 
+/** @brief Handles the rendering of bound Entity objects.
+* Uses dependency injection to access neccessary engine objects.
+*/
 class RendererSystem : public ECSystem
 {
 private:
@@ -31,8 +34,7 @@ private:
 	SwapChain* swapChain = nullptr;
 
 	// Geometry Pass
-	PipelineState phongPso;
-	RootSignature phongRootSig;
+	DepthStencil geoPassDSV;
 
 	PipelineState pbrPso;
 	RootSignature pbrRootSig;
@@ -55,7 +57,6 @@ private:
 	void GeometryPass();
 	
 	std::weak_ptr<Camera> mainCamera;
-	bool pbr = true;
 
 public:
 	void SetBackBuffer(RenderTarget* _currentBackBuffer) { currentBackBuffer = _currentBackBuffer; }
@@ -67,57 +68,13 @@ public:
 
 	RendererSystem() = default;
 
-	RendererSystem(ComponentManager& _componentManager)
-		:ECSystem(_componentManager)
-	{
-
-	}
+	RendererSystem(ComponentManager& _componentManager) :ECSystem(_componentManager) { }
 	
-	void Init(ID3D12Device* _device,
-		ResourceEngine* _resourceEngine,
-		VertexBufferCache* _vbCache,
-		std::shared_ptr<LightManager> _lManager,
-		MaterialManager* _mManager,
-		SwapChain& _swapChain, HINSTANCE _instance, HWND _winHandle)
-	{
-		// Signature Setup
-		componentMask.set(false);
-		componentMask.set(COMPONENTENUM::TRANSFORM, true);
-		componentMask.set(COMPONENTENUM::MESH, true);
-		componentMask.set(COMPONENTENUM::MATERIAL, true);
+	void Init(ID3D12Device* _device, ResourceEngine* _resourceEngine, VertexBufferCache* _vbCache,
+		std::shared_ptr<LightManager> _lManager, MaterialManager* _mManager, SwapChain* _swapChain, HINSTANCE _instance, HWND _winHandle);
 
-		// Dependency Injection Setup
-		resourceEngine = _resourceEngine;
-		vbCache = _vbCache;
-		lManager = _lManager;
-		mManager = _mManager;
-		swapChain = &_swapChain;
-
-		// Shared Resources
-		solidRaster = RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_FRONT);
-		wireFrameRaster = RasterState(D3D12_FILL_MODE_WIREFRAME, D3D12_CULL_MODE_NONE);
-
-		anisotropicWrapSampler.Init(_device, resourceEngine->GetDescriptorManager().GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-			D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
-
-		anisotropicBorderSampler.Init(_device, resourceEngine->GetDescriptorManager().GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
-			D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
-
-		InitShadowPass(_device);
-		InitGeometryPass(_device);
-	}
-
-	~RendererSystem()
-	{
-	}
+	~RendererSystem() = default;
 
 	// Inherited via ECSystem
-	virtual void Update() override
-	{
-		if (!mainCamera.expired())
-		{
-			ShadowPassBegin();
-			GeometryPass();
-		}
-	}
+	virtual void Update() override;
 };

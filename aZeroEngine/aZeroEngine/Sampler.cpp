@@ -41,10 +41,6 @@ Sampler::Sampler(D3D12_FILTER _filter, int _shaderRegister, D3D12_SHADER_VISIBIL
 	staticDesc.ShaderVisibility = _shaderVisibility;
 }
 
-Sampler::~Sampler()
-{
-}
-
 void Sampler::Init(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER _filter, D3D12_TEXTURE_ADDRESS_MODE _addressModeU, D3D12_TEXTURE_ADDRESS_MODE _addressModeV, D3D12_TEXTURE_ADDRESS_MODE _addressModeW, D3D12_COMPARISON_FUNC _comparisonFunc, int _maxAnisotropy, Vector4 _borderColor, float _midLodBias, float _minLod, float _maxLod)
 {
 	D3D12_SAMPLER_DESC desc = {};
@@ -53,7 +49,7 @@ void Sampler::Init(ID3D12Device* _device, DescriptorHandle _handle, D3D12_FILTER
 	desc.AddressV = _addressModeV;
 	desc.AddressW = _addressModeW;
 	desc.BorderColor[0] = _borderColor.x;
-	desc.BorderColor[1] =/* _borderColor.y*/0;
+	desc.BorderColor[1] = _borderColor.y;
 	desc.BorderColor[2] = _borderColor.z;
 	desc.BorderColor[3] = _borderColor.w;
 	desc.ComparisonFunc = _comparisonFunc;

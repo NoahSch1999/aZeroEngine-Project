@@ -11,6 +11,10 @@ inline bool WINDOWQUIT;
 
 // https://learn.microsoft.com/en-us/windows/win32/gdi/positioning-objects-on-multiple-display-monitors
 // https://walbourn.github.io/care-and-feeding-of-modern-swap-chains-3/
+
+/** @brief Encapsulates the engine window.
+NOTE! Will be reworked.
+*/
 class AppWindow
 {
 private:

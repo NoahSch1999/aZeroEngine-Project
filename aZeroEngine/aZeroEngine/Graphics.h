@@ -8,6 +8,8 @@
 #include "LightSystem.h"
 #include "PickingSystem.h"
 
+/** @brief OBSOLETE! DON'T USE!
+*/
 class Graphics
 {
 private:
@@ -59,7 +61,7 @@ public:
 
 	void Resize(int _width, int _height)
 	{
-		resourceEngine.FlushDirectQueue();
+	/*	resourceEngine.FlushDirectQueue();
 
 		for (int i = 0; i < swapChain->backBuffers.size(); i++)
 		{
@@ -78,7 +80,7 @@ public:
 		swapChain->viewport.Width = _width;
 		swapChain->viewport.Height = _height;
 		swapChain->scissorRect.right = _width;
-		swapChain->scissorRect.bottom = _height;
+		swapChain->scissorRect.bottom = _height;*/
 		
 		
 	}

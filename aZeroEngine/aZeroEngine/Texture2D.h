@@ -12,9 +12,9 @@ private:
 	std::string name = "";
 
 public:
-	Texture2D();
+	Texture2D() = default;
 
-	~Texture2D();
+	~Texture2D() = default;
 
 	/** Initiates the Texture2D object with the input data.
 	@param _device ID3D12Device to use when creating the neccessary resources.
@@ -25,13 +25,13 @@ public:
 	@param _data Initial data for the Textur2D.
 	@param _width Width of the Texture2D.
 	@param _height Height of the Texture2D.
-	@param _channels Number of channels per pixel of the Texture2D.
+	@param _bytePerTexel Number of bytes per pixel of the Texture2D.
 	@param _format DXGI_FORMAT of the Texture2D GPU resource.
 	@param _name Name of the Texture2D.
 	@return void
 	*/
 	void Init(ID3D12Device* _device, CommandList& _transitionList, CommandList& _copyList, Microsoft::WRL::ComPtr<ID3D12Resource>& _uploadResource,
-		DescriptorHandle _srvHandle, void* _data, UINT _width, UINT _height, UINT _channels, DXGI_FORMAT _format, const std::string& _name);
+		DescriptorHandle _srvHandle, void* _data, UINT _width, UINT _height, UINT _bytePerTexel, DXGI_FORMAT _format, const std::string& _name);
 
 	/**Returns a std::string to the name of the Texture2D.
 	@return std::string

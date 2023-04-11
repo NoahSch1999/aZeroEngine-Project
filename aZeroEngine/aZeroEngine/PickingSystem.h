@@ -88,10 +88,11 @@ public:
 			vsPath, psPath, L"", L"", L"", false);
 
 		rtv = std::make_shared<RenderTarget>();
-		resourceEngine->CreateResource(*rtv, swapChain->width, swapChain->height, 4, DXGI_FORMAT_R32_SINT, true, true, Vector4(-1, -1, -1, -1));
+		Vector2 scDim = swapChain->GetBackBufferDimensions();
+		resourceEngine->CreateResource(*rtv, scDim.x, scDim.y, 4, DXGI_FORMAT_R32_SINT, true, true, Vector4(-1, -1, -1, -1));
 
 		dsv = std::make_shared<DepthStencil>();
-		resourceEngine->CreateResource(*dsv, swapChain->width, swapChain->height, false);
+		resourceEngine->CreateResource(*dsv, scDim.x, scDim.y, false);
 
 #ifdef _DEBUG
 		pso.GetPipelineState()->SetName(L"Picking System PSO");
@@ -111,8 +112,8 @@ public:
 			dsv->Clear(resourceEngine->renderPassList);
 			resourceEngine->renderPassList.GetGraphicList()->OMSetRenderTargets(1, &rtv->GetHandle().GetCPUHandleRef(), true, &dsv->GetHandle().GetCPUHandleRef());
 			resourceEngine->renderPassList.GetGraphicList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			resourceEngine->renderPassList.GetGraphicList()->RSSetScissorRects(1, &swapChain->scissorRect);
-			resourceEngine->renderPassList.GetGraphicList()->RSSetViewports(1, &swapChain->viewport);
+			resourceEngine->renderPassList.GetGraphicList()->RSSetScissorRects(1, &swapChain->GetScissorRect());
+			resourceEngine->renderPassList.GetGraphicList()->RSSetViewports(1, &swapChain->GetViewPort());
 
 			resourceEngine->renderPassList.GetGraphicList()->SetPipelineState(pso.GetPipelineState());
 			resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRootSignature(rootSignature.GetSignature());
