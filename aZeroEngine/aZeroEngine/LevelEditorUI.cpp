@@ -1,6 +1,30 @@
 #include "LevelEditorUI.h"
 #include <filesystem>
 
+void LevelEditorUI::ShowPerformanceData()
+{
+	ImGui::Begin("Performance Data");
+	static int currentFramesPerfFPS = 0;
+	const int targetFramesPerfFPS = 50000;
+
+	if (currentFramesPerfFPS >= targetFramesPerfFPS)
+		currentFramesPerfFPS = 0;
+
+	float averageFPS = ImGui::GetIO().Framerate;
+	static float values[targetFramesPerfFPS];
+
+	values[currentFramesPerfFPS] = averageFPS;
+	currentFramesPerfFPS++;
+
+	char overlay[32];
+	sprintf(overlay, "FPS: %f", averageFPS);
+	ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), 0, overlay, -1.0f, 5000.0f, ImVec2(0, 80.0f));
+
+	ImGui::Text("Average MS and FPS: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+	ImGui::End();
+}
+
 void LevelEditorUI::SetupVisuals()
 {
 	ImVec4* colors = ImGui::GetStyle().Colors;
@@ -42,8 +66,8 @@ void LevelEditorUI::SetupVisuals()
 	colors[ImGuiCol_TabActive] = ImVec4(0.00f, 0.40f, 1.00f, 1.00f);
 	colors[ImGuiCol_TabUnfocused] = ImVec4(0.09f, 0.57f, 0.98f, 1.00f);
 	colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.09f, 0.57f, 0.98f, 1.00f);
-	colors[ImGuiCol_DockingPreview] = ImVec4(0.09f, 0.57f, 0.98f, 1.00f);
-	colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+	//colors[ImGuiCol_DockingPreview] = ImVec4(0.09f, 0.57f, 0.98f, 1.00f);
+	//colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 	colors[ImGuiCol_PlotLines] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.00f, 0.00f, 1.00f);
 	colors[ImGuiCol_PlotHistogram] = ImVec4(1.00f, 0.07f, 0.00f, 1.00f);
@@ -98,6 +122,7 @@ std::optional<std::string> LevelEditorUI::LoadPBRMaterialFromDirectory()
 
 void LevelEditorUI::Update()
 {
+	ShowPerformanceData();
 	if (editorMode)
 	{
 		ShowSceneWindow();
@@ -124,25 +149,41 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 			static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
 			static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 
-			if (ImGui::IsKeyPressed(ImGuiKey_W))
+			if (InputManager::KeyDown('W'))
 				mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_R))
+			if (InputManager::KeyDown('R'))
 				mCurrentGizmoOperation = ImGuizmo::ROTATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_E))
+			if (InputManager::KeyDown('E'))
 				mCurrentGizmoOperation = ImGuizmo::SCALE;
 
 			ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
-			Matrix editMat = tf->Compose();
+			Matrix matrix = tf->GetWorldMatrix();
 
-			if (ImGuizmo::Manipulate(&cam->GetView()._11, &cam->GetProj()._11, mCurrentGizmoOperation, mCurrentGizmoMode, &editMat._11, NULL, 0))
+			if (ImGuizmo::Manipulate(&cam->GetView()._11, &cam->GetProj()._11, mCurrentGizmoOperation, mCurrentGizmoMode, &matrix._11, NULL, 0))
 			{
-				Quaternion tempRotDegrees(tf->GetRotation());
-				editMat.Decompose(tf->GetScale(), tempRotDegrees, tf->GetTranslation());
+				Entity& ent = currentScene->GetEntity(selEntityID);
+				int parentID = engine->GetParentSystem().lock()->GetParentEntityID(ent);
 
-				Vector3 tempRotRad = tempRotDegrees.ToEuler();
-				tf->SetRotation(tempRotRad);
+				if (parentID != -1)
+				{
+					Entity& parentEnt = currentScene->GetEntity(parentID);
 
-				tf->Update(engine->GetResourceEngine());
+					Transform* parentTF = currentScene->GetComponentForEntity<Transform>(parentEnt);
+					if (parentTF)
+					{
+						Matrix wParent = parentTF->GetWorldMatrix();
+						Matrix local = matrix * wParent.Invert();
+						Quaternion rotationDegQuat;
+						local.Decompose(tf->GetScale(), rotationDegQuat, tf->GetTranslation());
+						tf->GetRotation() = rotationDegQuat.ToEuler();
+					}
+				}
+				else
+				{
+					Quaternion rotationDegQuat;
+					matrix.Decompose(tf->GetScale(), rotationDegQuat, tf->GetTranslation());
+					tf->GetRotation() = rotationDegQuat.ToEuler();
+				}
 			}
 		}
 	}
@@ -166,7 +207,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 					{
 					case COMPONENTENUM::TRANSFORM:
 					{
-						Transform comp(engine->GetResourceEngine());
+						Transform comp;
 						currentScene->AddComponentToEntity<Transform>(_entity, comp);
 						break;
 					}
@@ -220,10 +261,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 					{
 						if (tf)
 						{
-							if (ImGui::InputFloat3("Translation", &tf->GetTranslation().x))
-							{
-								tf->Update(engine->GetResourceEngine());
-							}
+							ImGui::InputFloat3("Translation", &tf->GetTranslation().x);
 
 							Quaternion rotInDegrees(tf->GetRotation());
 							Vector3 rotInDeg = tf->GetRotation();
@@ -233,21 +271,16 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 							if (ImGui::InputFloat3("Rotation", &rotInDeg.x))
 							{
 								Vector3 rotInRad = Vector3(rotInDeg.x / (180 / 3.14f), rotInDeg.y / (180 / 3.14f), rotInDeg.z / (180 / 3.14f));
-								tf->SetRotation(rotInRad);
-								tf->Update(engine->GetResourceEngine());
+								tf->GetRotation() = rotInRad;
 							}
 
-							if (ImGui::InputFloat3("Scale", &tf->GetScale().x))
-							{
-								tf->Update(engine->GetResourceEngine());
-							}
+							ImGui::InputFloat3("Scale", &tf->GetScale().x);
 
 							if (ImGui::Button("Reset##1"))
 							{
-								tf->SetTranslation({ 0,0,0 });
-								tf->SetRotation({ 0,0,0 });
-								tf->SetScale({ 1,1,1 });
-								tf->Update(engine->GetResourceEngine());
+								tf->GetTranslation() = { 0,0,0 };
+								tf->GetRotation() = { 0,0,0 };
+								tf->GetScale() = { 1,1,1 };
 							}
 
 						}
@@ -526,7 +559,7 @@ void LevelEditorUI::ShowSceneWindow()
 							if (ImGui::Button("OK"))
 							{
 								if (currentScene->GetName().size() > 0)
-									currentScene->Save("..\\scenes\\", currentScene->GetName().c_str());
+									currentScene->Save("..\\scenes\\", currentScene->GetName().c_str(), &engine->GetTexture2DCache());
 
 								ImGui::CloseCurrentPopup();
 								trySave = false;
@@ -545,7 +578,7 @@ void LevelEditorUI::ShowSceneWindow()
 					{
 						if (currentScene->GetName().size() > 0)
 						{
-							currentScene->Save("..\\scenes\\", currentScene->GetName().c_str());
+							currentScene->Save("..\\scenes\\", currentScene->GetName().c_str(), &engine->GetTexture2DCache());
 							ImGui::CloseCurrentPopup();
 							trySave = false;
 							ZeroMemory(sceneNameBuffer, sizeof(sceneNameBuffer));
@@ -566,7 +599,7 @@ void LevelEditorUI::ShowSceneWindow()
 
 							if (ImGui::Button("OK"))
 							{
-								currentScene->Save("..\\scenes\\", sceneName);
+								currentScene->Save("..\\scenes\\", sceneName, &engine->GetTexture2DCache());
 
 								ImGui::CloseCurrentPopup();
 								trySave = false;
@@ -584,7 +617,7 @@ void LevelEditorUI::ShowSceneWindow()
 					}
 					else
 					{
-						currentScene->Save("..\\scenes\\", sceneName);
+						currentScene->Save("..\\scenes\\", sceneName, &engine->GetTexture2DCache());
 						ImGui::CloseCurrentPopup();
 						trySave = false;
 						ZeroMemory(sceneNameBuffer, sizeof(sceneNameBuffer));
@@ -592,51 +625,102 @@ void LevelEditorUI::ShowSceneWindow()
 				}
 			}
 		}
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 void LevelEditorUI::ShowEntityWindow()
 {
 	if (ImGui::Begin("Entity Editor"))
 	{
-		std::vector<Entity>& entityVec = currentScene->GetEntityMap().GetObjects();
-		if (entityVec.size() > 0)
+		std::vector<Entity>& entityVec = currentScene->GetEntityVector();
+
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if(ImGui::TreeNode("Scene Hierarchy##1"))
 		{
-			if (ImGui::BeginListBox("Entities"))
+			for (auto& ent : entityVec)
 			{
-				for (auto& ent : entityVec)
+				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
+				int id = pSys->GetParentEntityID(ent);
+				if (id == -1)
 				{
-					const std::string name = currentScene->GetEntityName(ent);
-					bool selected = false;
-					if (ent.id == selEntityID)
-						selected = true;
-
-					if (ImGui::Selectable(std::string(name).c_str(), selected))
-					{
-						selEntityID = ent.id;
-						break;
-					}
+					ShowEntityHierarchy(ent);
 				}
-				ImGui::EndListBox();
-
-				ImGui::Text("Selected Entity: ");
-				ImGui::SameLine();
-				if (selEntityID != -1)
-					ImGui::Text(currentScene->GetEntityName(currentScene->GetEntity(selEntityID)).c_str());
 			}
+
+			ImGui::TreePop();
 		}
 
-		static int counter = 0;
 		if (ImGui::Button("Create Entity"))
 		{
-			Entity& ent = currentScene->CreateEntity();
+			Entity& ent = currentScene->CreateEntity("Entity_");
 			selEntityID = ent.id;
-			counter++;
 		}
 
 		if (selEntityID != -1)
 		{
+			if (ImGui::Button("Add Child"))
+				ImGui::OpenPopup("AddChildPopup");
+
+			if (ImGui::BeginPopup("AddChildPopup"))
+			{
+				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
+				Entity& currentEnt = currentScene->GetEntity(selEntityID);
+				std::vector<int> childrenIDs = pSys->GetChildrenEntityID(currentEnt);
+
+				for (Entity& ent : entityVec)
+				{
+					bool isChild = false;
+					for (auto id : childrenIDs)
+					{
+						if (id == ent.id)
+						{
+							isChild = true;
+							break;
+						}
+					}
+
+					if (pSys->IsChildInBranch(ent, currentEnt.id))
+						continue;
+
+					if (!isChild)
+					{
+						if (ent.id != selEntityID)
+						{
+							int parId = pSys->GetParentEntityID(currentEnt);
+							if (parId != ent.id)
+							{
+								std::optional<std::string> entIDStr = currentScene->GetEntityName(ent);
+								if (entIDStr.has_value())
+								{
+									if (ImGui::Selectable(entIDStr.value().c_str()))
+									{
+										if (ent.id != selEntityID)
+										{
+											pSys->Parent(currentEnt, ent);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				ImGui::EndPopup();
+			}
+
+			if (ImGui::Button("Remove As Child"))
+			{
+				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
+				Entity& currentEnt = currentScene->GetEntity(selEntityID);
+				int parentID = pSys->GetParentEntityID(currentEnt);
+				if (parentID != -1)
+				{
+					Entity tempParent;
+					tempParent.id = parentID;
+					pSys->UnParent(tempParent, currentEnt);
+				}
+			}
+
 			if (ImGui::Button("Delete Entity"))
 			{
 				currentScene->DeleteEntity(selEntityID);
@@ -655,10 +739,7 @@ void LevelEditorUI::ShowEntityWindow()
 						const std::string newNameStr(newName);
 						if (newNameStr != "")
 						{
-							if (!currentScene->EntityExists(newNameStr))
-							{
-								currentScene->RenameEntity(currentScene->GetEntityName(currentScene->GetEntity(selEntityID)), newName);
-							}
+							currentScene->RenameEntity(currentScene->GetEntity(selEntityID), newName);
 							ZeroMemory(newName, ARRAYSIZE(newName));
 						}
 					}
@@ -669,8 +750,45 @@ void LevelEditorUI::ShowEntityWindow()
 			}
 		}
 
-		ImGui::End();
 	}
+	ImGui::End();
+}
+
+void LevelEditorUI::ShowEntityHierarchy(const Entity& _current)
+{
+	std::optional<std::string> name = currentScene->GetEntityName(_current);
+
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+	if (selEntityID == _current.id)
+		flags |= ImGuiTreeNodeFlags_Selected;
+
+	std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
+	std::vector<int> childrenIDs = pSys->GetChildrenEntityID(_current);
+
+	if (childrenIDs.size() == 0)
+		flags |= ImGuiTreeNodeFlags_Leaf;
+
+	if (ImGui::TreeNodeEx((void*)(intptr_t)_current.id, flags, name.value().c_str()))
+	{
+		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+		{
+			selEntityID = _current.id;
+		}
+
+		for (int id : childrenIDs)
+		{
+			Entity ent;
+			ent.id = id;
+			ShowEntityHierarchy(ent);
+		}
+
+		ImGui::TreePop();
+	}
+
+
 }
 
 void LevelEditorUI::ShowMaterialWindow()
@@ -775,7 +893,7 @@ void LevelEditorUI::ShowMaterialWindow()
 					if (currentScene)
 					{
 						int defaultID = mManager.GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
-						for (auto& ent : currentScene->GetEntityMap().GetObjects())
+						for (auto& ent : currentScene->GetEntityVector())
 						{
 							MaterialComponent* matComp = currentScene->GetComponentForEntity<MaterialComponent>(ent);
 							if (matComp != nullptr)
@@ -799,7 +917,7 @@ void LevelEditorUI::ShowMaterialWindow()
 			if (pbrMat->GetName() != "DefaultPBRMaterial")
 			{
 				ImGui::Text("Material Information");
-				PBRMaterialInformation& info = pbrMat->GetInfoPtr();
+				PBRMaterialInfo& info = pbrMat->GetInfo();
 
 				// Albedo
 				ImGui::Text("Albedo Texture");
@@ -814,7 +932,6 @@ void LevelEditorUI::ShowMaterialWindow()
 					if (t)
 					{
 						info.albedoMapIndex = t->GetHandle().GetHeapIndex();
-						pbrMat->Update(engine->GetResourceEngine());
 					}
 				}
 
@@ -831,28 +948,17 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					t = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (t)
-					{
 						info.roughnessMapIndex = t->GetHandle().GetHeapIndex();
-						pbrMat->Update(engine->GetResourceEngine());
-					}
 				}
 
 				if (info.roughnessMapIndex != -1)
 				{
 					if (ImGui::Button("Remove Texture##0"))
-					{
 						info.roughnessMapIndex = -1;
-						pbrMat->Update(engine->GetResourceEngine());
-					}
 				}
 
 				if (info.roughnessMapIndex == -1)
-				{
-					if (ImGui::SliderFloat("Roughness Factor##0", (float*)&info.roughnessFactor, 0.f, 1.f))
-					{
-						pbrMat->Update(engine->GetResourceEngine());
-					}
-				}
+					ImGui::SliderFloat("Roughness Factor##0", (float*)&info.roughnessFactor, 0.f, 1.f);
 
 				// Metallic
 				ImGui::Text("Metallic Texture");
@@ -867,28 +973,17 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					Texture2D* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (tt)
-					{
 						info.metallicMapIndex = tt->GetHandle().GetHeapIndex();
-						pbrMat->Update(engine->GetResourceEngine());
-					}
 				}
 
 				if (info.metallicMapIndex != -1)
 				{
 					if (ImGui::Button("Remove Texture##00"))
-					{
 						info.metallicMapIndex = -1;
-						pbrMat->Update(engine->GetResourceEngine());
-					}
 				}
 
 				if (info.metallicMapIndex == -1)
-				{
-					if (ImGui::SliderFloat("Metallic Factor##0", (float*)&info.metallicFactor, 0.f, 1.f))
-					{
-						pbrMat->Update(engine->GetResourceEngine());
-					}
-				}
+					ImGui::SliderFloat("Metallic Factor##0", (float*)&info.metallicFactor, 0.f, 1.f);
 
 				// Normal Map
 				ImGui::Text("Normal Map");
@@ -903,25 +998,19 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					Texture2D* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (tt)
-					{
 						info.normalMapIndex = tt->GetHandle().GetHeapIndex();
-						pbrMat->Update(engine->GetResourceEngine());
-					}
 				}
 
 				if (info.normalMapIndex != -1)
 				{
 					if (ImGui::Button("Remove Texture##000"))
-					{
 						info.normalMapIndex = -1;
-						pbrMat->Update(engine->GetResourceEngine());
-					}
 				}
 			}
 		}
 
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 void LevelEditorUI::ShowResourceWindow()
@@ -932,7 +1021,7 @@ void LevelEditorUI::ShowResourceWindow()
 		VertexBufferCache& vbCache = engine->GetVertexBufferCache();
 		MaterialManager& mManager = engine->GetMaterialManager();
 		ResourceEngine& rEngine = engine->GetResourceEngine();
-		std::vector<Entity>& entityVec = currentScene->GetEntityMap().GetObjects();
+		std::vector<Entity>& entityVec = currentScene->GetEntityVector();
 
 		if (ImGui::BeginListBox("Meshes"))
 		{
@@ -1037,25 +1126,23 @@ void LevelEditorUI::ShowResourceWindow()
 
 			if (selTexture2DName != "defaultDiffuse.png")
 			{
+				// Move deleting to the scene
 				if (ImGui::Button("Delete Texture"))
 				{
 					int heapIndexToDelete = tCache.GetResource(selTexture2DID)->GetHandle().GetHeapIndex();
 					for (auto& mat : mManager.GetPBRMaterials())
 					{
-						if (mat.GetInfoPtr().albedoMapIndex == heapIndexToDelete)
+						if (mat.GetInfo().albedoMapIndex == heapIndexToDelete)
 						{
-							mat.GetInfoPtr().albedoMapIndex = tCache.GetResource("defaultDiffuse.png")->GetHandle().GetHeapIndex();
-							mat.Update(rEngine);
+							mat.GetInfo().albedoMapIndex = tCache.GetResource("defaultDiffuse.png")->GetHandle().GetHeapIndex();
 						}
-						else if (mat.GetInfoPtr().roughnessMapIndex == heapIndexToDelete)
+						else if (mat.GetInfo().roughnessMapIndex == heapIndexToDelete)
 						{
-							mat.GetInfoPtr().roughnessMapIndex = -1;
-							mat.Update(rEngine);
+							mat.GetInfo().roughnessMapIndex = -1;
 						}
-						else if (mat.GetInfoPtr().metallicMapIndex == heapIndexToDelete)
+						else if (mat.GetInfo().metallicMapIndex == heapIndexToDelete)
 						{
-							mat.GetInfoPtr().metallicMapIndex = -1;
-							mat.Update(rEngine);
+							mat.GetInfo().metallicMapIndex = -1;
 						}
 					}
 
@@ -1066,6 +1153,6 @@ void LevelEditorUI::ShowResourceWindow()
 			}
 		}
 
-		ImGui::End();
 	}
+	ImGui::End();
 }

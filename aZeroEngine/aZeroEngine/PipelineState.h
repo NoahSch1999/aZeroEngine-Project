@@ -9,13 +9,13 @@
 class PipelineState
 {
 private:
-	ID3D12PipelineState* pipelineState;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
 public:
-	PipelineState();
+	PipelineState() = default;
 
 	/** @brief Releases the internal ID3D12PipelineState* object.
 	*/
-	~PipelineState();
+	~PipelineState() = default;
 
 	/** @brief Initializes the object.
 	@param _device Device to use when creating the D3D12 resources.
@@ -35,12 +35,12 @@ public:
 	*/
 	void Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, const RasterState& _rasterState, int _numRenderTargets, DXGI_FORMAT _rtvFormat,
 		DXGI_FORMAT _dsvFormat, const std::wstring& _vsPath, const std::wstring& _psPath,
-		const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath, bool _enableBlending = true,
+		const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath, bool _test = false, bool _enableBlending = true,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE _primitiveType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
 	/** @brief Returns a pointer to the internal ID3D12PipelineState* object.
 	@return ID3D12PipelineState*
 	*/
-	ID3D12PipelineState* GetPipelineState() { return pipelineState; }
+	ID3D12PipelineState* GetPipelineState() { return pipelineState.Get(); }
 };
 

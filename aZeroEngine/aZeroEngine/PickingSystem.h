@@ -71,9 +71,10 @@ public:
 		rasterState = RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_BACK, true);
 
 		RootParameters params;
-		params.AddRootDescriptor(0, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX); // world 0
+		params.AddRootConstants(0, 1, D3D12_SHADER_VISIBILITY_VERTEX); // world 0
 		params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX); // camera 1
 		params.AddRootConstants(0, 1, D3D12_SHADER_VISIBILITY_PIXEL); // picking color 2
+		params.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_SRV, D3D12_SHADER_VISIBILITY_VERTEX); // 3 transform buffer
 
 		rootSignature.Init(_device, &params, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 0, nullptr);
 
@@ -108,9 +109,26 @@ public:
 		// Prep pipeline
 		if (!camera.expired())
 		{
-			rtv->Clear(resourceEngine->renderPassList);
-			dsv->Clear(resourceEngine->renderPassList);
-			resourceEngine->renderPassList.GetGraphicList()->OMSetRenderTargets(1, &rtv->GetHandle().GetCPUHandleRef(), true, &dsv->GetHandle().GetCPUHandleRef());
+			std::shared_ptr<GraphicsCommandContext> context = resourceEngine->commandManager->GetGraphicsContext();
+			//rtv->Clear(resourceEngine->renderPassList);
+			//dsv->Clear(resourceEngine->renderPassList);
+			ID3D12DescriptorHeap* heap[] = { resourceEngine->GetResourceHeap(), resourceEngine->GetSamplerHeap() };
+			context->SetDescriptorHeaps(2, heap);
+			context->ClearRenderTargetView(*rtv);
+			context->ClearDepthStencilView(*dsv);
+
+			context->SetOMRenderTargets(1, &rtv->GetHandle().GetCPUHandleRef(), true, &dsv->GetHandle().GetCPUHandleRef());
+			context->SetIAPrimiteTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			context->SetRSScizzorRects(1, &swapChain->GetScissorRect());
+			context->SetRSViewports(1, &swapChain->GetViewPort());
+			context->SetPipelineState(pso.GetPipelineState());
+			context->SetRootSignature(rootSignature.GetSignature());
+
+			std::shared_ptr<Camera> cam = camera.lock();
+			context->SetConstantBufferView(1, cam->GetBuffer().GetGPUAddress());
+			context->SetShaderResourceView(3, tfAddress);
+
+			/*resourceEngine->renderPassList.GetGraphicList()->OMSetRenderTargets(1, &rtv->GetHandle().GetCPUHandleRef(), true, &dsv->GetHandle().GetCPUHandleRef());
 			resourceEngine->renderPassList.GetGraphicList()->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			resourceEngine->renderPassList.GetGraphicList()->RSSetScissorRects(1, &swapChain->GetScissorRect());
 			resourceEngine->renderPassList.GetGraphicList()->RSSetViewports(1, &swapChain->GetViewPort());
@@ -118,19 +136,28 @@ public:
 			resourceEngine->renderPassList.GetGraphicList()->SetPipelineState(pso.GetPipelineState());
 			resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRootSignature(rootSignature.GetSignature());
 
-			std::shared_ptr<Camera> cam = camera.lock();
 			resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRootConstantBufferView(1, cam->GetBuffer().GetGPUAddress());
+			resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRootShaderResourceView(3, tfAddress);*/
 
 			for (Entity ent : entityIDMap.GetObjects())
 			{
-				resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRootConstantBufferView(0, componentManager.GetComponent<Transform>(ent)->GetBuffer().GetGPUAddress());
-				resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRoot32BitConstant(2, ent.id, 0);
+				Transform* tf = componentManager.GetComponent<Transform>(ent);
+				context->Set32BitRootConstant(0, tf->frameIndex, 0);
+				context->Set32BitRootConstant(2, ent.id, 0);
 				VertexBuffer* vb = vbCache->GetResource(componentManager.GetComponent<Mesh>(ent)->GetID());
+				context->SetIAVertexBuffers(0, 1, &vb->GetView());
+				context->DrawInstanced(vb->GetNumVertices(), 1, 0, 0);
+
+				/*resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRoot32BitConstants(0, 1, (void*)&tf->frameIndex, 0);
+				resourceEngine->renderPassList.GetGraphicList()->SetGraphicsRoot32BitConstant(2, ent.id, 0);
 				resourceEngine->renderPassList.GetGraphicList()->IASetVertexBuffers(0, 1, &vb->GetView());
-				resourceEngine->renderPassList.GetGraphicList()->DrawInstanced(vb->GetNumVertices(), 1, 0, 0);
+				resourceEngine->renderPassList.GetGraphicList()->DrawInstanced(vb->GetNumVertices(), 1, 0, 0);*/
 			}
+			resourceEngine->commandManager->Execute(context);
 
 			resourceEngine->RequestReadback(rtv);
 		}
 	}
+
+	D3D12_GPU_VIRTUAL_ADDRESS tfAddress = 0;
 };

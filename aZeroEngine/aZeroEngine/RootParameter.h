@@ -9,20 +9,11 @@ private:
 	std::vector<D3D12_ROOT_PARAMETER> parameters;
 	D3D12_DESCRIPTOR_RANGE ranges[100] = {};
 	int num = 0;
+
 public:
 	RootParameters() = default;
 
 	~RootParameters() = default;
-
-	/** @brief Resets the root parameter list in order for it to be reused.
-	@return void
-	*/
-	void Reset()
-	{
-		num = 0;
-		ZeroMemory(&ranges, sizeof(ranges));
-		parameters.clear();
-	}
 
 	/** @brief Returns a pointer to the start of the parameter list.
 	@return D3D12_ROOT_PARAMETER*
@@ -32,7 +23,7 @@ public:
 	/** @brief Returns the number of parameters within the list.
 	@return int
 	*/
-	int GetParameterNum() { return (int)parameters.size(); }
+	int GetParameterNum() { return static_cast<int>(parameters.size()); }
 
 	/** @brief Adds a descriptor table with the specified arguments to the parameter list.
 	@param _rangeType D3D12_DESCRIPTOR_RANGE_TYPE of the descriptor table.
@@ -45,7 +36,7 @@ public:
 	*/
 	void AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE _rangeType, UINT _baseShaderRegister, UINT _numDescriptors = 1, D3D12_SHADER_VISIBILITY _shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT _offsetFromStart = 0, UINT _registerSpace = 0)
 	{
-		D3D12_DESCRIPTOR_RANGE range{ _rangeType, _numDescriptors, _baseShaderRegister, _registerSpace, _offsetFromStart };
+		const D3D12_DESCRIPTOR_RANGE range{ _rangeType, _numDescriptors, _baseShaderRegister, _registerSpace, _offsetFromStart };
 		ranges[num] = range;
 		D3D12_ROOT_DESCRIPTOR_TABLE table{ 1, &ranges[num] };
 		num++;
@@ -62,7 +53,7 @@ public:
 	*/
 	void AddRootDescriptor(UINT _shaderRegister, D3D12_ROOT_PARAMETER_TYPE _paramType, D3D12_SHADER_VISIBILITY _shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT _registerSpace = 0)
 	{
-		D3D12_ROOT_DESCRIPTOR descriptor{ _shaderRegister, _registerSpace };
+		const D3D12_ROOT_DESCRIPTOR descriptor{ _shaderRegister, _registerSpace };
 		D3D12_ROOT_PARAMETER param;
 		param.Descriptor = descriptor;
 		param.ParameterType = _paramType;
@@ -79,7 +70,7 @@ public:
 	*/
 	void AddRootConstants(UINT _shaderRegister, UINT _num32BitValues, D3D12_SHADER_VISIBILITY _shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT _registerSpace = 0)
 	{
-		D3D12_ROOT_CONSTANTS constants{ _shaderRegister, _registerSpace, _num32BitValues };
+		const D3D12_ROOT_CONSTANTS constants{ _shaderRegister, _registerSpace, _num32BitValues };
 		D3D12_ROOT_PARAMETER param;
 		ZeroMemory(&param, sizeof(D3D12_ROOT_PARAMETER));
 		param.Constants = constants;

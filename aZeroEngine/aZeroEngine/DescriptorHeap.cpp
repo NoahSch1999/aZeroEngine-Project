@@ -63,7 +63,7 @@ std::vector<DescriptorHandle> DescriptorHeap::GetDescriptorHandles(int _numHandl
 
 void DescriptorHeap::FreeDescriptorHandle(DescriptorHandle& _handle)
 {
-	int temp = -1;
+	int temp = _handle.GetHeapIndex();
 	descriptorList.ReturnKey(temp);
 	_handle.SetHeapIndex(temp);
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <string>
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "SwapChain.h"
 #include "InputHandler.h"

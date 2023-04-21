@@ -12,4 +12,5 @@ void CommandList::Init(ID3D12Device* _device, CommandAllocator& _allocator)
 	if (FAILED(hr))
 		throw;
 	graphic = (ID3D12GraphicsCommandList*)basic.Get();
+	graphic->Close();
 }

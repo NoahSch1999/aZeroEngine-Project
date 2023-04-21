@@ -1,30 +1,21 @@
 #include "PipelineState.h"
 #include "HelperFunctions.h"
 
-PipelineState::PipelineState()
-{
-}
-
-PipelineState::~PipelineState()
-{
-	pipelineState->Release();
-}
-
 // Only works for backbuffer as render target...
 void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, const RasterState& _rasterState, int _numRenderTargets, 
 	DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat, const std::wstring& _vsPath, const std::wstring& _psPath, 
-	const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath, bool _enableBlending,
+	const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath, bool _test, bool _enableBlending,
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE _primitiveType)
 {
 
 	// use constructor / init list...
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
 	ZeroMemory(&desc, sizeof(desc));
-	ID3DBlob* vShader = Helper::LoadBlobFromFile(_vsPath);
-	ID3DBlob* pShader = nullptr;
-	ID3DBlob* dShader = nullptr;
-	ID3DBlob* hShader = nullptr;
-	ID3DBlob* gShader = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> vShader = Helper::LoadBlobFromFile(_vsPath);
+	Microsoft::WRL::ComPtr<ID3DBlob> pShader = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> dShader = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> hShader = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> gShader = nullptr;
 
 	if (!_psPath.empty())
 	{
@@ -53,56 +44,49 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, c
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
 	desc.RasterizerState = _rasterState.GetDesc();
 
-	D3D12_RENDER_TARGET_BLEND_DESC rtvBlend;
-	ZeroMemory(&rtvBlend, sizeof(D3D12_RENDER_TARGET_BLEND_DESC));
-	rtvBlend.BlendEnable = _enableBlending;
-	rtvBlend.LogicOpEnable = false;
+	//D3D12_RENDER_TARGET_BLEND_DESC rtvBlend;
+	//ZeroMemory(&rtvBlend, sizeof(D3D12_RENDER_TARGET_BLEND_DESC));
+	//rtvBlend.BlendEnable = _enableBlending;
+	//rtvBlend.LogicOpEnable = false;
 
-	rtvBlend.SrcBlend = D3D12_BLEND::D3D12_BLEND_SRC_ALPHA;
-	rtvBlend.DestBlend = D3D12_BLEND::D3D12_BLEND_INV_SRC_ALPHA;
-	rtvBlend.BlendOp = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
+	//rtvBlend.SrcBlend = D3D12_BLEND::D3D12_BLEND_SRC_ALPHA;
+	//rtvBlend.DestBlend = D3D12_BLEND::D3D12_BLEND_INV_SRC_ALPHA;
+	//rtvBlend.BlendOp = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
 
-	rtvBlend.SrcBlendAlpha = D3D12_BLEND::D3D12_BLEND_ZERO;
-	rtvBlend.DestBlendAlpha = D3D12_BLEND::D3D12_BLEND_SRC_ALPHA;
-	rtvBlend.BlendOpAlpha = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
+	//rtvBlend.SrcBlendAlpha = D3D12_BLEND::D3D12_BLEND_ZERO;
+	//rtvBlend.DestBlendAlpha = D3D12_BLEND::D3D12_BLEND_SRC_ALPHA;
+	//rtvBlend.BlendOpAlpha = D3D12_BLEND_OP::D3D12_BLEND_OP_ADD;
 
-	rtvBlend.LogicOp = D3D12_LOGIC_OP::D3D12_LOGIC_OP_SET;
-	rtvBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	//rtvBlend.LogicOp = D3D12_LOGIC_OP::D3D12_LOGIC_OP_SET;
+	//rtvBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	D3D12_BLEND_DESC blendDesc;
-	ZeroMemory(&blendDesc, sizeof(D3D12_BLEND_DESC));
-	blendDesc.AlphaToCoverageEnable = _enableBlending;
-	blendDesc.IndependentBlendEnable = false;
-	blendDesc.RenderTarget[0] = rtvBlend;
+	//D3D12_BLEND_DESC blendDesc;
+	//ZeroMemory(&blendDesc, sizeof(D3D12_BLEND_DESC));
+	//blendDesc.AlphaToCoverageEnable = _enableBlending;
+	//blendDesc.IndependentBlendEnable = false;
+	//blendDesc.RenderTarget[0] = rtvBlend;
 
-	desc.BlendState = blendDesc;
+	desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	desc.SampleMask = UINT_MAX;
 	desc.PrimitiveTopologyType = _primitiveType;
 	desc.NumRenderTargets = _numRenderTargets;
 	desc.RTVFormats[0] = _rtvFormat;
+
+	if (_test)
+	{
+		desc.NumRenderTargets = 2;
+		desc.RTVFormats[0] = _rtvFormat;
+		desc.RTVFormats[1] = DXGI_FORMAT_R32_SINT;
+	}
+
 	desc.DSVFormat = _dsvFormat;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 
-	HRESULT hr = _device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipelineState));
+	HRESULT hr = _device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(pipelineState.GetAddressOf()));
 	if (FAILED(hr))
 		throw;
-
-	if(vShader)
-		vShader->Release();
-
-	if (pShader)
-		pShader->Release();
-
-	if (dShader)
-		dShader->Release();
-
-	if (hShader)
-		hShader->Release();
-
-	if (gShader)
-		gShader->Release();
 
 #ifdef _DEBUG
 	const std::wstring str(_vsPath + _psPath + _dsPath + _hsPath + _gsPath);

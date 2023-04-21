@@ -1,7 +1,9 @@
-cbuffer World : register(b0)
+cbuffer PerDraw : register(b0)
 {
-    float4x4 world;
+    int worldIndex;
 }
+
+StructuredBuffer<float4x4> transforms : register(t1, space0);
 
 cbuffer Camera : register(b1)
 {
@@ -33,6 +35,8 @@ struct VertexOut
 
 VertexOut main(VertexIn input)
 {
+    float4x4 world = transforms[worldIndex];
+    
     VertexOut output;
     output.position = mul(world, float4(input.position, 1.f));
     output.worldPosition = output.position.xyz;

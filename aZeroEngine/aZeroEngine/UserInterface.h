@@ -1,16 +1,14 @@
 #pragma once
-#include "../ImGui/imgui.h"
-#include "../ImGui/backends/imgui_impl_win32.h"
-#include "../ImGui/backends/imgui_impl_dx12.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
 #include <dxgi1_4.h>
 #include <tchar.h>
 #include <Psapi.h>
 #include "CommandList.h"
 #include "DescriptorHandle.h"
 #include "ImGuizmo.h"
-
-
-//#include <ShObjIdl_core.h>
 
 #ifdef _DEBUG
 #define DX12_ENABLE_DEBUG_LAYER

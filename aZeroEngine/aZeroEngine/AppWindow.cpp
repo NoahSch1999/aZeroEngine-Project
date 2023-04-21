@@ -30,9 +30,6 @@ Vector2 AppWindow::GetWindowSize()
 
 LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 {
-	static bool minimized = false;
-	static bool paused = false;
-
 	if (ImGui_ImplWin32_WndProcHandler(_hWnd, _msg, _wParam, _lParam))
 		return true;
 

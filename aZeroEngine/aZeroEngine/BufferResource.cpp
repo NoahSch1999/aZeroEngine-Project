@@ -33,4 +33,10 @@ void BufferResource::Init(ID3D12Device* _device, CommandList& _copyList, int _wi
 
 
 	gpuAddress = gpuOnlyResource->GetGPUVirtualAddress();
+
+#ifdef _DEBUG
+	gpuOnlyResource->SetName(L"Main Buffer");
+	uploadResource->SetName(L"Upload Buffer");
+#endif // _DEBUG
+
 }

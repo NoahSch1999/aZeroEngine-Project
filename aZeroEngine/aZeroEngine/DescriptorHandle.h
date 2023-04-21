@@ -16,10 +16,10 @@ public:
 	/** Sets both GPU and CPU handles to NULL and the descriptor heap index to -1.
 	*/
 	DescriptorHandle()
+		:heapIndex(-1)
 	{
 		cpuHandle.ptr = NULL;
 		gpuHandle.ptr = NULL;
-		heapIndex = -1;
 	}
 
 	/** Copies the input data to the gpu handle, CPU handle, and heap index.
@@ -28,10 +28,8 @@ public:
 	@param _heapIndex Index to set the internal heap index to.
 	*/
 	DescriptorHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& _cpuHandle, const D3D12_GPU_DESCRIPTOR_HANDLE& _gpuHandle, int _heapIndex)
+		:cpuHandle(_cpuHandle), gpuHandle(_gpuHandle), heapIndex(_heapIndex)
 	{
-		cpuHandle = _cpuHandle;
-		gpuHandle = _gpuHandle;
-		heapIndex = _heapIndex;
 	}
 
 	/** Copies the input data to the CPU handle and heap index. Sets the GPU handle to NULL.
@@ -39,10 +37,9 @@ public:
 	@param _heapIndex Index to set the internal heap index to.
 	*/
 	DescriptorHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& _cpuHandle, int _heapIndex)
+		:cpuHandle(_cpuHandle), heapIndex(_heapIndex)
 	{
-		cpuHandle = _cpuHandle;
 		gpuHandle.ptr = NULL;
-		heapIndex = _heapIndex;
 	}
 
 	~DescriptorHandle() = default;
@@ -84,7 +81,7 @@ public:
 	/** Returns a constant copy of the heap index.
 	@return void
 	*/
-	const int GetHeapIndex() const { return heapIndex; }
+	int GetHeapIndex() const { return heapIndex; }
 
 	/** Returns a reference to the CPU handle.
 	@return void

@@ -22,6 +22,8 @@ public:
 
 		ui->SetCamera(camera);
 		engine->SetCamera(camera);
+
+		engine->GetResourceEngine().EndCopy();
 	}
 
 	~LevelEditor()
@@ -33,7 +35,9 @@ public:
 		Timer timer;
 		timer.StartCountDown();
 
-		std::shared_ptr<Scene> testScene = nullptr;
+		engine->GetResourceEngine().BeginCopy();
+		ui->currentScene = engine->LoadScene("../scenes/", "NewScene");
+		engine->GetResourceEngine().EndCopy();
 
 		while (!WINDOWQUIT)
 		{
@@ -47,7 +51,7 @@ public:
 				editorMode = !editorMode;
 				ui->ToggleEditorMode();
 				engine->DisplayCursor(editorMode);
-			//	engine->ConfineCursor(!editorMode);
+
 				if(camera)
 					camera->ToggleActive(!editorMode);
 			}
@@ -60,18 +64,22 @@ public:
 					camera->Update(timer.deltaTime, (float)clientDimensions.x / (float)clientDimensions.y);
 				}
 			}
-
-			/*if (!ImGui::IsAnyItemHovered())
+			
+			if (InputManager::MouseBtnDown(LEFT))
 			{
-				if (InputManager::MouseBtnDown(LEFT))
+				if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 				{
-					std::optional<Vector2> mousePos = engine->GetMouseWindowPosition();
-					if (mousePos)
+					if (!ImGuizmo::IsOver())
 					{
-						ui->SetSelectedEntity(engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y));
+						std::optional<Vector2> mousePos = engine->GetMouseWindowPosition();
+						if (mousePos)
+						{
+							ui->SetSelectedEntity(engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y));
+							std::cout << engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y) << "\n";
+						}
 					}
 				}
-			}*/
+			}
 
 			if (InputManager::KeyHeld('R') && InputManager::KeyHeld(VK_CONTROL))
 			{

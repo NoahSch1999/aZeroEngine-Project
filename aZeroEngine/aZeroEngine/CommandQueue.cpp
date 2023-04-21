@@ -43,7 +43,7 @@ void CommandQueue::Init(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type, D3
 UINT64 CommandQueue::Execute(CommandList& _cmdList)
 {
 	// Close the graphics list to enable execution
-	_cmdList.CloseGraphic();
+	//_cmdList.CloseGraphic();
 
 	// Execute the command list
 	ID3D12CommandList* cmdLists = { _cmdList.GetBaseList() };

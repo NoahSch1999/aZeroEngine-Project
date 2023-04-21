@@ -1,7 +1,7 @@
 #define myTex2DSpace space1
 #define myTexCubeSpace space2
 
-cbuffer PBRConstants : register(b0)
+struct MaterialConstants
 {
     int albedoMapIndex;
     int roughnessMapIndex;
@@ -10,6 +10,8 @@ cbuffer PBRConstants : register(b0)
     float roughnessFactor;
     float metallicFactor;
 };
+
+StructuredBuffer<MaterialConstants> materials : register(t1, space0);
 
 // Lights
 cbuffer LightConstants : register(b1)
@@ -33,6 +35,8 @@ cbuffer ShadowMap : register(b3)
 cbuffer PerDrawConstants : register(b4)
 {
     int receiveShadows;
+    int materialIndex;
+    int pickingID;
 }
 
 cbuffer DirectionalLight : register(b5)
@@ -161,41 +165,46 @@ float3 CalcPBRPointLight(PointLight _pLight, float3 _albedoColor, float3 _fragNo
     return (diffuseBRDF + specBRDF) * lightIntensity * nDotL;
 }
 
-float4 main(FragmentInput input) : SV_Target
+struct Output
 {
+    float4 fragmentColor : SV_TARGET0;
+    int pickingOutput : SV_TARGET1;
+};
+
+Output main(FragmentInput input)/* : SV_Target*/
+{
+    MaterialConstants matData = materials[materialIndex];
+    
     SamplerState basicSampler = SamplerDescriptorHeap[0];
     float3 fragNDCPos = input.position;
     float3 fragWorldPos = input.worldPosition;
     
     float3 fragNormal = input.normal;
     
-    if(normalMapIndex != -1)
+    if (matData.normalMapIndex != -1)
     {
-        Texture2D<float4> normalTexture = ResourceDescriptorHeap[normalMapIndex];
-      //  fragNormal = Texture2DTable[normalMapIndex].Sample(basicSampler, input.uv);
+        Texture2D<float4> normalTexture = ResourceDescriptorHeap[matData.normalMapIndex];
         fragNormal = normalTexture.Sample(basicSampler, input.uv);
         fragNormal = normalize(fragNormal * 2.0 - 1.0);
         fragNormal = normalize(mul(fragNormal, input.TBN));
     }
     
-    Texture2D<float4> albedoTexture = ResourceDescriptorHeap[albedoMapIndex];
+    Texture2D<float4> albedoTexture = ResourceDescriptorHeap[matData.albedoMapIndex];
     float4 albedoColor = albedoTexture.Sample(basicSampler, input.uv);
     albedoColor = pow(albedoColor, 2.2f);
     
-    float roughness = roughnessFactor;
-    if(roughnessMapIndex != -1)
+    float roughness = matData.roughnessFactor;
+    if (matData.roughnessMapIndex != -1)
     {
-        Texture2D<float4> roughnessTexture = ResourceDescriptorHeap[roughnessMapIndex];
+        Texture2D<float4> roughnessTexture = ResourceDescriptorHeap[matData.roughnessMapIndex];
         roughness = roughnessTexture.Sample(basicSampler, input.uv).x;
-        //roughness = Texture2DTable[roughnessMapIndex].Sample(basicSampler, input.uv).x;
     }
     
-    float metallic = metallicFactor;
-    if (metallicMapIndex != -1)
+    float metallic = matData.metallicFactor;
+    if (matData.metallicMapIndex != -1)
     {
-        Texture2D<float4> metallicTexture = ResourceDescriptorHeap[metallicMapIndex];
+        Texture2D<float4> metallicTexture = ResourceDescriptorHeap[matData.metallicMapIndex];
         metallic = metallicTexture.Sample(basicSampler, input.uv).x;
-       // metallic = Texture2DTable[metallicMapIndex].Sample(basicSampler, input.uv).x;
     }
     
     float3 totalLighting = float3(0.f, 0.f, 0.f);
@@ -207,7 +216,7 @@ float4 main(FragmentInput input) : SV_Target
     totalLighting = totalLighting / (totalLighting + float3(1.f, 1.f, 1.f));
     
     float shadow = 1.f;
-    if (receiveShadows == 1) // If receive shadows is true
+    if (/*receiveShadows == 1*/false) // If receive shadows is true
     {
         float3 projCoords = input.lightPosition.xyz / input.lightPosition.w;
         float2 sampleIndices = float2(0.5f * projCoords.x + 0.5f, -0.5f * projCoords.y + 0.5f);
@@ -229,5 +238,8 @@ float4 main(FragmentInput input) : SV_Target
     
     totalLighting *= shadow;
     
-    return float4(totalLighting, albedoColor.a);
+    Output output;
+    output.fragmentColor = float4(totalLighting, /*albedoColor.a*/1);
+    output.pickingOutput = pickingID;
+    return output;
 }

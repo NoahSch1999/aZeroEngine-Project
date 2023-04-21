@@ -9,6 +9,8 @@
 #include "LightManager.h"
 #include "AppWindow.h"
 #include "Camera.h"
+#include "LinearResourceAllocator.h"
+#include "ParentSystem.h"
 
 /** @brief Handles the rendering of bound Entity objects.
 * Uses dependency injection to access neccessary engine objects.
@@ -36,6 +38,9 @@ private:
 	// Geometry Pass
 	DepthStencil geoPassDSV;
 
+	// Picking
+	std::shared_ptr<RenderTarget> pickingRTV;
+
 	PipelineState pbrPso;
 	RootSignature pbrRootSig;
 
@@ -58,7 +63,19 @@ private:
 	
 	std::weak_ptr<Camera> mainCamera;
 
+	struct PixelDrawConstantsPBR
+	{
+		int receiveShadows = 1;
+		int materialIndex = 0;
+		int pickingID = 0;
+	};
+
 public:
+
+	std::unique_ptr<LinearResourceAllocator<Matrix>> transformAllocator;
+	std::unique_ptr<LinearResourceAllocator<PBRMaterialInfo>> pbrMaterialAllocator;
+	ParentSystem* parentSystem = nullptr;
+
 	void SetBackBuffer(RenderTarget* _currentBackBuffer) { currentBackBuffer = _currentBackBuffer; }
 
 	void SetMainCameraGeo(std::weak_ptr<Camera> _camera) { mainCamera = _camera; }
@@ -77,4 +94,23 @@ public:
 
 	// Inherited via ECSystem
 	virtual void Update() override;
+
+	int GetPickingID(int _xPos, int _yPos)
+	{
+		if (!pickingRTV->GetReadbackData())
+			return -1;
+
+		// Return early if _xPos and _yPos are bigger than swapchain width and height
+		if (_xPos > pickingRTV->GetDimensions().x || _yPos > pickingRTV->GetDimensions().y
+			|| _xPos < 0 || _yPos < 0)
+			return -1;
+
+		int index = _xPos * pickingRTV->GetTexelSize() + _yPos * pickingRTV->GetRowPitch();
+
+		int data = 0;
+
+		memcpy(&data, (char*)pickingRTV->GetReadbackData() + index, 4);
+
+		return data;
+	}
 };

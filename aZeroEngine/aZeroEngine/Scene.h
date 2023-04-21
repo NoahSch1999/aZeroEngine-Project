@@ -14,66 +14,109 @@
 class Scene
 {
 private:
-	ECS* ecs;
-	VertexBufferCache* vbCache;
-	MaterialManager* mManager;
-	Texture2DCache* textureCache;
-	LightSystem* lSystem;
-	ResourceEngine* resourceEngine = nullptr;
+	ECS* ecs = nullptr;
+	VertexBufferCache* vbCache = nullptr;
+	MaterialManager* mManager = nullptr;
+	LightSystem* lSystem = nullptr;
 
 	std::string name = "";
 	std::unordered_map<int, std::string> entityIdToName;
 	std::unordered_map<std::string, int> entityNameToId;
 	SlottedMap<Entity> entities;
 
-public:
+	bool loaded = false;
 
+private:
+	std::string CheckName(const std::string _name) const;
+	void ShutDown();
+
+public:
 	Scene() = default;
 
-	Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, Texture2DCache* _textureCache, 
-		LightSystem* _lSystem, ID3D12Device* _device, ResourceEngine* _resourceEngine)
-		:ecs(_ecs), vbCache(_vbCache), textureCache(_textureCache), mManager(_mManager), lSystem(_lSystem), 
-		resourceEngine(_resourceEngine) { }
+	/**Uses dependency injection for the neccessary objects used within the Scene class.
+	@param _ecs The ECS instance to use within the Scene for all operations which handles Entity modification, creation, deletion, and more...
+	@param _vbCache The VertexBufferCache instance to retrieve neccessary VertexBuffer object's from when loading and saving the Scene
+	@param _mManager The MaterialManager instance to retrieve neccessary Material object's from when loading and saving the Scene
+	@param _lSystem The LightSystem instance to retrieve neccessary light object's from when loading and saving the Scene
+	@return void
+	*/
+	Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, 
+		LightSystem* _lSystem)
+		:ecs(_ecs), vbCache(_vbCache), mManager(_mManager), lSystem(_lSystem)
+		{ }
 
 	~Scene();
 
 	Scene(Scene&& _other) noexcept;
 
-	void Save(const std::string& _fileDirectory, const std::string& _fileName);
-
-	// add constructor version
-	bool Load(const std::string& _fileDirectory, const std::string& _fileName);
-
-	SlottedMap<Entity>& GetEntityMap() { return entities; }
-
-	int FindRec(int _num);
-
+	// Getters / Setters
 	std::string GetName() const { return name; }
 	void SetName(const std::string& _name) { name = _name; }
+	Entity& GetEntity(const std::string& _name) { return *entities.GetObjectByID(entityNameToId.at(_name)); }
+	Entity& GetEntity(int _ID) { return *entities.GetObjectByID(_ID); }
+	std::optional<std::string> GetEntityName(Entity _entity) const;
+	std::vector<Entity>& GetEntityVector() { return entities.GetObjects(); }
 
-	Entity& CreateEntity();
+	/**Saves the contents of the Scene object into a .azs file inside the specified directory and with the specified name.
+	@param _fileDirectory The directory to save the scene file to
+	@param _fileName The name of the scene file without the extension
+	@param _textureCache The Texture2DCache to retrieve an Entity object's Material Texture2D names from
+	@return void
+	*/
+	void Save(const std::string& _fileDirectory, const std::string& _fileName, Texture2DCache* _textureCache);
+
+	/**Loads a scene file and store it's contents inside the class.
+	* It will clear the contents of the Scene object and then load the new scene file if the object has been loaded earlier.
+	@param _fileDirectory The directory containing the scene file
+	@param _fileName The name of the scene file without the extension
+	@return bool TRUE: The Scene was successfully loaded, FALSE: The Scene failed to be loaded
+	*/
+	bool Load(const std::string& _fileDirectory, const std::string& _fileName);
+
+	/**Generates a new Entity with a transform component and returns the reference to it.
+	* The name of the Entity will be slightly modified if the name is already taken.
+	@param _name Name of the new Entity
+	@return Entity&
+	*/
 	Entity& CreateEntity(const std::string& _name);
 
-	void DeleteEntity(const std::string& _name);
+	/**Removes the Entity from the Scene if it exists.
+	@param _ID The unique ID of the Entity to remove
+	@return void
+	*/
 	void DeleteEntity(int _ID);
 
-	Entity& GetEntity(const std::string& _name);
-	Entity& GetEntity(int _ID);
+	/**Removes the Entity from the Scene if it exists.
+	@param _name The unique name of the Entity to remove
+	@return void
+	*/
+	void DeleteEntity(const std::string& _name);
 
-	bool EntityExists(const std::string& _name) const;
-
-	std::string GetEntityName(Entity _entity) const;
-	void RenameEntity(const std::string& _oldName, const std::string& _newName);
-
-	std::string CheckName(const std::string _name) const;
+	/**Returns whether or not an Entity with the specified name exists in the Scene.
+	@param _name Name of the Entity to look for
+	@return bool TRUE: The Entity exist, FALSE: The Entity doesn't exist
+	*/
+	bool EntityExists(const std::string& _name) const { return entityNameToId.count(_name) > 0; }
+	
+	/**Renames the input Entity if the name isn't already taken by another Entity within the same Scene.
+	@param _entity The Entity to change the name of
+	@param _newName The new name of the Entity
+	@return void
+	*/
+	void RenameEntity(const Entity& _entity, const std::string& _newName);
 
 	/**Registers a default Mesh component for the specified Entity object and binds the Entity to the appropriate systems.
 	@param _entityName The Entity to register a mesh component for
+	@param _data The initial data for the registered component
 	@return void
 	*/
 	template<typename T>
-	void AddComponentToEntity(Entity& _entity, const T& _data){ ecs->RegisterComponent(_entity, _data); }
+	void AddComponentToEntity(Entity& _entity, const T& _data) { ecs->RegisterComponent(_entity, _data); }
 
+	/**Registers a default Mesh component for the specified Entity object WITHOUT binding it to the appropriate systems.
+	@param _entityName The Entity to register a mesh component for
+	@return void
+	*/
 	template<typename T>
 	void AddComponentToEntity(Entity& _entity) { ecs->RegisterComponent<T>(_entity); }
 
@@ -95,19 +138,11 @@ public:
 		ecs->UnregisterComponent<T>(_entity);
 	}
 
-	/**
-	* HAS TO BE DEFINED!
+	/**Returns a pointer for the input Entity objects component specified by the template parameter.
+	* Returns nullptr if the Entity doesn't have a component of the specified type registered.
+	@param _entity The Entity to get the component for
+	@return T*
 	*/
-	template<typename T>
-	void UpdateComponentForEntity(Entity _entity, const T& _data)
-	{
-		ecs->UpdateComponent(_entity, _data);
-
-		// constexpr if T is pointlight (non-component) -> get component -> update with input _data
-		// override transform "=" so that the id3d12resource doesnt get copied, but only the data
-		// if constexpr T is transform, update the cb 
-	}
-
 	template<typename T>
 	T* GetComponentForEntity(Entity _entity) { return ecs->GetComponent<T>(_entity); }
 };

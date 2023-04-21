@@ -40,22 +40,22 @@ public:
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetResourceHeap() { return resourceHeap.GetHeap(); }
+	ID3D12DescriptorHeap* GetResourceHeap() const { return resourceHeap.GetHeap(); }
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetSamplerHeap() { return samplerHeap.GetHeap(); }
+	ID3D12DescriptorHeap* GetSamplerHeap() const { return samplerHeap.GetHeap(); }
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_RTV descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetRTVHeap() { return rtvHeap.GetHeap(); }
+	ID3D12DescriptorHeap* GetRTVHeap() const { return rtvHeap.GetHeap(); }
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_DSV descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetDSVHeap() { return dsvHeap.GetHeap(); }
+	ID3D12DescriptorHeap* GetDSVHeap() const { return dsvHeap.GetHeap(); }
 
 	/** Returns a new unused DescriptorHandle for D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV resources.
 	@return DescriptorHandle

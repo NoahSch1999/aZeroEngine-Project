@@ -7,6 +7,7 @@
 #include "StructuredBuffer.h"
 #include "CommandQueue.h"
 #include "DescriptorManager.h"
+#include "CommandContext.h"
 
 /** @brief Handles everything related to descriptors, resources, and command queues in a GPU/CPU safe fashion.
 */
@@ -18,11 +19,6 @@ private:
 
 	DescriptorManager descriptorManager;
 
-	CommandAllocator copyAllocator;
-	CommandAllocator renderPassAllocator;
-
-	CommandQueue directQueue;
-	CommandQueue copyQueue;
 	UINT frameIndex = 0;
 	UINT frameCount = 0;
 
@@ -31,24 +27,14 @@ private:
 	std::vector<std::shared_ptr<TextureResource>> readbackTextures;
 
 public:
-
-	CommandList renderPassList;
-	CommandList copyList;
+	std::shared_ptr<CopyCommandContext> copyContext = nullptr;
+	std::unique_ptr<CommandManager> commandManager;
 
 	// Getters :(
 	DescriptorManager& GetDescriptorManager() { return descriptorManager; }
 	ID3D12DescriptorHeap* GetResourceHeap() { return descriptorManager.GetResourceHeap(); }
 	ID3D12DescriptorHeap* GetSamplerHeap() { return descriptorManager.GetSamplerHeap(); }
-
-	/** Returns the ID3D12CommandQueue used for direct commands.
-	@return ID3D12CommandQueue
-	*/
-	ID3D12CommandQueue* GetDirectQueue() { return directQueue.GetQueue(); }
-
-	/** Returns the ID3D12CommandQueue used for copy commands.
-	@return ID3D12CommandQueue
-	*/
-	ID3D12CommandQueue* GetCopyQueue() { return copyQueue.GetQueue(); }
+	ID3D12Device* GetDevice() { return device; }
 
 	//
 
@@ -72,6 +58,16 @@ public:
 	@return void
 	*/
 	void BeginFrame() { frameIndex = frameCount % 3; }
+
+	void BeginCopy()
+	{
+		copyContext = commandManager->GetCopyContext();
+	}
+
+	UINT64 EndCopy()
+	{
+		return commandManager->Execute(copyContext);
+	}
 
 	/** Should be called rigth before the end of each frame.
 	* Updates neccessary frame data for the ResourceEngine methods.
@@ -101,7 +97,7 @@ public:
 	wait (except every 3rd frame (when ResourceEngine::GetFrameIndex() returns 0)).
 	@return void
 	*/
-	void FlushDirectQueue() { directQueue.StallCPU(lastSignal); }
+	//void FlushDirectQueue() { directQueue.StallCPU(lastSignal); }
 
 	/** Initializes the input ConstantBuffer with the provided data.
 	@param _resource ConstantBuffer object to initialize.
@@ -113,7 +109,7 @@ public:
 	*/
 	void CreateResource(ConstantBuffer& _resource, void* _data, int _numBytes, bool _dynamic = true, bool _tripple = true)
 	{
-		_resource.Init(device, copyList, _data, _numBytes, _dynamic, _tripple);
+		_resource.Init(device, copyContext->GetList(), _data, _numBytes, _dynamic, _tripple);
 		if (!_dynamic)
 			RemoveResource(_resource.GetUploadResource());
 	}
@@ -129,7 +125,7 @@ public:
 	*/
 	void CreateResource(StructuredBuffer& _resource, void* _data, int _numBytes, int _numElements, int _dynamic = true, int _tripple = true)
 	{
-		_resource.Init(device, copyList, _data, _numBytes, _numElements, _dynamic, _tripple);
+		_resource.Init(device, copyContext->GetList(), _data, _numBytes, _numElements, _dynamic, _tripple);
 		if (!_dynamic)
 			RemoveResource(_resource.GetUploadResource());
 	}
@@ -184,7 +180,7 @@ public:
 		UINT _height, UINT _channels, DXGI_FORMAT _format, const std::string& _name)
 	{
 		Microsoft::WRL::ComPtr<ID3D12Resource>& tempInterm = GetFrameResource();
-		_resource.Init(device, renderPassList, copyList, tempInterm, descriptorManager.GetResourceDescriptor(), 
+		_resource.Init(device, copyContext->GetList(), copyContext->GetList(), tempInterm, descriptorManager.GetResourceDescriptor(),
 			_data, _width, _height, _channels, _format, _name);
 	}
 
@@ -198,7 +194,7 @@ public:
 	*/
 	void CreateResource(VertexBuffer& _resource, void* _data, int _numBytes, int _numElements, const std::string& _name)
 	{
-		_resource.Init(device, copyList, _data, _numBytes, _numElements, _name);
+		_resource.Init(device, copyContext->GetList(), _data, _numBytes, _numElements, _name);
 	}
 
 	/** Sets the input non-nullptr BufferResource GPU-only and Upload ID3D12Resource to nullptr and 
@@ -321,13 +317,7 @@ public:
 			UINT64 offset = _resource.GetSizePerSubresource() * frameIndex;
 			memcpy((char*)_resource.GetMappedBuffer() + offset, (char*)_data, _resource.GetSizePerSubresource());
 
-			/*if (_resource.dirty)
-				return;
-
-			_resource.dirty = true;
-			dirtyFlags.emplace_back(&_resource.dirty);*/
-
-			copyList.GetGraphicList()->CopyBufferRegion(_resource.GetGPUOnlyResource().Get(), 0, _resource.GetUploadResource().Get(), offset, _resource.GetSizePerSubresource());
+			copyContext->CopyBufferRegion(_resource.GetGPUOnlyResource().Get(), 0, _resource.GetUploadResource().Get(), offset, _resource.GetSizePerSubresource());
 		}
 	}
 
@@ -342,16 +332,10 @@ public:
 		{
 			UINT64 offset = _resource.GetSizePerSubresource() * frameIndex;
 			memcpy((char*)_resource.GetMappedBuffer() + offset, (char*)_data, _resource.GetSizePerSubresource());
-
-			/*if (_resource.dirty)
-				return;
-
-			_resource.dirty = true;
-			dirtyFlags.emplace_back(&_resource.dirty);*/
 			
 			// Crashes here occasionally for some reason...
 			// Exception thrown at 0x00007FF6775545BB in aZeroEngine.exe: 0xC0000005: Access violation reading location 0x0000019642B4E000.
-			copyList.GetGraphicList()->CopyBufferRegion(_resource.GetGPUOnlyResource().Get(), 0, _resource.GetUploadResource().Get(), offset, _resource.GetSizePerSubresource());
+			copyContext->CopyBufferRegion(_resource.GetGPUOnlyResource().Get(), 0, _resource.GetUploadResource().Get(), offset, _resource.GetSizePerSubresource());
 		}
 	}
 

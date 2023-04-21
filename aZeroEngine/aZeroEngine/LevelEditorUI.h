@@ -18,14 +18,19 @@ private:
 	bool editorMode = false;
 
 	std::weak_ptr<Camera> camera;
-	std::shared_ptr<Scene> currentScene = nullptr;
 	aZero::Engine* engine = nullptr;
 
 private:
+
+	void ShowPerformanceData();
+
 	void SetupVisuals();
 
 	void ShowSceneWindow();
+	
 	void ShowEntityWindow();
+	void ShowEntityHierarchy(const Entity& _current);
+
 	void ShowMaterialWindow();
 	void ShowResourceWindow();
 
@@ -34,11 +39,13 @@ private:
 	std::optional<std::string> LoadPBRMaterialFromDirectory();
 
 public:
+	std::shared_ptr<Scene> currentScene = nullptr;
 
 	LevelEditorUI(const std::string& _name, aZero::Engine* _engine)
 		:UserInterface(_name), engine(_engine) 
 	{
 		SetupVisuals();
+		//currentScene = engine->LoadScene("../scenes/", "NewScene");
 	}
 
 	virtual ~LevelEditorUI() { currentScene.reset(); }

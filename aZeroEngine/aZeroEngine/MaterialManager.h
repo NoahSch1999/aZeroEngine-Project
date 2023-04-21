@@ -1,25 +1,25 @@
 #pragma once
-#include "PhongMaterial.h"
 #include "PBRMaterial.h"
 #include "ResourceEngine.h"
+#include "LinearResourceAllocator.h"
 
 /** @brief This class manages materials.
 * It stores each Material subclass inside their own NameSlottedMap member variable. This member functions then manage those member variables internally.
 * 
 * This class uses dependency injection to minimize the function call parameters. This means that the injected reference should be accessible during the lifetime of this object.
 
-* Functions use template specification to specify which type of material to create, remove, or get (PhongMaterial or PBRMaterial).
+* Functions use template specification to specify which type of material to create, remove, or get.
 * 
 * For each material type, material names have to be unique (there can exist multiple materials with the same name as long as they aren't of the same type).
 */
 class MaterialManager
 {
 private:
-	NamedSlottedMap<PhongMaterial>phongMaterials;
 	NamedSlottedMap<PBRMaterial>pbrMaterials;
 
 	Texture2DCache& textureCache;
 	ResourceEngine& resourceEngine;
+
 public:
 
 	/** The input references to ResourceEngine, DescriptorManager, and Texture2DCache are copied to the member variable references.
@@ -29,17 +29,12 @@ public:
 
 	/** Clears all the stored materials from CPU-memory and calls ResourceEngine::RemoveResource() on the materials constant buffer.
 	*/
-	~MaterialManager();
+	~MaterialManager() = default;
 
 	/** Initiates the MaterialManager object and creates two default materials (one for the Phong shading model and one for the PBR shading model).
 	@return void
 	*/
 	void Init();
-
-	/** Clears all the stored materials from CPU-memory and calls ResourceEngine::RemoveResource() on the materials constant buffer.
-	@return void
-	*/
-	void ShutDown();
 
 	/** Creates a new material and adds it to the internal NameSlottedMap for the template specified material type.
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
@@ -94,25 +89,12 @@ public:
 	template<typename T>
 	int GetReferenceID(const std::string& _materialName) const;
 
-	/** Returns a reference to the (std::string, int) std::unordered_map for the currently stored PhongMaterial objects.
-	* The std::string represents the unique Material name and the int is the ID (the same ID returned by MaterialManager::GetReferenceID()).
-	@param _materialName Name of the material to retrieve ID for.
-	@return std::unordered_map<std::string, int>&
-	*/
-	std::unordered_map<std::string, int>& GetPhongStringToIndexMap();
-
 	/** Returns a reference to the (std::string, int) std::unordered_map for the currently stored PBRMaterial objects.
 	* The std::string represents the unique Material name and the int is the ID (the same ID returned by MaterialManager::GetReferenceID()).
 	@param _materialName Name of the material to retrieve ID for.
 	@return std::unordered_map<std::string, int>&
 	*/
 	std::unordered_map<std::string, int>& GetPBRStringToIndexMap();
-
-	/** Returns a reference to the std::vector which contains all the stored PhongMaterial objects.
-	* All objects are stored consecutively for easy iteration.
-	@return std::vector<PhongMaterial>&
-	*/
-	std::vector<PhongMaterial>& GetPhongMaterials();
 
 	/** Returns a reference to the std::vector which contains all the stored PBRMaterial objects.
 	* All objects are stored consecutively for easy iteration.
@@ -141,150 +123,36 @@ public:
 template<typename T>
 inline void MaterialManager::CreateMaterial(const std::string _materialName)
 {
-	if constexpr (std::is_same_v<T, PhongMaterial>)
-	{
-		phongMaterials.Add(_materialName, PhongMaterial(resourceEngine, textureCache, _materialName));
-
-#ifdef _DEBUG
-		PhongMaterial* mat = phongMaterials.GetObjectByKey(_materialName);
-
-		if (mat)
-		{
-			std::string tName(_materialName + " Phong Main Resource");
-			std::wstring wstrName(tName.begin(), tName.end());
-			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
-
-			tName = _materialName + " Phong Intermediate Resource";
-			wstrName = std::wstring(tName.begin(), tName.end());
-			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
-		}
-
-#endif // _DEBUG
-	}
-	else if constexpr (std::is_same_v<T, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<T, PBRMaterial>)
 		pbrMaterials.Add(_materialName, PBRMaterial(resourceEngine, textureCache, _materialName));
-
-#ifdef _DEBUG
-		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_materialName);
-
-		if (mat)
-		{
-			std::string tName(_materialName + " PBR Main Resource");
-			std::wstring wstrName(tName.begin(), tName.end());
-			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
-
-			tName = _materialName + " PBR Intermediate Resource";
-			wstrName = std::wstring(tName.begin(), tName.end());
-			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
-		}
-
-#endif // _DEBUG
-	}
 }
 
 template<typename T>
 inline void MaterialManager::LoadMaterial(const std::string _materialName)
 {
-	if constexpr (std::is_same_v<T, PhongMaterial>)
-	{
-		phongMaterials.Add(_materialName, PhongMaterial(resourceEngine, textureCache, "../materials/", _materialName));
-
-#ifdef _DEBUG
-		PhongMaterial* mat = phongMaterials.GetObjectByKey(_materialName);
-
-		if (mat)
-		{
-			std::string tName(_materialName + " Phong Main Resource");
-			std::wstring wstrName(tName.begin(), tName.end());
-			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
-
-			tName = _materialName + " Phong Intermediate Resource";
-			wstrName = std::wstring(tName.begin(), tName.end());
-			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
-		}
-
-#endif // _DEBUG
-	}
-	else if constexpr (std::is_same_v<T, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<T, PBRMaterial>)
 		pbrMaterials.Add(_materialName, PBRMaterial(resourceEngine, textureCache, "../materials/", _materialName));
-
-#ifdef _DEBUG
-		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_materialName);
-
-		if (mat)
-		{
-			std::string tName(_materialName + " PBR Main Resource");
-			std::wstring wstrName(tName.begin(), tName.end());
-			mat->GetBuffer().GetGPUOnlyResource()->SetName(wstrName.c_str());
-
-			tName = _materialName + " PBR Intermediate Resource";
-			wstrName = std::wstring(tName.begin(), tName.end());
-			mat->GetBuffer().GetUploadResource()->SetName(wstrName.c_str());
-		}
-
-#endif // _DEBUG
-	}
 }
 
 template<typename MaterialType>
 inline void MaterialManager::RemoveMaterial(const std::string& _key)
 {
-	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
-	{
-		PhongMaterial* mat = phongMaterials.GetObjectByKey(_key);
-		if (mat)
-		{
-			resourceEngine.RemoveResource(mat->GetBuffer());
-			phongMaterials.Remove(_key);
-		}
-	}
-	else if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
-	{
-		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_key);
-		if (mat)
-		{
-			resourceEngine.RemoveResource(mat->GetBuffer());
-			pbrMaterials.Remove(_key);
-		}
-	}
+	if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
+		pbrMaterials.Remove(_key);
 }
 
 template<typename MaterialType>
 inline void MaterialManager::RemoveMaterial(int _key)
 {
-	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
-	{
-		PhongMaterial* mat = phongMaterials.GetObjectByKey(_key);
-		if (mat)
-		{
-			resourceEngine.RemoveResource(mat->GetBuffer());
-			phongMaterials.Remove(_key);
-		}
-	}
-	else if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
-	{
-		PBRMaterial* mat = pbrMaterials.GetObjectByKey(_key);
-		if (mat)
-		{
-			resourceEngine.RemoveResource(mat->GetBuffer());
-			pbrMaterials.Remove(_key);
-		}
-	}
+	if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
+		pbrMaterials.Remove(_key);
 }
 
 template<typename MaterialType>
 inline MaterialType* MaterialManager::GetMaterial(const std::string& _key)
 {
-	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
-	{
-		return phongMaterials.GetObjectByKey(_key);
-	}
-	else if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
 		return pbrMaterials.GetObjectByKey(_key);
-	}
 
 	return nullptr;
 }
@@ -292,14 +160,8 @@ inline MaterialType* MaterialManager::GetMaterial(const std::string& _key)
 template<typename MaterialType>
 inline MaterialType* MaterialManager::GetMaterial(int _key)
 {
-	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
-	{
-		return phongMaterials.GetObjectByKey(_key);
-	}
-	else if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
 		return pbrMaterials.GetObjectByKey(_key);
-	}
 
 	return nullptr;
 }
@@ -307,14 +169,8 @@ inline MaterialType* MaterialManager::GetMaterial(int _key)
 template<typename T>
 inline int MaterialManager::GetReferenceID(const std::string& _materialName) const
 {
-	if constexpr (std::is_same_v<T, PhongMaterial>)
-	{
-		return phongMaterials.GetID(_materialName);
-	}
-	else if constexpr (std::is_same_v<T, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<T, PBRMaterial>)
 		return pbrMaterials.GetID(_materialName);
-	}
 
 	return -1;
 }
@@ -322,14 +178,8 @@ inline int MaterialManager::GetReferenceID(const std::string& _materialName) con
 template<typename MaterialType>
 inline bool MaterialManager::Exists(const std::string& _key) const
 {
-	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
-	{
-		return phongMaterials.Exists(_key);
-	}
-	else if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
 		return pbrMaterials.Exists(_key);
-	}
 
 	return false;
 }
@@ -337,14 +187,8 @@ inline bool MaterialManager::Exists(const std::string& _key) const
 template<typename MaterialType>
 inline bool MaterialManager::Exists(int _key) const
 {
-	if constexpr (std::is_same_v<MaterialType, PhongMaterial>)
-	{
-		return phongMaterials.Exists(_key);
-	}
-	else if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
-	{
+	if constexpr (std::is_same_v<MaterialType, PBRMaterial>)
 		return pbrMaterials.Exists(_key);
-	}
 
 	return false;
 }

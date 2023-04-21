@@ -1,40 +1,39 @@
 #include "Scene.h"
 
-Scene::~Scene()
-{
-	if (resourceEngine)
-	{
-		for (auto& ent : entities.GetObjects())
-		{
-			lSystem->RemoveLight(ent);
-
-			Transform* tf = ecs->GetComponentManager().GetComponent<Transform>(ent);
-			if (tf)
-			{
-				resourceEngine->RemoveResource(tf->GetBuffer());
-			}
-
-			ecs->ObliterateEntity(ent);
-		}
-	}
-}
-
 Scene::Scene(Scene&& _other) noexcept
 {
 	ecs = _other.ecs;
 	vbCache = _other.vbCache;
-	textureCache = _other.textureCache;
 	mManager = _other.mManager;
-	resourceEngine = _other.resourceEngine;
 	name = _other.name;
 	lSystem = _other.lSystem;
 	entities = _other.entities;
 	entityIdToName = _other.entityIdToName;
 	entityNameToId = _other.entityNameToId;
-	_other.resourceEngine = nullptr;
+	_other.loaded = false;
 }
 
-void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName)
+Scene::~Scene()
+{
+	ShutDown();
+}
+
+void Scene::ShutDown()
+{
+	if (loaded)
+	{
+		for (auto& ent : entities.GetObjects())
+		{
+			lSystem->RemoveLight(ent);
+
+			ecs->ObliterateEntity(ent);
+		}
+	}
+
+	loaded = false;
+}
+
+void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName, Texture2DCache* _textureCache)
 {
 	name = _fileName;
 
@@ -81,23 +80,14 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 		{
 			MaterialComponent* matComp = ecs->GetComponentManager().GetComponent<MaterialComponent>(entity);
 
-			if (matComp->type == MATERIALTYPE::PHONG)
-			{
-				file.write((char*)&matComp->type, sizeof(int));
-
-				PhongMaterial* phong = mManager->GetMaterial<PhongMaterial>(matComp->materialID);
-				Helper::WriteToFile(file, phong->GetName());
-
-				phong->Save("..\\materials\\", *textureCache);
-			}
-			else if (matComp->type == MATERIALTYPE::PBR)
+			if (matComp->type == MATERIALTYPE::PBR)
 			{
 				file.write((char*)&matComp->type, sizeof(int));
 
 				PBRMaterial* pbrMat = mManager->GetMaterial<PBRMaterial>(matComp->materialID);
 				Helper::WriteToFile(file, pbrMat->GetName());
 
-				pbrMat->Save("..\\materials\\", *textureCache);
+				pbrMat->Save("..\\materials\\", *_textureCache);
 			}
 		}
 
@@ -120,8 +110,18 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName)
 {
 	std::ifstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios::in | std::ios::binary);
+
 	if (!file.is_open())
 		return false;
+	else
+	{
+		if (loaded)
+		{
+			ShutDown();
+		}
+
+		loaded = true;
+	}
 
 	int numEntities = -1;
 	file.read((char*)&numEntities, sizeof(int));
@@ -142,14 +142,12 @@ bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName
 
 		Entity& tempEnt = CreateEntity(entityName);
 
-		Transform tfTemp;
-		file.read((char*)&tfTemp.GetTranslation(), sizeof(Vector3));
-		file.read((char*)&tfTemp.GetRotation(), sizeof(Vector3));
-		file.read((char*)&tfTemp.GetScale(), sizeof(Vector3));
+		Transform* tf = ecs->GetComponent<Transform>(tempEnt);
+		file.read((char*)&tf->GetTranslation(), sizeof(Vector3));
+		file.read((char*)&tf->GetRotation(), sizeof(Vector3));
+		file.read((char*)&tf->GetScale(), sizeof(Vector3));
 
-		resourceEngine->CreateResource(tfTemp.GetBuffer(), (void*)&tfTemp.Compose(), sizeof(Matrix), true, true);
-		ecs->RegisterComponent<Transform>(tempEnt);
-		ecs->UpdateComponent<Transform>(tempEnt, tfTemp);
+		tf->SetWorldMatrix(tf->GetLocalMatrix());
 
 		if (tempSet.test(COMPONENTENUM::MESH))
 		{
@@ -184,19 +182,7 @@ bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName
 			std::string matName;
 			Helper::ReadFromFile(file, matName);
 
-			if (matComp.type == MATERIALTYPE::PHONG) // can be optimized to remove exists check
-			{
-				if (mManager->Exists<PhongMaterial>(matName))
-				{
-					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
-				}
-				else
-				{
-					mManager->LoadMaterial<PhongMaterial>(matName);
-					matComp.materialID = mManager->GetReferenceID<PhongMaterial>(matName);
-				}
-			}
-			else if (matComp.type == MATERIALTYPE::PBR)
+			if (matComp.type == MATERIALTYPE::PBR)
 			{
 				if (mManager->Exists<PBRMaterial>(matName))
 				{
@@ -242,53 +228,46 @@ bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName
 	return true;
 }
 
-int Scene::FindRec(int _num)
-{
-	if (entityNameToId.count("Entity_" + std::to_string(_num)) > 0)
-	{
-		_num += 1;
-		_num = FindRec(_num);
-	}
-
-	return _num;
-}
-
-std::string Scene::GetEntityName(Entity _entity) const
+std::optional<std::string> Scene::GetEntityName(Entity _entity) const
 {
 	if (entityIdToName.count(_entity.id) > 0)
 		return entityIdToName.at(_entity.id);
-	return "";
-}
-
-Entity& Scene::CreateEntity()
-{
-	Entity tempEnt = ecs->GetEntityManager().CreateEntity();
-	const std::string name = CheckName("Entity_" + std::to_string(tempEnt.id));
-	entities.Add(tempEnt.id, tempEnt);
-	entityNameToId.emplace(name, tempEnt.id);
-	entityIdToName.emplace(tempEnt.id, name);
-	Entity* entity = entities.GetObjectByID(tempEnt.id);
-	std::wstring wName;
-	wName.assign(name.begin(), name.end());
-	Transform tfTemp;
-	resourceEngine->CreateResource(tfTemp.GetBuffer(), (void*)&tfTemp.Compose(), sizeof(Matrix), true, true);
-	AddComponentToEntity<Transform>(*entity, tfTemp);
-
-	return *entity;
+	return {};
 }
 
 Entity& Scene::CreateEntity(const std::string& _name)
 {
-	Entity tempEnt = ecs->GetEntityManager().CreateEntity();
+	Entity tempEnt = ecs->CreateEntity();
 	const std::string name = CheckName(_name);
+
 	entities.Add(tempEnt.id, tempEnt);
-	Entity* entity = entities.GetObjectByID(tempEnt.id);
-	std::wstring wName;
-	wName.assign(name.begin(), name.end());
 	entityIdToName.emplace(tempEnt.id, name);
 	entityNameToId.emplace(name, tempEnt.id);
 
+	Entity* entity = entities.GetObjectByID(tempEnt.id);
+	AddComponentToEntity<Transform>(*entity, Transform());
+
 	return *entities.GetObjectByID(tempEnt.id);
+}
+
+void Scene::DeleteEntity(int _ID)
+{
+	if (!entities.Exists(_ID))
+		return;
+
+	Entity& ent = GetEntity(_ID);
+
+	PointLightComponent* pComp = ecs->GetComponentManager().GetComponent<PointLightComponent>(ent);
+	if (pComp)
+	{
+		lSystem->RemoveLight(ent);
+	}
+
+	entityNameToId.erase(entityIdToName.at(ent.id));
+	entityIdToName.erase(ent.id);
+
+	ecs->ObliterateEntity(ent);
+	entities.Remove(_ID);
 }
 
 void Scene::DeleteEntity(const std::string& _name)
@@ -297,23 +276,6 @@ void Scene::DeleteEntity(const std::string& _name)
 		return;
 
 	Entity& ent = GetEntity(_name);
-	Transform* tf = ecs->GetComponentManager().GetComponent<Transform>(ent);
-	if (tf)
-	{
-		resourceEngine->RemoveResource(tf->GetBuffer());
-	}
-	ecs->ObliterateEntity(ent);
-	entities.Remove(entityNameToId.at(_name));
-}
-
-void Scene::DeleteEntity(int _ID)
-{
-	Entity& ent = GetEntity(_ID);
-	Transform* tf = ecs->GetComponentManager().GetComponent<Transform>(ent);
-	if (tf)
-	{
-		resourceEngine->RemoveResource(tf->GetBuffer());
-	}
 
 	PointLightComponent* pComp = ecs->GetComponentManager().GetComponent<PointLightComponent>(ent);
 	if (pComp)
@@ -321,17 +283,25 @@ void Scene::DeleteEntity(int _ID)
 		lSystem->RemoveLight(ent);
 	}
 
+	entityNameToId.erase(_name);
+	entityIdToName.erase(ent.id);
+
 	ecs->ObliterateEntity(ent);
-	entities.Remove(_ID);
+	entities.Remove(ent.id);
 }
 
-void Scene::RenameEntity(const std::string& _oldName, const std::string& _newName)
+void Scene::RenameEntity(const Entity& _entity, const std::string& _newName)
 {
 	if (entityNameToId.count(_newName) > 0)
 		return;
 
-	entityNameToId.emplace(_newName, entityNameToId.at(_oldName));
-	entityNameToId.erase(_oldName);
+	std::optional<std::string> oldName = GetEntityName(_entity);
+
+	if (!oldName.has_value())
+		return;
+
+	entityNameToId.emplace(_newName, entityNameToId.at(oldName.value()));
+	entityNameToId.erase(oldName.value());
 
 	entityIdToName.at(entityNameToId.at(_newName)) = _newName;
 }
@@ -343,19 +313,4 @@ std::string Scene::CheckName(const std::string _name) const
 		return CheckName(_name + ".");
 	}
 	return std::string(_name);
-}
-
-Entity& Scene::GetEntity(const std::string& _name)
-{
-	return *entities.GetObjectByID(entityNameToId.at(_name));
-}
-
-Entity& Scene::GetEntity(int _ID)
-{
-	return *entities.GetObjectByID(_ID);
-}
-
-bool Scene::EntityExists(const std::string& _name) const
-{
-	return entityNameToId.count(_name) > 0;
 }

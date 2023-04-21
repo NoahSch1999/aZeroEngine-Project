@@ -1,7 +1,7 @@
 #pragma once
 #include "Material.h"
 
-struct PBRMaterialInformation
+struct PBRMaterialInfo
 {
 	int albedoMapIndex = 0;
 	int roughnessMapIndex = -1;
@@ -11,7 +11,7 @@ struct PBRMaterialInformation
 	float metallicFactor = 0.f;
 };
 
-class PBRMaterial : public Material<PBRMaterialInformation>
+class PBRMaterial : public Material<PBRMaterialInfo>
 {
 public:
 	PBRMaterial() = default;
@@ -25,5 +25,4 @@ public:
 	virtual void Save(const std::string& _fileDirectory, const Texture2DCache& _textureCache) const override;
 
 	virtual void Load(ResourceEngine& _resourceEngine, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) override;
-
 };

@@ -6,15 +6,15 @@
 #include "..\assimp\include\assimp\postprocess.h"
 #include "stb_image.h"
 
-ID3DBlob* Helper::LoadBlobFromFile(const std::wstring& _filePath)
+Microsoft::WRL::ComPtr<ID3DBlob> Helper::LoadBlobFromFile(const std::wstring& _filePath)
 {
 	std::ifstream fin(_filePath, std::ios::binary);
 	fin.seekg(0, std::ios_base::end);
 	std::streampos size = fin.tellg();
 	fin.seekg(0, std::ios_base::beg);
 
-	ID3DBlob* blob;
-	HRESULT hr = D3DCreateBlob(size, &blob);
+	Microsoft::WRL::ComPtr<ID3DBlob> blob;
+	HRESULT hr = D3DCreateBlob(size, blob.GetAddressOf());
 	if (FAILED(hr))
 		throw;
 
@@ -305,8 +305,8 @@ void Helper::CreateTextureResource(ID3D12Device* _device, CommandList& _transiti
 
 	UpdateSubresources(_copyList.GetGraphicList(), _gpuOnlyResource.Get(), _intermediateResource.Get(), 0, 0, 1, &sData);
 
-	D3D12_RESOURCE_BARRIER barrier(CD3DX12_RESOURCE_BARRIER::Transition(_gpuOnlyResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, _initState));
-	_transitionList.GetGraphicList()->ResourceBarrier(1, &barrier);
+	/*D3D12_RESOURCE_BARRIER barrier(CD3DX12_RESOURCE_BARRIER::Transition(_gpuOnlyResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, _initState));
+	_transitionList.GetGraphicList()->ResourceBarrier(1, &barrier);*/
 }
 
 void Helper::CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format)

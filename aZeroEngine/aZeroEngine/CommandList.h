@@ -7,8 +7,10 @@ class CommandList
 {
 private:
 	Microsoft::WRL::ComPtr<ID3D12CommandList> basic;
-	ID3D12GraphicsCommandList* graphic;
 	D3D12_COMMAND_LIST_TYPE type;
+
+protected:
+	ID3D12GraphicsCommandList* graphic;
 
 public:
 	CommandList() = default;

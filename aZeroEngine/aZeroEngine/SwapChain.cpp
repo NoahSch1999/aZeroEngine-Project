@@ -34,7 +34,7 @@ SwapChain::SwapChain(ID3D12Device* _device, ResourceEngine& _resourceEngine, HWN
 	fullScreenDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
 	fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 
-	hr = dxgiFactory->CreateSwapChainForHwnd(_resourceEngine.GetDirectQueue(), _windowHandle, &scDesc, nullptr, 0, &swapChain);
+	hr = dxgiFactory->CreateSwapChainForHwnd(/*_resourceEngine.GetDirectQueue()*/_resourceEngine.commandManager->GetGraphicsQueue().GetQueue(), _windowHandle, &scDesc, nullptr, 0, &swapChain);
 	if (FAILED(hr))
 		throw;
 
@@ -57,19 +57,13 @@ SwapChain::SwapChain(ID3D12Device* _device, ResourceEngine& _resourceEngine, HWN
 
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
-	viewport.Width = (FLOAT)_width;
-	viewport.Height = (FLOAT)_height;
+	viewport.Width = static_cast<FLOAT>(_width);
+	viewport.Height = static_cast<FLOAT>(_height);
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 
 	scissorRect.left = 0;
 	scissorRect.top = 0;
-	scissorRect.right = _width;
-	scissorRect.bottom = _height;
-
-//	_resourceEngine.CreateResource(dsv, _width, _height, false);
-//
-//#ifdef _DEBUG
-//	dsv.GetGPUOnlyResource()->SetName(L"Swap Chain Depth Stencil");
-//#endif // DEBUG
+	scissorRect.right = static_cast<LONG>(_width);
+	scissorRect.bottom = static_cast<LONG>(_height);
 }

@@ -42,27 +42,27 @@ public:
 	/** @brief Returns a pointer to the internal heap.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetHeap() { return heap.Get(); }
+	ID3D12DescriptorHeap* GetHeap() const { return heap.Get(); }
 
 	/** @brief Returns the heap type.
 	@return D3D12_DESCRIPTOR_HEAP_TYPE
 	*/
-	D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() { return type; }
+	D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() const { return type; }
 
 	/** @brief Returns the DescriptorHandle of the heaps' start.
 	@return DescriptorHandle
 	*/
-	DescriptorHandle GetStartDescriptorHandle() { return handle; }
+	DescriptorHandle GetStartDescriptorHandle() const { return handle; }
 
 	/** @brief Returns the descriptor size.
 	@return int
 	*/
-	int GetDescriptorSize() { return descriptorSize; }
+	int GetDescriptorSize() const { return descriptorSize; }
 
 	/** @brief Returns the max number of DescriptorHandle objects that the heap has.
 	@return int
 	*/
-	int GetMaxDescriptors() { return maxDescriptors; }
+	int GetMaxDescriptors() const { return maxDescriptors; }
 
 	/** Returns a new unused DescriptorHandle of the heap type specified during DescriptorHeap initiation.
 	@return DescriptorHandle

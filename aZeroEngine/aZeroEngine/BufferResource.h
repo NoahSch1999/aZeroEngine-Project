@@ -28,7 +28,7 @@ public:
 	BufferResource() = default;
 	virtual ~BufferResource() { }
 
-	/* Initializes the UniqueIntList object.
+	/* Initializes the BufferResource object.
 	@param _device ID3D12Device for resource creations.
 	@param _copyList CommandList for recording upload copy commands on.
 	@param _width Width of the _data argument in bytes.

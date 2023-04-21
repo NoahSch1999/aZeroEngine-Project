@@ -14,6 +14,7 @@ Github: https://github.com/NoahSch1999
 #include <deque>
 #include <memory>
 #include <utility>
+#include "UniqueIntList.h"
 class BaseResource;
 class VertexBuffer;
 class ConstantBuffer;
@@ -38,128 +39,25 @@ private:
 	Vector3 translation = Vector3::Zero;
 	Vector3 rotation = Vector3::Zero;
 	Vector3 scale = Vector3(1.f, 1.f, 1.f);
-	ConstantBuffer cb;
 
+	Matrix worldMatrix = Matrix::Identity;
+	Matrix localMatrix = Matrix::Identity;
 public:
-	Matrix matrix = Matrix::Identity;
-
-	void SetTranslation(const Vector3& _translation)
-	{
-		translation = _translation;
-	}
-
-	void SetTranslation(float _xPos, float _yPos, float _zPos)
-	{
-		translation.x = _xPos;
-		translation.y = _yPos;
-		translation.z = _zPos;
-	}
-
-	void SetTranslationX(float _xPos)
-	{
-		translation.x = _xPos;
-	}
-
-	void SetTranslationY(float _yPos)
-	{
-		translation.y = _yPos;
-	}
-
-	void SetTranslationZ(float _zPos)
-	{
-		translation.z = _zPos;
-	}
-
-	void SetRotation(const Vector3& _rotation)
-	{
-		rotation = _rotation;
-	}
-
-	void SetRotation(float _xRot, float _yRot, float _zRot)
-	{
-		rotation.x = _xRot;
-		rotation.y = _yRot;
-		rotation.z = _zRot;
-	}
-
-	void SetRotationX(float _xRotDegree)
-	{
-		rotation.x = _xRotDegree;
-	}
-
-	void SetRotationY(float _yRotDegree)
-	{
-		rotation.y = _yRotDegree;
-	}
-
-	void SetRotationZ(float _zRotDegree)
-	{
-		rotation.z = _zRotDegree;
-	}
-
-	void SetScale(const Vector3& _scale)
-	{
-		scale = _scale;
-	}
-
-	void SetScale(float _xScale, float _yScale, float _zScale)
-	{
-		scale.x = _xScale;
-		scale.y = _yScale;
-		scale.z = _zScale;
-	}
-
-	void SetScaleX(float _xScale)
-	{
-		scale.x = _xScale;
-	}
-
-	void SetScaleY(float _yScale)
-	{
-		scale.y = _yScale;
-	}
-
-	void SetScaleZ(float _zScale)
-	{
-		scale.z = _zScale;
-	}
-
-	void SetScaleUniform(float _scale)
-	{
-		scale = Vector3(_scale, _scale, _scale);
-	}
+	UINT frameIndex = 0;
 
 	Vector3& GetTranslation() { return translation; }
 	Vector3& GetRotation() { return rotation; }
 	Vector3& GetScale() { return scale; }
 
-	Matrix& Compose()
+	Matrix GetLocalMatrix() const
 	{
-		matrix = (Matrix::CreateScale(scale)) * Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(translation);
-		return matrix;
+		return  Matrix::CreateScale(scale) * Matrix::CreateFromYawPitchRoll(rotation) * Matrix::CreateTranslation(translation);
 	}
 
-	void Delete()
-	{
-		cb.GetUploadResource()->Release();
-		cb.GetGPUOnlyResource()->Release();
-	}
-
-	ConstantBuffer& GetBuffer() { return cb; }
+	void SetWorldMatrix(const Matrix& _matrix) { worldMatrix = _matrix; }
+	Matrix GetWorldMatrix() const { return worldMatrix; }
 
 	Transform() = default;
-
-	Transform(ResourceEngine& _resourceEngine)
-	{
-		Matrix temp = Matrix::Identity;
-		_resourceEngine.CreateResource(cb, (void*)&temp, sizeof(Matrix), true, true);
-	}
-
-	void Update(ResourceEngine& _resourceEngine)
-	{
-		Matrix temp = Compose();
-		_resourceEngine.Update(cb, (void*)&temp);
-	}
 };
 
 class Mesh
@@ -176,7 +74,7 @@ public:
 	int receiveShadows = 1;
 };
 
-enum MATERIALTYPE { PHONG, PBR };
+enum MATERIALTYPE { PBR };
 
 struct MaterialComponent
 {
@@ -325,19 +223,15 @@ class NamedSlottedMap
 {
 private:
 	SlottedMap<T>map;
-	int currentMax = 0;
-	int incPerEmpty = 0;
-	std::deque<int> freeIDs;
+
+	UniqueIntList idList;
+
 	std::unordered_map<std::string, int>strToID;
 	std::unordered_map<int, std::string>IDtoStr;
 public:
 	NamedSlottedMap(int _startMax, int _incPerEmpty = 100)
-		:currentMax(_startMax), incPerEmpty(_incPerEmpty)
+		:idList(_startMax, _incPerEmpty)
 	{
-		for (int i = 0; i < currentMax; i++)
-		{
-			freeIDs.push_back(i);
-		}
 	}
 
 	/** Adds an element to the last position in the array and creates a string key to access it through NamedSlottedMap::GetObjectByStr()
@@ -350,16 +244,7 @@ public:
 		if (strToID.count(_key) > 0)
 			return -1;
 
-		if (freeIDs.empty())
-		{
-			for (int i = currentMax; i < currentMax + incPerEmpty; i++)
-			{
-				freeIDs.push_back(i);
-			}
-		}
-
-		int id = freeIDs.front();
-		freeIDs.pop_front();
+		int id = idList.LendKey();
 
 		map.Add(id, _data);
 
@@ -382,10 +267,10 @@ public:
 		map.Remove(id);
 		strToID.erase(_key);
 		IDtoStr.erase(id);
-		freeIDs.push_front(id);
+		idList.ReturnKey(id);
 	}
 
-	void Remove(int _key)
+	void Remove(int& _key)
 	{
 		if (!map.Exists(_key))
 			return;
@@ -393,7 +278,7 @@ public:
 		map.Remove(_key);
 		strToID.erase(IDtoStr.at(_key));
 		IDtoStr.erase(_key);
-		freeIDs.push_front(_key);
+		idList.ReturnKey(_key);
 	}
 
 	bool Exists(const std::string& _key) const
@@ -647,7 +532,7 @@ public:
 	{
 		maxEntities = _maxEntities;
 
-		// Note - Expensive as fuck...
+		// Note - Expensive...
 		for (unsigned int i = 0; i < _maxEntities; ++i)
 		{
 			freeIDs.emplace(i);
@@ -766,12 +651,14 @@ public:
 	/** Returns a reference to a internal EntityManager object.
 	@return Reference to a internal EntityManager object
 	*/
-	EntityManager& GetEntityManager() { return entityManager; }
+	//EntityManager& GetEntityManager() { return entityManager; }
 
 	/** Returns a reference to a internal ComponentManager object.
 	@return Reference to a internal ComponentManager object
 	*/
 	ComponentManager& GetComponentManager() { return componentManager; }
+
+	Entity CreateEntity(){return entityManager.CreateEntity(); }
 
 	template<typename T>
 	std::shared_ptr<T> RegisterSystem()

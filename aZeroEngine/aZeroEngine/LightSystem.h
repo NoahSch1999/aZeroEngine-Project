@@ -94,9 +94,7 @@ public:
 			lightManager->RemoveLight(*pLight);
 		}*/
 
-		ECSystem::UnBind(_entity);
-
-		return true;
+		return ECSystem::UnBind(_entity);
 	}
 
 	// Inherited via ECSystem

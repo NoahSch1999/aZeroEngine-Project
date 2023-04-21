@@ -13,8 +13,6 @@ PBRMaterial::PBRMaterial(ResourceEngine& _resourceEngine, Texture2DCache& _textu
 	Texture2D* defaultText = _textureCache.GetResource("defaultDiffuse.png");
 	if (defaultText)
 		info.albedoMapIndex = defaultText->GetHandle().GetHeapIndex();
-
-	_resourceEngine.CreateResource(buffer, (void*)&info, sizeof(PBRMaterialInformation), true, true);
 }
 
 void PBRMaterial::Save(const std::string& _fileDirectory, const Texture2DCache& _textureCache) const
@@ -141,6 +139,4 @@ void PBRMaterial::Load(ResourceEngine& _resourceEngine, const std::string& _file
 			info.normalMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
 		}
 	}
-
-	_resourceEngine.CreateResource(buffer, (void*)&info, sizeof(PBRMaterialInformation), true, true);
 }

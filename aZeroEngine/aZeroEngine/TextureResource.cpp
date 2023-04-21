@@ -9,6 +9,11 @@ void TextureResource::Init(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12R
 	gpuOnlyResourceState = _initState;
 
 	Helper::CreateTextureResource(_device, _transitionList, _copyList, gpuOnlyResource, _uploadResource, _data, width, height, _bytePerTexel, _format, gpuOnlyResourceState);
+
+#ifdef _DEBUG
+	gpuOnlyResource->SetName(L"Main Texture");
+	_uploadResource->SetName(L"Temp Upload Texture");
+#endif // _DEBUG
 }
 
 void TextureResource::Init(ID3D12Device* _device, int _width, int _height, int _bytePerTexel, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState, D3D12_CLEAR_VALUE _clearValue, D3D12_RESOURCE_FLAGS _flags, bool _readback)
@@ -25,7 +30,15 @@ void TextureResource::Init(ID3D12Device* _device, int _width, int _height, int _
 	{
 		rowPitch = ((_width * _bytePerTexel + 128) / 256) * 256;
 		readbackResource = Helper::CreateReadbackBuffer(_device, rowPitch, _height);
+
+#ifdef _DEBUG
+		readbackResource->SetName(L"Readback Texture");
+#endif // _DEBUG
 	}
+
+#ifdef _DEBUG
+	gpuOnlyResource->SetName(L"Main Texture");
+#endif // _DEBUG
 }
 
 void TextureResource::Transition(CommandList& _cmdList, D3D12_RESOURCE_STATES _newState)

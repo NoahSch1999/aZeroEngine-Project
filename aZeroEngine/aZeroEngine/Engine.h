@@ -7,11 +7,13 @@
 #include "RenderSystem.h"
 #include "LightSystem.h"
 #include "PickingSystem.h"
-#include "SceneManager.h"
+#include "ParentSystem.h"
+#include "Scene.h"
 #include "UserInterface.h"
 #include "InputHandler.h"
 #include "Timer.h"
 #include "VertexDefinitions.h"
+#include "CommandContext.h"
 
 namespace aZero
 {
@@ -34,7 +36,8 @@ namespace aZero
 		std::weak_ptr<Camera> mainCamera;
 		std::shared_ptr<RendererSystem> renderSystem = nullptr;
 		std::shared_ptr<LightSystem> lightSystem = nullptr;
-		std::shared_ptr<PickingSystem> pickingSystem = nullptr;
+		//std::shared_ptr<PickingSystem> pickingSystem = nullptr;
+		std::shared_ptr<ParentSystem> parentSystem = nullptr;
 		std::unordered_map<std::string, std::weak_ptr<UserInterface>> userInterfaces;
 
 	public:
@@ -44,23 +47,29 @@ namespace aZero
 			:materialManager(resourceEngine, textureCache), vbCache(resourceEngine), 
 			textureCache(resourceEngine), ecs(10000)
 		{
-			// Modify for correct path with .exe
-			window = std::make_unique<AppWindow>(WndProc, _appInstance, _windowWidth, _windowHeight, L"../sprites/snowflake.ico", L"../sprites/snowflakeRed.ico");
 
 			HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
 			if (FAILED(hr))
 				throw;
 
+			resourceEngine.Init(device.Get());
+			resourceEngine.BeginCopy();
+
+			// Modify for correct path with .exe
+			window = std::make_unique<AppWindow>(WndProc, _appInstance, _windowWidth, _windowHeight, L"../sprites/snowflake.ico", L"../sprites/snowflakeRed.ico");
+
+			
+
 #ifdef _DEBUG
 			device->SetName(L"Main Device");
 #endif // DEBUG
 
-			resourceEngine.Init(device.Get());
 			textureCache.Init();
 			vbCache.Init();
 			materialManager.Init();
 
-			resourceEngine.Execute();
+			//resourceEngine.commandManager->Execute(resourceEngine.copyContext);
+			//resourceEngine.Execute();
 
 			// Uses client size since it should be the same size as the entire window
 			swapchain = std::make_unique<SwapChain>(device.Get(), resourceEngine,
@@ -68,7 +77,8 @@ namespace aZero
 
 			renderSystem = ecs.RegisterSystem<RendererSystem>();
 			lightSystem = ecs.RegisterSystem<LightSystem>();
-			pickingSystem = ecs.RegisterSystem<PickingSystem>();
+		//	pickingSystem = ecs.RegisterSystem<PickingSystem>();
+			parentSystem = ecs.RegisterSystem<ParentSystem>();
 
 			lightSystem->Init(&resourceEngine);
 
@@ -79,16 +89,23 @@ namespace aZero
 				&materialManager,
 				swapchain.get(), _appInstance, window->GetHandle());
 
-			pickingSystem->Init(device.Get(), &resourceEngine, &vbCache, swapchain.get());
+			//pickingSystem->Init(device.Get(), &resourceEngine, &vbCache, swapchain.get());
 
-			resourceEngine.Execute();
+			renderSystem->parentSystem = parentSystem.get();
 
-			IMGUI_CHECKVERSION();
+			//resourceEngine.commandManager->Execute(resourceEngine.copyContext);
+			//resourceEngine.Execute();
+
 			ImGui::CreateContext();
-			ImGuiIO io;
-			io = ImGui::GetIO(); (void)io;
+			ImGuiIO& io = ImGui::GetIO();
+			(void)io;
+			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+			io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-			// Setup Dear ImGui style
+			//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Crashes the app... why?
+			//io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;
+			//io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
+
 			ImGui::StyleColorsDark();
 
 			ImGui_ImplWin32_Init(window->GetHandle());
@@ -109,16 +126,10 @@ namespace aZero
 			ImGuizmo::BeginFrame();
 			window->Update();
 			resourceEngine.BeginFrame();
+			resourceEngine.BeginCopy();
 
 			currentBackBuffer = swapchain->GetBackBuffer(resourceEngine.GetFrameIndex());
 			renderSystem->SetBackBuffer(currentBackBuffer);
-
-			ID3D12DescriptorHeap* heap[] = { resourceEngine.GetResourceHeap(), resourceEngine.GetSamplerHeap() };
-			resourceEngine.renderPassList.GetGraphicList()->SetDescriptorHeaps(2, heap);
-
-			D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &r);
-			currentBackBuffer->Clear(resourceEngine.renderPassList);
 
 			for (auto it = userInterfaces.cbegin(); it != userInterfaces.cend();)
 			{
@@ -137,9 +148,6 @@ namespace aZero
 
 		void Render()
 		{
-			pickingSystem->Update();
-			renderSystem->Update();
-			lightSystem->Update();
 
 			for (auto it = userInterfaces.cbegin(); it != userInterfaces.cend();)
 			{
@@ -154,21 +162,39 @@ namespace aZero
 					it++;
 				}
 			}
+
+			parentSystem->Update();
+			lightSystem->Update();
+			
+			resourceEngine.commandManager->WaitForCopy();
+			resourceEngine.EndCopy();
+
+			resourceEngine.BeginCopy();
+			renderSystem->Update();
+			resourceEngine.EndCopy();
+
+			resourceEngine.commandManager->WaitForCopy();
 		}
 
 		void EndFrame()
 		{
 			ImGui::Render();
-			resourceEngine.renderPassList.GetGraphicList()->OMSetRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, nullptr);
-			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), resourceEngine.renderPassList.GetGraphicList());
+			std::shared_ptr<GraphicsCommandContext> context = resourceEngine.commandManager->GetGraphicsContext();
+			ID3D12DescriptorHeap* heap[] = { resourceEngine.GetResourceHeap(), resourceEngine.GetSamplerHeap() };
+			context->SetDescriptorHeaps(2, heap);
+			context->SetOMRenderTargets(1, &currentBackBuffer->GetHandle().GetCPUHandleRef(), true, nullptr);
 
-			D3D12_RESOURCE_BARRIER x = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-			resourceEngine.renderPassList.GetGraphicList()->ResourceBarrier(1, &x);
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), context->GetList().GetGraphicList());
+
+			D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+			context->GetList().GetGraphicList()->ResourceBarrier(1, &r);
+			resourceEngine.commandManager->Execute(context);
 
 			resourceEngine.Execute();
 			resourceEngine.EndFrame();
 
 			swapchain->GetSwapChain()->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+			//ImGui::UpdatePlatformWindows();
 		}
 
 		void AttachUI(std::shared_ptr<UserInterface> ui)
@@ -181,7 +207,6 @@ namespace aZero
 			if (_camera)
 			{
 				mainCamera = _camera;
-				pickingSystem->SetCamera(mainCamera);
 				renderSystem->SetMainCameraGeo(mainCamera);
 			}
 		}
@@ -189,7 +214,7 @@ namespace aZero
 		std::shared_ptr<Scene> LoadScene(const std::string& _fileDirectory, const std::string& _filename)
 		{
 			std::shared_ptr<Scene> scene = std::make_shared<Scene>(std::move(Scene(&ecs, &vbCache, &materialManager,
-				&textureCache, lightSystem.get(), device.Get(), &resourceEngine)));
+				lightSystem.get())));
 
 			if (!scene->Load(_fileDirectory, _filename))
 				return nullptr;
@@ -200,7 +225,7 @@ namespace aZero
 		std::shared_ptr<Scene> NewScene(const std::string& _name)
 		{
 			std::shared_ptr<Scene> scene = std::make_shared<Scene>(std::move(Scene(&ecs, &vbCache, &materialManager,
-				&textureCache, lightSystem.get(), device.Get(), &resourceEngine)));
+				lightSystem.get())));
 			scene->SetName(_name);
 			return scene;
 		}
@@ -215,7 +240,7 @@ namespace aZero
 			window->ConfineCursor(_confine);
 		}
 
-		int GetPickingEntityID(int _xPos, int _yPos) { return pickingSystem->GetID(_xPos, _yPos); }
+		int GetPickingEntityID(int _xPos, int _yPos) { return renderSystem->GetPickingID(_xPos, _yPos); }
 		Vector2 GetClientWindowSize() const { return window->GetClientSize(); }
 		uint32_t GetWindowApsectRatio() const { return window->GetAspectRatio(); }
 		std::optional<Vector2> GetMouseWindowPosition() { return window->GetCursorPosition(); }
@@ -228,7 +253,7 @@ namespace aZero
 
 		std::weak_ptr<LightSystem> GetLightSystem() { return lightSystem; }
 		std::weak_ptr<RendererSystem> GetRenderSystem() { return renderSystem; }
-		std::weak_ptr<PickingSystem> GetPickingSystem() { return pickingSystem; }
+		std::weak_ptr<ParentSystem> GetParentSystem() { return parentSystem; }
 
 		ID3D12Device* GetDevice() { return device.Get(); }
 		//

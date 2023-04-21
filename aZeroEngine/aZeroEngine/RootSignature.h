@@ -4,10 +4,11 @@
 class RootSignature
 {
 private:
-	ID3D12RootSignature* signature;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> signature;
+
 public:
-	RootSignature();
-	~RootSignature();
+	RootSignature() = default;
+	~RootSignature() = default;
 
 	/** @brief Initializes the root signature with the input parameters, flags, sampler and more.
 	@param _device ID3D12Device to use for the resource creations.
@@ -23,6 +24,6 @@ public:
 	/** @brief Returns a pointer to the internal ID3D12PipelineState* object.
 	@return ID3D12PipelineState*
 	*/
-	ID3D12RootSignature* GetSignature() { return signature; }
+	ID3D12RootSignature* GetSignature() { return signature.Get(); }
 };
 

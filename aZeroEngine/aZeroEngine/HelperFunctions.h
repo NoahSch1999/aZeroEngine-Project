@@ -21,7 +21,7 @@ namespace Helper
 		int channels = -1;
 	};
 
-	ID3DBlob* LoadBlobFromFile(const std::wstring& _filePath);
+	Microsoft::WRL::ComPtr<ID3DBlob> LoadBlobFromFile(const std::wstring& _filePath);
 
 	struct BasicVertexListInfo
 	{
