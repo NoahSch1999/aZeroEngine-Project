@@ -1,0 +1,186 @@
+#pragma once
+#include "ResourceTrashcan.h"
+#include "HelperFunctions.h"
+
+struct UploadBufferInitSettings
+{
+	bool m_discardUpload = false;
+	void* m_initialData = nullptr;
+};
+
+struct UploadBufferSettings
+{
+	UINT m_numElements = 1;
+	UINT m_numSubresources = 1;
+};
+
+template <typename T>
+class UploadBuffer
+{
+private:
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_gpuOnlyResource = nullptr;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadResource = nullptr;
+	void* m_mappedBuffer = nullptr;
+
+	D3D12_GPU_VIRTUAL_ADDRESS m_virtualAddress = (UINT64)0;
+
+	UINT m_sizePerSubresource = 0;
+
+	ResourceTrashcan* m_trashcan = nullptr;
+
+	UploadBufferSettings m_settings;
+
+private:
+	void InitResource(ID3D12Device* device)
+	{
+		m_sizePerSubresource = (sizeof(T) * m_settings.m_numElements);
+		m_gpuOnlyResource = Helper::CreateBufferResource(device, m_sizePerSubresource, D3D12_HEAP_TYPE_DEFAULT);
+
+		UINT uploadWidth = m_sizePerSubresource * m_settings.m_numSubresources;
+		m_uploadResource = Helper::CreateBufferResource(device, uploadWidth, D3D12_HEAP_TYPE_UPLOAD);
+		m_uploadResource->Map(0, NULL, reinterpret_cast<void**>(&m_mappedBuffer));
+
+		m_virtualAddress = m_gpuOnlyResource->GetGPUVirtualAddress();
+
+#ifdef _DEBUG
+		m_gpuOnlyResource->SetName(L"UploadBufferGPU");
+		m_uploadResource->SetName(L"UploadBufferUPLOAD");
+#endif // _DEBUG
+	}
+
+public:
+	UploadBuffer() = default;
+	UploadBuffer(const UploadBuffer&) = delete;
+	UploadBuffer& operator=(const UploadBuffer&) = delete;
+
+	UploadBuffer(ID3D12Device* device, const UploadBufferInitSettings& initSettings, const UploadBufferSettings& settings, ResourceTrashcan& trashcan)
+		:m_settings(settings), m_trashcan(&trashcan)
+	{
+		this->InitResource(device);
+
+		if (initSettings.m_discardUpload)
+		{
+			trashcan.resources.push_back(m_uploadResource);
+			m_uploadResource->Unmap(0, nullptr);
+			m_uploadResource = nullptr;
+		}
+	}
+
+	UploadBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, UINT frameIndex,
+		const UploadBufferInitSettings& initSettings, const UploadBufferSettings& settings, ResourceTrashcan& trashcan)
+		:m_settings(settings), m_trashcan(&trashcan)
+	{
+		this->InitResource(device);
+
+		if (m_settings.m_numSubresources == 1)
+		{
+			this->Update(commandList, initSettings.m_initialData);
+		}
+		else
+		{
+			this->Update(commandList, frameIndex, initSettings.m_initialData);
+		}
+
+		if (initSettings.m_discardUpload)
+		{
+			trashcan.resources.push_back(m_uploadResource);
+			m_uploadResource->Unmap(0, nullptr);
+			m_uploadResource = nullptr;
+		}
+	}
+
+	~UploadBuffer()
+	{
+		if (m_gpuOnlyResource)
+		{
+			m_trashcan->resources.push_back(m_gpuOnlyResource);
+		}
+
+		if (m_uploadResource)
+		{
+			m_uploadResource->Unmap(0, NULL);
+			m_trashcan->resources.push_back(m_uploadResource);
+		}
+	}
+
+	UploadBuffer(UploadBuffer&& _other) noexcept
+	{
+		m_gpuOnlyResource = _other.m_gpuOnlyResource;
+		m_uploadResource = _other.m_uploadResource;
+		m_mappedBuffer = _other.m_mappedBuffer;
+		m_virtualAddress = _other.m_virtualAddress;
+		m_sizePerSubresource = _other.m_sizePerSubresource;
+		m_trashcan = _other.m_trashcan;
+		m_settings = _other.m_settings;
+
+		_other.m_gpuOnlyResource = nullptr;
+		_other.m_uploadResource = nullptr;
+		_other.m_mappedBuffer = nullptr;
+	}
+
+	UploadBuffer& operator=(UploadBuffer&& _other) noexcept
+	{
+		if (this != &_other)
+		{
+			if (m_gpuOnlyResource)
+			{
+				m_trashcan->resources.push_back(m_gpuOnlyResource);
+			}
+
+			if (m_uploadResource)
+			{
+				m_uploadResource->Unmap(0, NULL);
+				m_trashcan->resources.push_back(m_uploadResource);
+			}
+
+			m_gpuOnlyResource = _other.m_gpuOnlyResource;
+			m_uploadResource = _other.m_uploadResource;
+			m_mappedBuffer = _other.m_mappedBuffer;
+			m_virtualAddress = _other.m_virtualAddress;
+			m_sizePerSubresource = _other.m_sizePerSubresource;
+			m_trashcan = _other.m_trashcan;
+			m_settings = _other.m_settings;
+
+			_other.m_gpuOnlyResource = nullptr;
+			_other.m_uploadResource = nullptr;
+			_other.m_mappedBuffer = nullptr;
+		}
+
+		return *this;
+	}
+
+	// For singular subresource buffer
+	void Update(ID3D12GraphicsCommandList* commandList, T& data, UINT elementIndex)
+	{
+		UINT64 offset = (sizeof(T) * elementIndex);
+		memcpy((char*)m_mappedBuffer + offset, (char*)&data, m_sizePerSubresource);
+		commandList->CopyBufferRegion(m_gpuOnlyResource.Get(), 0, m_uploadResource.Get(), offset, sizeof(T));
+	}
+
+	// For singular subresource buffer
+	void Update(ID3D12GraphicsCommandList* commandList, void* data)
+	{
+		memcpy(reinterpret_cast<char*>(m_mappedBuffer), data, m_sizePerSubresource);
+		commandList->CopyBufferRegion(m_gpuOnlyResource.Get(), 0, m_uploadResource.Get(), 0, m_sizePerSubresource);
+	}
+
+	// For buffer with multiple subresources based on frames in flight
+	void Update(ID3D12GraphicsCommandList* commandList, UINT frameIndex, T& data, UINT elementIndex)
+	{
+		UINT64 offset = (m_sizePerSubresource * frameIndex) + (sizeof(T) * elementIndex);
+		memcpy((char*)m_mappedBuffer + offset, (char*)&data, m_sizePerSubresource);
+		commandList->CopyBufferRegion(m_gpuOnlyResource.Get(), 0, m_uploadResource.Get(), offset, sizeof(T));
+	}
+
+	// TO-FIX sizePerSubresource might exceed the data that _data is pointer to which might cause UB
+	// For buffer with multiple subresources based on frames in flight
+	void Update(ID3D12GraphicsCommandList* commandList, UINT frameIndex, void* data)
+	{
+		UINT64 offset = m_sizePerSubresource * frameIndex;
+		memcpy(reinterpret_cast<char*>(m_mappedBuffer) + offset, data, m_sizePerSubresource);
+		commandList->CopyBufferRegion(m_gpuOnlyResource.Get(), 0, m_uploadResource.Get(), offset, m_sizePerSubresource);
+	}
+
+	D3D12_GPU_VIRTUAL_ADDRESS GetVirtualAddress() const { return m_virtualAddress; }
+};

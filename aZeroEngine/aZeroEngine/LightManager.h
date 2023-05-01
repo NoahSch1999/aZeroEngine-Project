@@ -1,6 +1,7 @@
 #pragma once
 #include "ECSBase.h"
 #include "StructuredList.h"
+#include "UploadBuffer.h"
 
 struct PointLight
 {
@@ -8,6 +9,40 @@ struct PointLight
 	float intensity = 1.f;
 	Vector3 position = Vector3(0.f, 0.f, 0.f);
 	float range = 10.f;
+	PointLight() = default;
+	PointLight(const PointLight& _other)
+	{
+		color = _other.color;
+		intensity = _other.intensity;
+		position = _other.position;
+		range = _other.range;
+	}
+
+	PointLight operator=(const PointLight& _other)
+	{
+		color = _other.color;
+		intensity = _other.intensity;
+		position = _other.position;
+		range = _other.range;
+		return *this;
+	}
+
+	PointLight(PointLight&& _other) noexcept
+	{
+		color = _other.color;
+		intensity = _other.intensity;
+		position = _other.position;
+		range = _other.range;
+	}
+
+	PointLight operator=(PointLight&& _other) noexcept
+	{
+		color = _other.color;
+		intensity = _other.intensity;
+		position = _other.position;
+		range = _other.range;
+		return *this;
+	}
 };
 
 struct DirectionalLight
@@ -32,62 +67,44 @@ private:
 
 public:
 	NumLights numLightsData;
-	ConstantBuffer numLightsCB;
+	std::unique_ptr<UploadBuffer<NumLights>> numLightsCB;
 	StructuredList<PointLight>pLightList;
-	ResourceEngine& resourceEngine;
 
-	ConstantBuffer dLightBuffer;
+	std::unique_ptr<UploadBuffer<DirectionalLight>> dLightBuffer;
 	DirectionalLight dLightData;
 
 	bool pLigthDirty = false;
 	bool numLightDirty = false;
 
-	LightManager(ResourceEngine& _resourceEngine)
-		:resourceEngine(_resourceEngine)
-	{
+	LightManager() = default;
 
+	LightManager(ID3D12Device* _device, ResourceTrashcan& _trashcan, int _numPLights = 100)
+	{
+		Init(_device, _trashcan, _numPLights);
 	}
 
-	LightManager(ResourceEngine& _resourceEngine, int _numPLights = 100)
-		:resourceEngine(_resourceEngine)
+	void Init(ID3D12Device* _device, ResourceTrashcan& _trashcan, int _numPLights = 100)
 	{
-		Init(_numPLights);
+		pLightList.Init(_device, _trashcan, _numPLights, true, true);
+
+		UploadBufferInitSettings initSettings;
+		UploadBufferSettings settings;
+		settings.m_numElements = 1;
+		settings.m_numSubresources = 3;
+		numLightsCB = std::make_unique<UploadBuffer<NumLights>>(_device, initSettings, settings, _trashcan);
+		dLightBuffer = std::make_unique<UploadBuffer<DirectionalLight>>(_device, initSettings, settings, _trashcan);
 	}
 
-	void ShutDown()
-	{
-		resourceEngine.RemoveResource(pLightList.dataBuffer);
-		resourceEngine.RemoveResource(numLightsCB);
-		resourceEngine.RemoveResource(dLightBuffer);
-	}
-
-	void Init(int _numPLights = 100)
-	{
-		pLightList.Init(resourceEngine, _numPLights, true, true);
-		resourceEngine.CreateResource(numLightsCB, (void*)&numLightsData, sizeof(NumLights), true, true);
-		resourceEngine.CreateResource(dLightBuffer, (void*)&dLightData, sizeof(DirectionalLight), true, true);
-#ifdef _DEBUG
-		pLightList.dataBuffer.GetGPUOnlyResource()->SetName(L"LightManager Point Light List Main Resource");
-		pLightList.dataBuffer.GetUploadResource()->SetName(L"LightManager Point Light List Interm Resource");
-
-		dLightBuffer.GetGPUOnlyResource()->SetName(L"LightManager Directional Light CB Main Resource");
-		dLightBuffer.GetUploadResource()->SetName(L"LightManager Directional Light CB Interm Resource");
-
-		numLightsCB.GetGPUOnlyResource()->SetName(L"LightManager Num Lights Main Resource");
-		numLightsCB.GetUploadResource()->SetName(L"LightManager Num Lights Interm Resource");
-#endif // DEBUG
-	}
-
-	void Update()
+	void Update(ID3D12GraphicsCommandList* _cmdList, UINT _frameIndex)
 	{
 		if (pLigthDirty)
 		{
-			resourceEngine.Update(pLightList.dataBuffer, (void*)pLightList.data.GetObjects().data());
+			pLightList.dataBuffer.Update(_cmdList, _frameIndex, pLightList.data.GetObjects().data());
 			pLigthDirty = false;
 		}
 		if (numLightDirty)
 		{
-			resourceEngine.Update(numLightsCB, (void*)&numLightsData);
+			numLightsCB->Update(_cmdList, _frameIndex, numLightsData, 0);
 			numLightDirty = false;
 		}
 	}
@@ -105,11 +122,11 @@ public:
 	}
 
 	template<typename T>
-	void AddLight(int& _id, const T& _light)
+	void AddLight(int& _id, T& _light, UINT frameIndex)
 	{
 		if constexpr (std::is_same_v<T, PointLight>)
 		{
-			_id = pLightList.AddElement(resourceEngine, _light, resourceEngine.GetFrameIndex());
+			_id = pLightList.AddElement(_light, frameIndex);
 			numLightsData.numPointLights++;
 			pLigthDirty = true;
 			numLightDirty = true;
@@ -118,11 +135,11 @@ public:
 	}
 
 	template<typename T>
-	void RemoveLight(T& _lightComponent)
+	void RemoveLight(T& _lightComponent, UINT frameIndex)
 	{
 		if constexpr (std::is_same_v<T, PointLightComponent>)
 		{
-			if (!pLightList.RemoveElement(resourceEngine, _lightComponent.id, resourceEngine.GetFrameIndex()))
+			if (!pLightList.RemoveElement(_lightComponent.id, frameIndex))
 				return;
 
 			numLightsData.numPointLights--;
@@ -133,13 +150,13 @@ public:
 	}
 
 	template<typename T, typename D>
-	void UpdateLight(const T& _lightComponent, const D& _data)
+	void UpdateLight(const T& _lightComponent, const D& _data, UINT frameIndex)
 	{
 		if constexpr (std::is_same_v<T, PointLightComponent>)
 		{
 			if constexpr (std::is_same_v<D, PointLight>)
 			{
-				pLightList.UpdateElement(resourceEngine, _data, _lightComponent.id, resourceEngine.GetFrameIndex());
+				pLightList.UpdateElement(_data, _lightComponent.id, frameIndex);
 				pLigthDirty = true;
 				return;
 			}
@@ -147,7 +164,7 @@ public:
 		}
 	}
 
-	void CleanseLights(int _frameIndex)
+	void CleanseLights()
 	{
 		pLightList.Cleanse();
 		numLightsData.numPointLights = 0;

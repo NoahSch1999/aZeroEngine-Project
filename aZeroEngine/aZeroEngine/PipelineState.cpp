@@ -2,47 +2,46 @@
 #include "HelperFunctions.h"
 
 // Only works for backbuffer as render target...
-void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, const InputLayout& _inputLayout, const RasterState& _rasterState, int _numRenderTargets, 
-	DXGI_FORMAT _rtvFormat, DXGI_FORMAT _dsvFormat, const std::wstring& _vsPath, const std::wstring& _psPath, 
-	const std::wstring& _dsPath, const std::wstring& _hsPath, const std::wstring& _gsPath, bool _test, bool _enableBlending,
-	D3D12_PRIMITIVE_TOPOLOGY_TYPE _primitiveType)
+void PipelineState::Init(ID3D12Device* device, RootSignature* rootSignature, const InputLayout& inputLayout, const RasterState& rasterState,
+	UINT numRenderTargets, DXGI_FORMAT* const rtvFormats, DXGI_FORMAT dsvFormat, const std::wstring& vsPath, const std::wstring& psPath,
+	const std::wstring& dsPath, const std::wstring& hsPath, const std::wstring& gsPath, bool enableBlending,
+	D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveType)
 {
-
 	// use constructor / init list...
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc;
 	ZeroMemory(&desc, sizeof(desc));
-	Microsoft::WRL::ComPtr<ID3DBlob> vShader = Helper::LoadBlobFromFile(_vsPath);
+	Microsoft::WRL::ComPtr<ID3DBlob> vShader = Helper::LoadBlobFromFile(vsPath);
 	Microsoft::WRL::ComPtr<ID3DBlob> pShader = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> dShader = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> hShader = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> gShader = nullptr;
 
-	if (!_psPath.empty())
+	if (!psPath.empty())
 	{
-		pShader = Helper::LoadBlobFromFile(_psPath);
+		pShader = Helper::LoadBlobFromFile(psPath);
 		desc.PS = { reinterpret_cast<BYTE*>(pShader->GetBufferPointer()), pShader->GetBufferSize() };
 	}
-	if (!_dsPath.empty())
+	if (!dsPath.empty())
 	{
-		dShader = Helper::LoadBlobFromFile(_dsPath);
+		dShader = Helper::LoadBlobFromFile(dsPath);
 		desc.DS = { reinterpret_cast<BYTE*>(dShader->GetBufferPointer()), dShader->GetBufferSize() };
 	}
-	if (!_hsPath.empty())
+	if (!hsPath.empty())
 	{
-		hShader = Helper::LoadBlobFromFile(_hsPath);
+		hShader = Helper::LoadBlobFromFile(hsPath);
 		desc.HS = { reinterpret_cast<BYTE*>(hShader->GetBufferPointer()), hShader->GetBufferSize() };
 	}
-	if (!_gsPath.empty())
+	if (!gsPath.empty())
 	{
-		gShader = Helper::LoadBlobFromFile(_gsPath);
+		gShader = Helper::LoadBlobFromFile(gsPath);
 		desc.GS = { reinterpret_cast<BYTE*>(gShader->GetBufferPointer()), gShader->GetBufferSize() };
 	}
 
 
-	desc.InputLayout = { &_inputLayout.descs[0], 4 };
-	desc.pRootSignature = _rootSignature->GetSignature();
+	desc.InputLayout = { &inputLayout.descs[0], 4 };
+	desc.pRootSignature = rootSignature->GetSignature();
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
-	desc.RasterizerState = _rasterState.GetDesc();
+	desc.RasterizerState = rasterState.GetDesc();
 
 	//D3D12_RENDER_TARGET_BLEND_DESC rtvBlend;
 	//ZeroMemory(&rtvBlend, sizeof(D3D12_RENDER_TARGET_BLEND_DESC));
@@ -69,28 +68,24 @@ void PipelineState::Init(ID3D12Device* _device, RootSignature* _rootSignature, c
 	desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	desc.SampleMask = UINT_MAX;
-	desc.PrimitiveTopologyType = _primitiveType;
-	desc.NumRenderTargets = _numRenderTargets;
-	desc.RTVFormats[0] = _rtvFormat;
+	desc.PrimitiveTopologyType = primitiveType;
+	desc.NumRenderTargets = numRenderTargets;
 
-	if (_test)
+	for (int i = 0; i < numRenderTargets; i++)
 	{
-		desc.NumRenderTargets = 2;
-		desc.RTVFormats[0] = _rtvFormat;
-		desc.RTVFormats[1] = DXGI_FORMAT_R32_SINT;
+		desc.RTVFormats[i] = rtvFormats[i];
 	}
 
-	desc.DSVFormat = _dsvFormat;
+	desc.DSVFormat = dsvFormat;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 
-	HRESULT hr = _device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(pipelineState.GetAddressOf()));
-	if (FAILED(hr))
+	if (FAILED(device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(m_pipelineState.GetAddressOf()))))
 		throw;
 
 #ifdef _DEBUG
-	const std::wstring str(_vsPath + _psPath + _dsPath + _hsPath + _gsPath);
-	pipelineState->SetName(str.c_str());
+	const std::wstring str(vsPath + psPath + dsPath + hsPath + gsPath);
+	m_pipelineState->SetName(str.c_str());
 #endif // _DEBUG
 
 }

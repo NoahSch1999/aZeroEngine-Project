@@ -1,8 +1,5 @@
 #pragma once
-#include "D3D12Include.h"
-#include "VertexDefinitions.h"
-#include "ConstantBuffer.h"
-#include "ResourceEngine.h"
+#include "UploadBuffer.h"
 
 class Camera
 {
@@ -32,15 +29,14 @@ private:
 	Vector2 sensitivity;
 
 	// Buffer
-	ConstantBuffer buffer;
+	std::unique_ptr<UploadBuffer<Matrix>> buffer;
 	std::string name;
-	ResourceEngine* resourceEngine = nullptr;
 
 	bool active = true;
 
 public:
 
-	ConstantBuffer& GetBuffer() { return buffer; }
+	UploadBuffer<Matrix>* GetBuffer() { return buffer.get(); }
 	Vector3& GetPosition() { return position; }
 	Vector3& GetForward() { return forward; }
 	Matrix& GetView() { return view; }
@@ -51,9 +47,8 @@ public:
 		active = _active;
 	}
 
-	Camera(ResourceEngine& _resourceEngine, 
-		float _fov, uint32_t _aspectRatio, float _nearPlane = 0.1f, float _farPlane = 1000.f, Vector2 _sensitivity = Vector2(0.005f, 0.005f), const std::string& _name = "")
-		:fov(_fov), nearPlane(_nearPlane), farPlane(_farPlane), sensitivity(_sensitivity), name(_name), resourceEngine(&_resourceEngine)
+	Camera(ID3D12Device* device, ResourceTrashcan& trashcan, float _fov, uint32_t _aspectRatio, float _nearPlane = 0.1f, float _farPlane = 1000.f, Vector2 _sensitivity = Vector2(0.005f, 0.005f), const std::string& _name = "")
+		:fov(_fov), nearPlane(_nearPlane), farPlane(_farPlane), sensitivity(_sensitivity), name(_name)
 	{
 		// Init Math
 		view = Matrix::CreateLookAt(position, forward, UP);
@@ -61,18 +56,17 @@ public:
 
 		// Init buffer
 		Matrix init = view * proj;
-		_resourceEngine.CreateResource(buffer, (void*)&init, sizeof(Matrix), true, true);
 
-
-#ifdef _DEBUG
-		buffer.GetGPUOnlyResource()->SetName(L"Camera Main Resource");
-		buffer.GetUploadResource()->SetName(L"Camera Intermediate Resource");
-#endif // _DEBUG
+		UploadBufferInitSettings initSettings;
+		UploadBufferSettings settings;
+		settings.m_numElements = 1;
+		settings.m_numSubresources = 3;
+		buffer = std::make_unique<UploadBuffer<Matrix>>(device, initSettings, settings, trashcan);
 	}
 
 	~Camera()
 	{
-		resourceEngine->RemoveResource(buffer);
+
 	}
 
 	void SetSensitivity(float _sensitivity) { sensitivity.x = _sensitivity; sensitivity.y = _sensitivity; }
@@ -84,7 +78,7 @@ public:
 
 	std::string GetName() const { return name; }
 
-	void Update(float _aspectRatio)
+	void Update(ID3D12GraphicsCommandList* _cmdList, UINT _frameIndex, float _aspectRatio)
 	{
 		Matrix vecRotMatrix = Matrix::CreateFromYawPitchRoll(yaw, pitch, 0);
 
@@ -100,10 +94,10 @@ public:
 		proj = Matrix::CreatePerspectiveFieldOfView(fov, _aspectRatio, nearPlane, farPlane);
 
 		Matrix mat = view * proj;
-		resourceEngine->Update(buffer, (void*)&mat);
+		buffer->Update(_cmdList, _frameIndex, mat, 0);
 	}
 
-	void Update(double _deltaTime, float _aspectRatio)
+	void Update(double _deltaTime, float _aspectRatio, ID3D12GraphicsCommandList* _cmdList, UINT _frameIndex)
 	{
 		Matrix vecRotMatrix = Matrix::CreateFromYawPitchRoll(yaw, pitch, 0);
 
@@ -161,7 +155,7 @@ public:
 			proj = Matrix::CreatePerspectiveFieldOfView(fov, _aspectRatio, nearPlane, farPlane);
 
 			Matrix mat = view * proj;
-			resourceEngine->Update(buffer, (void*)&mat);
+			buffer->Update(_cmdList, _frameIndex, mat, 0);
 		}
 	}
 };

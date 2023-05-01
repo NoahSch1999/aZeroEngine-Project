@@ -16,13 +16,26 @@ class PBRMaterial : public Material<PBRMaterialInfo>
 public:
 	PBRMaterial() = default;
 
-	PBRMaterial(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache, const std::string& _fileDirectory, const std::string& _name);
+	PBRMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, Texture2DCache& _textureCache, const std::string& _fileDirectory, const std::string& _name);
 
-	PBRMaterial(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache, const std::string& _name);
+	PBRMaterial(Texture2DCache& _textureCache, const std::string& _name);
+
+	PBRMaterial(PBRMaterial&& _other) noexcept
+	{
+		info = _other.info;
+		name = _other.name;
+	}
+
+	PBRMaterial& operator=(PBRMaterial&& _other) noexcept
+	{
+		info = _other.info;
+		name = _other.name;
+		return *this;
+	}
 
 	~PBRMaterial() = default;
 
 	virtual void Save(const std::string& _fileDirectory, const Texture2DCache& _textureCache) const override;
 
-	virtual void Load(ResourceEngine& _resourceEngine, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) override;
+	virtual void Load(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) override;
 };

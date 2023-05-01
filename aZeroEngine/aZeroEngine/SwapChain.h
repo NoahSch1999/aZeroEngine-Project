@@ -1,49 +1,50 @@
 #pragma once
 #include <vector>
-#include "ResourceEngine.h"
+#include "CommandQueue.h"
 #include "DescriptorManager.h"
 #include <array>
+#include "Texture.h"
 
 /** @brief Encapsulates everything related to the IDXGISwapChain interface.*/
 class SwapChain
 {
 private:
-	int numBackBuffers;
-	std::array<std::unique_ptr<RenderTarget>, 3> backBuffers;
+	int m_numBackBuffers;
+	std::array<std::unique_ptr<Texture>, 3> m_backBuffers;
 
-	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-	Microsoft::WRL::ComPtr<IDXGIFactory2> dxgiFactory;
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
+	Microsoft::WRL::ComPtr<IDXGIFactory2> m_dxgiFactory;
 
-	D3D12_VIEWPORT viewport = {};
-	D3D12_RECT scissorRect = {};
+	D3D12_VIEWPORT m_viewport = {};
+	D3D12_RECT m_scissorRect = {};
 
-	DXGI_FORMAT bbFormat;
-	DXGI_FORMAT dsvFormat;
-	int width;
-	int height;
+	DXGI_FORMAT m_bbFormat;
+	DXGI_FORMAT m_dsvFormat;
+	int m_width;
+	int m_height;
 
-	int refreshRate = 0;
+	int m_refreshRate = 0;
 
 public:
 	
 	SwapChain() = default;
 
-	SwapChain(ID3D12Device* _device, ResourceEngine& _resourceEngine, HWND _windowHandle, int _width, int _height, DXGI_FORMAT _bbFormat,
-		DXGI_SWAP_CHAIN_FLAG _flags = (DXGI_SWAP_CHAIN_FLAG)(DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING),
-		DXGI_SCALING _scaling = DXGI_SCALING_STRETCH);
+	SwapChain(ID3D12Device* device, CommandQueue& commandQueue, DescriptorManager& descriptorManager, ResourceTrashcan& trashCan, HWND windowHandle, int width, int height, DXGI_FORMAT bbFormat,
+		DXGI_SWAP_CHAIN_FLAG flags = (DXGI_SWAP_CHAIN_FLAG)(DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING),
+		DXGI_SCALING scaling = DXGI_SCALING_STRETCH);
 
 	~SwapChain() = default;
 
-	int GetRefreshRate() const { return refreshRate; }
-	int GetNumBackBuffers() const { return numBackBuffers; }
-	Vector2 GetBackBufferDimensions() const { return { static_cast<float>(width), static_cast<float>(height) }; }
+	int GetRefreshRate() const { return m_refreshRate; }
+	int GetNumBackBuffers() const { return m_numBackBuffers; }
+	Vector2 GetBackBufferDimensions() const { return { static_cast<float>(m_width), static_cast<float>(m_height) }; }
 
-	D3D12_VIEWPORT& GetViewPort() { return viewport; }
-	D3D12_RECT& GetScissorRect() { return scissorRect; }
-	DXGI_FORMAT GetBackBufferFormat() const { return bbFormat; }
+	D3D12_VIEWPORT& GetViewPort() { return m_viewport; }
+	D3D12_RECT& GetScissorRect() { return m_scissorRect; }
+	DXGI_FORMAT GetBackBufferFormat() const { return m_bbFormat; }
 
-	RenderTarget* GetBackBuffer(int _index) const { return backBuffers[_index].get(); }
-	std::array<std::unique_ptr<RenderTarget>, 3>& GetBackBuffers() { return backBuffers; }
-	IDXGISwapChain1* GetSwapChain() const { return swapChain.Get(); }
+	Texture* GetBackBuffer(int index) const { return m_backBuffers[index].get(); }
+	std::array<std::unique_ptr<Texture>, 3>& GetBackBuffers() { return m_backBuffers; }
+	IDXGISwapChain1* GetSwapChain() const { return m_swapChain.Get(); }
 
 };

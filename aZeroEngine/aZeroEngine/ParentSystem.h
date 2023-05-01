@@ -64,7 +64,7 @@ public:
 	@param _entity The Entity to bind.
 	@return bool TRUE: Entity was bound, FALSE: Entity was not bound
 	*/
-	virtual bool Bind(const Entity& _entity) override
+	virtual bool Bind(Entity& _entity) override
 	{
 		if (ECSystem::Bind(_entity))
 		{
@@ -80,7 +80,7 @@ public:
 	@param _entity The Entity to unbind.
 	@return bool TRUE: Entity was unbound, FALSE: Entity was not unbound
 	*/
-	virtual bool UnBind(const Entity& _entity) override
+	virtual bool UnBind(Entity& _entity) override
 	{
 		if (updateNodeIDs.contains(_entity.id))
 		{

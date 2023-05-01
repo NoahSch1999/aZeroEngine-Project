@@ -6,7 +6,6 @@
 #include <dxgi1_4.h>
 #include <tchar.h>
 #include <Psapi.h>
-#include "CommandList.h"
 #include "DescriptorHandle.h"
 #include "ImGuizmo.h"
 

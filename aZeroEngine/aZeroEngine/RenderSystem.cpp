@@ -1,8 +1,9 @@
 #include "RenderSystem.h"
 
-void RendererSystem::Init(ID3D12Device* _device, ResourceEngine* _resourceEngine, VertexBufferCache* _vbCache,
+void RendererSystem::Init(ID3D12Device* _device, CommandManager& commandManager, ResourceTrashcan& trashcan, DescriptorManager& descriptorManager, ModelCache* _modelCache,
 	std::shared_ptr<LightManager> _lManager, MaterialManager* _mManager, SwapChain* _swapChain, HINSTANCE _instance, HWND _winHandle)
 {
+
 	transformAllocator = std::make_unique<LinearResourceAllocator<Matrix>>(_device, 20000, 3);
 	pbrMaterialAllocator = std::make_unique<LinearResourceAllocator<PBRMaterialInfo>>(_device, 500, 3);
 
@@ -13,34 +14,42 @@ void RendererSystem::Init(ID3D12Device* _device, ResourceEngine* _resourceEngine
 	componentMask.set(COMPONENTENUM::MATERIAL, true);
 
 	// Dependency Injection Setup
-	resourceEngine = _resourceEngine;
-	vbCache = _vbCache;
+	modelCache = _modelCache;
 	lManager = _lManager;
 	mManager = _mManager;
 	swapChain = _swapChain;
+	m_descriptorManager = &descriptorManager;
+	m_device = _device;
+	m_trashCan = &trashcan;
+	m_commandManager = &commandManager;
 
 	// Shared Resources
 	solidRaster = RasterState(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_FRONT);
 	wireFrameRaster = RasterState(D3D12_FILL_MODE_WIREFRAME, D3D12_CULL_MODE_NONE);
 
-	anisotropicWrapSampler.Init(_device, resourceEngine->GetDescriptorManager().GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+	anisotropicWrapSampler.Init(_device, descriptorManager.GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 		D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 
-	anisotropicBorderSampler.Init(_device, resourceEngine->GetDescriptorManager().GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
+	anisotropicBorderSampler.Init(_device, descriptorManager.GetSamplerDescriptor(), D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_BORDER,
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER);
 
 	//InitShadowPass(_device);
 	InitGeometryPass(_device);
+	InitOutlinePass(_device);
 }
 
 void RendererSystem::Update()
 {
 	if (!mainCamera.expired())
 	{
-		transformAllocator->BeginFrame(resourceEngine->GetFrameIndex());
-		pbrMaterialAllocator->BeginFrame(resourceEngine->GetFrameIndex());
+		transformAllocator->BeginFrame(m_frameIndex);
+		pbrMaterialAllocator->BeginFrame(m_frameIndex);
 		//ShadowPassBegin();
 		GeometryPass();
+		if (!uiSelectionList->Empty())
+		{
+			OutlinePass();
+		}
 	}
 }
 
@@ -58,12 +67,29 @@ void RendererSystem::InitShadowPass(ID3D12Device* _device)
 	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_ShadowPass.cso";
 #endif // DEBUG
 
-	shadowPso.Init(_device, &shadowRootSig, layout, solidRaster, swapChain->GetNumBackBuffers(), swapChain->GetBackBufferFormat(),
-		DXGI_FORMAT_D24_UNORM_S8_UINT,vsPath, L"", L"", L"", L"");
+	DXGI_FORMAT formats[] = { swapChain->GetBackBufferFormat() };
+	shadowPso.Init(_device, &shadowRootSig, layout, solidRaster, ARRAYSIZE(formats), formats,
+		DXGI_FORMAT_D24_UNORM_S8_UINT, vsPath, L"", L"", L"", L"");
 
-	int sizeW = 4096;
-	int sizeH = 4096;
-	resourceEngine->CreateResource(shadowMap, sizeW, sizeH, true);
+	const int sizeW = 4096;
+	const int sizeH = 4096;
+	GraphicsContextHandle context = m_commandManager->GetGraphicsContext();
+
+	TextureSettings settings;
+	settings.clearValue.DepthStencil.Depth = 1;
+	settings.clearValue.DepthStencil.Stencil = 0;
+	settings.clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	settings.width = swapChain->GetBackBufferDimensions().x;
+	settings.height = swapChain->GetBackBufferDimensions().y;
+	settings.bytesPerTexel = 4;
+	settings.dsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	settings.srvFormat = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	settings.initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	settings.flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	settings.createReadback = false;
+	shadowMap = std::move(Texture(_device, context.GetList(), settings, *m_descriptorManager, *m_trashCan));
+
+	m_commandManager->ExecuteContext(context);
 
 	lightViewPort.Height = (FLOAT)sizeH;
 	lightViewPort.Width = (FLOAT)sizeW;
@@ -77,12 +103,6 @@ void RendererSystem::InitShadowPass(ID3D12Device* _device)
 	lightScizzorRect.top = 0;
 	lightScizzorRect.right = sizeW;
 	lightScizzorRect.bottom = sizeH;
-
-#ifdef _DEBUG
-	shadowPso.GetPipelineState()->SetName(L"Shadow Pass PSO");
-	shadowRootSig.GetSignature()->SetName(L"Shadow Pass Root Signature");
-	shadowMap.GetGPUOnlyResource()->SetName(L"Shadow map");
-#endif // DEBUG
 }
 
 void RendererSystem::ShadowPassBegin()
@@ -116,11 +136,38 @@ void RendererSystem::ShadowPassBegin()
 
 void RendererSystem::InitGeometryPass(ID3D12Device* _device)
 {
-	resourceEngine->CreateResource(geoPassDSV, swapChain->GetBackBufferDimensions().x, swapChain->GetBackBufferDimensions().y, false);
+	GraphicsContextHandle context = m_commandManager->GetGraphicsContext();
 
-	pickingRTV = std::make_shared<RenderTarget>();
-	resourceEngine->CreateResource(*pickingRTV, swapChain->GetBackBufferDimensions().x, swapChain->GetBackBufferDimensions().y,
-		 4, DXGI_FORMAT_R32_SINT, true, true, Vector4(-1, -1, -1, -1));
+	TextureSettings settings;
+	settings.clearValue.DepthStencil.Depth = 1;
+	settings.clearValue.DepthStencil.Stencil = 0;
+	settings.clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	settings.width = swapChain->GetBackBufferDimensions().x;
+	settings.height = swapChain->GetBackBufferDimensions().y;
+	settings.bytesPerTexel = 4;
+	settings.dsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	settings.initialState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	settings.flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	settings.createReadback = false;
+	geoPassDSV = std::move(Texture(_device, context.GetList(), settings, *m_descriptorManager, *m_trashCan));
+
+	TextureSettings settingsTwo;
+	settingsTwo.clearValue.Color[0] = -1;
+	settingsTwo.clearValue.Color[1] = -1;
+	settingsTwo.clearValue.Color[2] = -1;
+	settingsTwo.clearValue.Color[3] = -1;
+	settingsTwo.clearValue.Format = DXGI_FORMAT_R32_SINT;
+	settingsTwo.width = swapChain->GetBackBufferDimensions().x;
+	settingsTwo.height = swapChain->GetBackBufferDimensions().y;
+	settingsTwo.bytesPerTexel = 4;
+	settingsTwo.rtvFormat = DXGI_FORMAT_R32_SINT;
+	settingsTwo.initialState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	settingsTwo.flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	settingsTwo.createReadback = true;
+	pickingRTV = std::make_shared<Texture>();
+	*pickingRTV = std::move(Texture(_device, context.GetList(), settingsTwo, *m_descriptorManager, *m_trashCan));
+
+	m_commandManager->ExecuteContext(context);
 
 	// PBR Setup
 	RootParameters paramsPBR;
@@ -147,56 +194,47 @@ void RendererSystem::InitGeometryPass(ID3D12Device* _device)
 	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_PBR.cso";
 #endif // _DEBUG
 
-	pbrPso.Init(_device, &pbrRootSig, layout, solidRaster, swapChain->GetNumBackBuffers(), swapChain->GetBackBufferFormat(), geoPassDSV.GetFormat(),
+	DXGI_FORMAT formats[] = { swapChain->GetBackBufferFormat(), DXGI_FORMAT_R32_SINT };
+	pbrPso.Init(_device, &pbrRootSig, layout, solidRaster, ARRAYSIZE(formats), formats, geoPassDSV.GetDSVFormat(),
 		vsPath, psPath,
 		L"", L"", L"", true);
-
-#ifdef _DEBUG
-
-	pbrPso.GetPipelineState()->SetName(L"Geometry Pass PBR PSO");
-	pbrRootSig.GetSignature()->SetName(L"Geometry Pass PBR Root Signature");
-
-	geoPassDSV.GetGPUOnlyResource()->SetName(L"Swap Chain Depth Stencil");
-	pickingRTV->GetGPUOnlyResource()->SetName(L"Picking RTV");
-#endif // DEBUG
 }
 
 void RendererSystem::GeometryPass()
 {
 	std::shared_ptr<Camera> cam = mainCamera.lock();
 
-	std::shared_ptr<GraphicsCommandContext> context = resourceEngine->commandManager->GetGraphicsContext();
+	GraphicsContextHandle context = m_commandManager->GetGraphicsContext();
 
-	ID3D12DescriptorHeap* heap[] = { resourceEngine->GetResourceHeap(), resourceEngine->GetSamplerHeap() };
-	context->SetDescriptorHeaps(2, heap);
+	ID3D12DescriptorHeap* const heap[] = { m_descriptorManager->GetResourceHeap(), m_descriptorManager->GetSamplerHeap()};
+	context.SetDescriptorHeaps(2, heap);
 
-	D3D12_RESOURCE_BARRIER r = CD3DX12_RESOURCE_BARRIER::Transition(currentBackBuffer->GetGPUOnlyResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	context->GetList().GetGraphicList()->ResourceBarrier(1, &r);
+	context.TransitionTexture(*currentBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	context->ClearRenderTargetView(*currentBackBuffer);
-	context->ClearRenderTargetView(*pickingRTV);
-	context->ClearDepthStencilView(geoPassDSV);
+	context.ClearRenderTargetView(*currentBackBuffer);
+	context.ClearRenderTargetView(*pickingRTV);
+	context.ClearDepthStencilView(geoPassDSV);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE handle[2] = { currentBackBuffer->GetHandle().GetCPUHandle(), pickingRTV->GetHandle().GetCPUHandle() };
+	const D3D12_CPU_DESCRIPTOR_HANDLE handle[2] = { currentBackBuffer->GetRTVDSVHandle().GetCPUHandle(), pickingRTV->GetRTVDSVHandle().GetCPUHandle() };
 
-	context->SetOMRenderTargets(2, handle, false, &geoPassDSV.GetHandle().GetCPUHandleRef());
-	context->SetIAPrimiteTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->SetRSScizzorRects(1, &swapChain->GetScissorRect());
-	context->SetRSViewports(1, &swapChain->GetViewPort());
-	context->SetPipelineState(pbrPso.GetPipelineState());
-	context->SetRootSignature(pbrRootSig.GetSignature());
-	context->SetConstantBufferView(1, cam->GetBuffer().GetGPUAddress());
-	context->SetConstantBufferView(3, lManager->numLightsCB.GetGPUAddress());
-	context->SetShaderResourceView(4, lManager->pLightList.dataBuffer.GetGPUAddress());
-	context->Set32BitRootConstants(5, 8, (void*)&lManager->dLightData.direction, 0);
-	context->Set32BitRootConstants(2, 4, (void*)&cam->GetForward(), 0);
-	context->Set32BitRootConstants(2, 4, (void*)&cam->GetPosition(), 4);
-	context->Set32BitRootConstant(7, shadowMap.GetSrvHandle().GetHeapIndex(), 0); // bug with 0 as offset?
-	context->Set32BitRootConstants(8, 16, (void*)&lManager->dLightData.VPMatrix, 0); // bug with 0 as offset?
-	context->SetShaderResourceView(10, transformAllocator->GetVirtualAddress());
-	context->SetShaderResourceView(6, pbrMaterialAllocator->GetVirtualAddress());
+	context.SetOMRenderTargets(2, handle, false, &geoPassDSV.GetRTVDSVHandle().GetCPUHandleRef());
+	context.SetIAPrimiteTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context.SetRSScizzorRects(1, &swapChain->GetScissorRect());
+	context.SetRSViewports(1, &swapChain->GetViewPort());
+	context.SetPipelineState(pbrPso.GetPipelineState());
+	context.SetRootSignature(pbrRootSig.GetSignature());
+	context.SetConstantBufferView(1, cam->GetBuffer()->GetVirtualAddress());
+	context.SetConstantBufferView(3, lManager->numLightsCB->GetVirtualAddress());
+	context.SetShaderResourceView(4, lManager->pLightList.dataBuffer.GetVirtualAddress());
+	context.Set32BitRootConstants(5, 8, (void*)&lManager->dLightData.direction, 0);
+	context.Set32BitRootConstants(2, 4, (void*)&cam->GetForward(), 0);
+	context.Set32BitRootConstants(2, 4, (void*)&cam->GetPosition(), 4);
+	context.Set32BitRootConstant(7, shadowMap.GetSRVHandle().GetHeapIndex(), 0); // bug with 0 as offset?
+	context.Set32BitRootConstants(8, 16, (void*)&lManager->dLightData.VPMatrix, 0); // bug with 0 as offset?
+	context.SetShaderResourceView(10, transformAllocator->GetVirtualAddress());
+	context.SetShaderResourceView(6, pbrMaterialAllocator->GetVirtualAddress());
 
-	PBRMaterial* defualtMat = mManager->GetMaterial<PBRMaterial>("DefaultPBRMaterial");
+	PBRMaterial* const defualtMat = mManager->GetMaterial<PBRMaterial>("DefaultPBRMaterial");
 
 	std::vector<Entity>& entities = entityIDMap.GetObjects();
 	int numEntities = entities.size();
@@ -208,22 +246,22 @@ void RendererSystem::GeometryPass()
 	*pbrMatAlloc = defualtMat->GetInfo();
 	++pbrMatAlloc;
 
-	for (int i = 0;i < numEntities; i++)
+	for (int i = 0; i < numEntities; i++)
 	{
 		PixelDrawConstantsPBR perDraw;
 
 		// Transform
-		Transform* tf = componentManager.GetComponent<Transform>(entities[i]);
+		Transform* const tf = componentManager.GetComponent<Transform>(entities[i]);
 		parentSystem->CalculateWorld(entities[i], tf);
 
 		*transformAlloc = tf->GetWorldMatrix();
 
 		UINT tfID = transformAlloc.CurrentOffset();
-		context->Set32BitRootConstant(0, tfID, 0);
+		context.Set32BitRootConstant(0, tfID, 0);
 
 		// Material
 		// Reuse allocated material index
-		PBRMaterial* mat = mManager->GetMaterial<PBRMaterial>(componentManager.GetComponent<MaterialComponent>(entities[i])->materialID);
+		PBRMaterial* const mat = mManager->GetMaterial<PBRMaterial>(componentManager.GetComponent<MaterialComponent>(entities[i])->materialID);
 		if (!mat)
 			perDraw.materialIndex = defaultMatIndex;
 		else
@@ -239,21 +277,110 @@ void RendererSystem::GeometryPass()
 		// Other
 		perDraw.pickingID = entities[i].id;
 
-		context->Set32BitRootConstants(9, 3, (void*)&perDraw, 0);
-		context->SetIAVertexBuffers(0, 1, &vbCache->GetResource(componentManager.GetComponent<Mesh>(entities[i])->GetID())->GetView());
-		context->DrawInstanced(vbCache->GetResource(componentManager.GetComponent<Mesh>(entities[i])->GetID())->GetNumVertices(), 1, 0, 0);
-		
+		context.Set32BitRootConstants(9, 3, (void*)&perDraw, 0);
+
+		ModelAsset* model = modelCache->GetResource(componentManager.GetComponent<Mesh>(entities[i])->GetID());
+		D3D12_VERTEX_BUFFER_VIEW vbView = model->GetVertexBufferView();
+		context.SetIAVertexBuffers(0, 1, &vbView);
+		D3D12_INDEX_BUFFER_VIEW ibView = model->GetIndexBufferView();
+		context.SetIAIndexBuffer(&ibView);
+
+		context.DrawIndexedInstanced(model->GetNumIndices(), 1, 0, 0, 0);
+
 		++transformAlloc;
 	}
 
-	pickingRTV->Transition(context->GetList(), D3D12_RESOURCE_STATE_COPY_SOURCE);
+	context.TransitionTexture(*pickingRTV, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	context.CopyTextureToBuffer(m_device, pickingRTV->GetGPUOnlyResource(), pickingRTV->GetReadbackResource());
+	context.TransitionTexture(*pickingRTV, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	context->CopyTextureToBuffer(resourceEngine->GetDevice(), pickingRTV->GetDesc(), pickingRTV->GetGPUOnlyResource().Get(),
-		pickingRTV->GetReadbackResource().Get(), pickingRTV->GetGPUOnlyResourceState(), D3D12_RESOURCE_STATE_COMMON);
+	m_commandManager->ExecuteContext(context);
+}
 
-	pickingRTV->Transition(context->GetList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+void RendererSystem::InitOutlinePass(ID3D12Device* _device)
+{
+	RootParameters outlineParams;
+	outlineParams.AddRootConstants(0, 16, D3D12_SHADER_VISIBILITY_VERTEX); // matrice 0
+	outlineParams.AddRootDescriptor(1, D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX); // cam 1
+	outlineParams.AddRootConstants(0, 4, D3D12_SHADER_VISIBILITY_PIXEL); // colorConstant 2
+	outlineRoot.Init(_device, &outlineParams, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
-	resourceEngine->RequestReadback(pickingRTV);
+	std::wstring vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_Outline.cso";
+#ifdef _DEBUG
+	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_Outline.cso";
+#endif // DEBUG
 
-	resourceEngine->commandManager->Execute(context);
+	std::wstring psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/PS_Outline.cso";
+#ifdef _DEBUG
+	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_Outline.cso";
+#endif // DEBUG
+
+	DXGI_FORMAT formats[] = { swapChain->GetBackBufferFormat() };
+	outlinePSO.Init(_device, &outlineRoot, layout, solidRaster, ARRAYSIZE(formats), formats,
+		DXGI_FORMAT_D24_UNORM_S8_UINT, vsPath, psPath, L"", L"", L"", false, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
+}
+
+void RendererSystem::OutlinePass()
+{
+	std::shared_ptr<Camera> cam = mainCamera.lock();
+
+	GraphicsContextHandle context = m_commandManager->GetGraphicsContext();
+
+	ID3D12DescriptorHeap* const heap[] = { m_descriptorManager->GetResourceHeap(), m_descriptorManager->GetSamplerHeap() };
+	context.SetDescriptorHeaps(2, heap);
+
+	context.SetOMRenderTargets(1, &currentBackBuffer->GetRTVDSVHandle().GetCPUHandleRef(), false, &geoPassDSV.GetRTVDSVHandle().GetCPUHandleRef());
+	context.SetIAPrimiteTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+	context.SetRSScizzorRects(1, &swapChain->GetScissorRect());
+	context.SetRSViewports(1, &swapChain->GetViewPort());
+	context.SetPipelineState(outlinePSO.GetPipelineState());
+	context.SetRootSignature(outlineRoot.GetSignature());
+
+	std::list<int>::iterator beg = uiSelectionList->Begin();
+	std::list<int>::iterator end = uiSelectionList->End();
+	int renderCount = 0;
+	for (auto i = beg; i!= end; i++)
+	{
+		Entity& ent = currentScene->GetEntity(*i);
+		Transform* tf = componentManager.GetComponent<Transform>(ent);
+		Mesh* mesh = componentManager.GetComponent<Mesh>(ent);
+
+		if (!tf || !mesh)
+		{
+			renderCount++;
+			continue;
+		}
+
+		if (renderCount == 0)
+		{
+
+			const Vector4 colorConstants = { 1.f, 0.f, 0.f, 1.f };
+			context.Set32BitRootConstants(2, 4, &colorConstants, 0);
+		}
+		else
+		{
+
+			const Vector4 colorConstants = { 1.f, 1.f, 0.f, 1.f };
+			context.Set32BitRootConstants(2, 4, &colorConstants, 0);
+		}
+		
+		const Matrix world = Matrix::CreateScale(1.0001f) * tf->GetWorldMatrix();
+
+		context.Set32BitRootConstants(0, 16, &world, 0);
+		context.SetConstantBufferView(1, cam->GetBuffer()->GetVirtualAddress());
+
+		ModelAsset* model = modelCache->GetResource(componentManager.GetComponent<Mesh>(ent)->GetID());
+		D3D12_VERTEX_BUFFER_VIEW vbView = model->GetVertexBufferView();
+		context.SetIAVertexBuffers(0, 1, &vbView);
+		D3D12_INDEX_BUFFER_VIEW ibView = model->GetIndexBufferView();
+		context.SetIAIndexBuffer(&ibView);
+
+		context.DrawIndexedInstanced(model->GetNumIndices(), 1, 0, 0, 0);
+
+		renderCount++;
+	}
+	
+	m_commandManager->ExecuteContext(context);
 }

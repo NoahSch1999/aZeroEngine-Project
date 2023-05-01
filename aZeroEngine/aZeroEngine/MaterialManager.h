@@ -1,6 +1,5 @@
 #pragma once
 #include "PBRMaterial.h"
-#include "ResourceEngine.h"
 #include "LinearResourceAllocator.h"
 
 /** @brief This class manages materials.
@@ -18,14 +17,13 @@ private:
 	NamedSlottedMap<PBRMaterial>pbrMaterials;
 
 	Texture2DCache& textureCache;
-	ResourceEngine& resourceEngine;
 
 public:
 
 	/** The input references to ResourceEngine, DescriptorManager, and Texture2DCache are copied to the member variable references.
 	@param _device The main ID3D12Device instance used for creating the neccessary resources.
 	*/
-	MaterialManager(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache);
+	MaterialManager(Texture2DCache& _textureCache);
 
 	/** Clears all the stored materials from CPU-memory and calls ResourceEngine::RemoveResource() on the materials constant buffer.
 	*/
@@ -34,21 +32,21 @@ public:
 	/** Initiates the MaterialManager object and creates two default materials (one for the Phong shading model and one for the PBR shading model).
 	@return void
 	*/
-	void Init();
+	void Init(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex);
 
 	/** Creates a new material and adds it to the internal NameSlottedMap for the template specified material type.
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
 	@return void
 	*/
 	template<typename T>
-	void CreateMaterial(const std::string _materialName);
+	void CreateMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string _materialName);
 
 	/** Loads a material (.azm) file from disk and adds it to the internal NameSlottedMap for the template specified material type.
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
 	@return void
 	*/
 	template<typename T>
-	void LoadMaterial(const std::string _materialName);
+	void LoadMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string _materialName);
 
 	/** Removes the material of the template specified type with the input key (std::string).
 	* Immediately removed the CPU-side memory, but also prepares to delete the GPU-side resources using the dependency injected ResourceEngine.
@@ -121,17 +119,17 @@ public:
 };
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(const std::string _materialName)
+inline void MaterialManager::CreateMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PBRMaterial>)
-		pbrMaterials.Add(_materialName, PBRMaterial(resourceEngine, textureCache, _materialName));
+		pbrMaterials.Add(_materialName, PBRMaterial(device, context, frameIndex, textureCache, "../materials/", _materialName));
 }
 
 template<typename T>
-inline void MaterialManager::LoadMaterial(const std::string _materialName)
+inline void MaterialManager::LoadMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string _materialName)
 {
 	if constexpr (std::is_same_v<T, PBRMaterial>)
-		pbrMaterials.Add(_materialName, PBRMaterial(resourceEngine, textureCache, "../materials/", _materialName));
+		pbrMaterials.Add(_materialName, PBRMaterial(device, context, frameIndex, textureCache, "../materials/", _materialName));
 }
 
 template<typename MaterialType>

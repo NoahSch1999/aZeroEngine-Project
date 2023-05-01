@@ -99,7 +99,12 @@ std::optional<std::string> LevelEditorUI::LoadMeshFromDirectory()
 		std::string::size_type const p(fbxNameWithExt.find_last_of('.'));
 		std::string fileNameWithoutExt = fbxNameWithExt.substr(0, p);
 
-		engine->GetVertexBufferCache().LoadResource(fileNameWithoutExt, "..\\meshes\\");
+		GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+
+		engine->GetModelCache().LoadResource(engine->GetDevice(), context, 
+			engine->GetFrameIndex(), fileNameWithoutExt, "..\\meshes\\");
+
+		engine->GetCommandManager().ExecuteContext(context);
 		return fileNameWithoutExt;
 	}
 	return {};
@@ -114,7 +119,13 @@ std::optional<std::string> LevelEditorUI::LoadPBRMaterialFromDirectory()
 		std::string::size_type const p(matNameWithExt.find_last_of('.'));
 		std::string fileNameWithoutExt = matNameWithExt.substr(0, p);
 
-		engine->GetMaterialManager().LoadMaterial<PBRMaterial>(fileNameWithoutExt);
+		GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+
+		engine->GetMaterialManager().LoadMaterial<PBRMaterial>(engine->GetDevice(), context,
+			engine->GetFrameIndex(), fileNameWithoutExt);
+
+		engine->GetCommandManager().ExecuteContext(context);
+
 		return fileNameWithoutExt;
 	}
 	return {};
@@ -126,6 +137,41 @@ void LevelEditorUI::Update()
 	if (editorMode)
 	{
 		ShowSceneWindow();
+
+		if (InputManager::MouseBtnDown(LEFT))
+		{
+			if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
+			{
+				if (!ImGuizmo::IsOver())
+				{
+					std::optional<Vector2> mousePos = engine->GetMouseWindowPosition();
+					if (mousePos)
+					{
+						int pickingID = engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y);
+
+						if (pickingID == -1)
+						{
+							selectionList.Clear();
+						}
+						else
+						{
+							if (InputManager::KeyHeld(VK_SHIFT))
+							{
+								if (selectionList.Selected(pickingID))
+									selectionList.Remove(pickingID);
+								else
+									selectionList.Add(pickingID);
+							}
+							else
+							{
+								selectionList.Clear();
+								selectionList.Add(pickingID);
+							}
+						}
+					}
+				}
+			}
+		}
 
 		if (currentScene)
 			ShowEntityWindow();
@@ -142,10 +188,20 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 	std::shared_ptr<Camera> cam = camera.lock();
 	Transform* tf = currentScene->GetComponentForEntity<Transform>(_entity);
 
+	Entity& rootEntity = currentScene->GetEntity(selectionList.GetRoot());
 	if (!editingPLight)
 	{
 		if (tf)
 		{
+			/*static float rotTemp = 0.f;
+			Vector3 s;
+			Vector3 y;
+			Matrix rot = Matrix::CreateRotationY(rotTemp);
+			Quaternion rotQ = Quaternion::CreateFromRotationMatrix(rot);
+			rot.Decompose(s, rotQ, y);
+			tf->GetRotation() = rotQ.ToEuler();
+			rotTemp += 0.005f;*/
+
 			static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
 			static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 
@@ -161,8 +217,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 			if (ImGuizmo::Manipulate(&cam->GetView()._11, &cam->GetProj()._11, mCurrentGizmoOperation, mCurrentGizmoMode, &matrix._11, NULL, 0))
 			{
-				Entity& ent = currentScene->GetEntity(selEntityID);
-				int parentID = engine->GetParentSystem().lock()->GetParentEntityID(ent);
+				int parentID = engine->GetParentSystem().lock()->GetParentEntityID(rootEntity);
 
 				if (parentID != -1)
 				{
@@ -208,19 +263,19 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 					case COMPONENTENUM::TRANSFORM:
 					{
 						Transform comp;
-						currentScene->AddComponentToEntity<Transform>(_entity, comp);
+						currentScene->AddComponentToEntity<Transform>(_entity, std::move(comp));
 						break;
 					}
 					case COMPONENTENUM::MESH:
 					{
 						Mesh comp;
-						comp.SetID(engine->GetVertexBufferCache().GetID("defaultCube"));
-						currentScene->AddComponentToEntity<Mesh>(_entity, comp);
+						comp.SetID(engine->GetModelCache().GetID("defaultCube"));
+						currentScene->AddComponentToEntity<Mesh>(_entity, std::move(comp));
 
 						MaterialComponent compMat;
 						compMat.materialID = engine->GetMaterialManager().GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
 						compMat.type = MATERIALTYPE::PBR;
-						currentScene->AddComponentToEntity<MaterialComponent>(_entity, compMat);
+						currentScene->AddComponentToEntity<MaterialComponent>(_entity, std::move(compMat));
 						break;
 					}
 					case COMPONENTENUM::MATERIAL:
@@ -228,13 +283,13 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 						MaterialComponent comp;
 						comp.materialID = engine->GetMaterialManager().GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
 						comp.type = MATERIALTYPE::PBR;
-						currentScene->AddComponentToEntity<MaterialComponent>(_entity, comp);
+						currentScene->AddComponentToEntity<MaterialComponent>(_entity, std::move(comp));
 						break;
 					}
 					case COMPONENTENUM::PLIGHT:
 					{
 						PointLightComponent comp;
-						currentScene->AddComponentToEntity<PointLightComponent>(_entity, comp);
+						currentScene->AddComponentToEntity<PointLightComponent>(_entity, std::move(comp));
 						break;
 					}
 					}
@@ -288,13 +343,13 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 					}
 					case COMPONENTENUM::MESH:
 					{
-						Mesh* meshComp = currentScene->GetComponentForEntity<Mesh>(currentScene->GetEntity(selEntityID));
+						Mesh* meshComp = currentScene->GetComponentForEntity<Mesh>(rootEntity);
 						if (meshComp)
 						{
-							VertexBufferCache& vbCache = engine->GetVertexBufferCache();
+							auto& modelCache = engine->GetModelCache();
 							ImGui::Text("Current: ");
 							ImGui::SameLine();
-							ImGui::Text(vbCache.GetFileName(meshComp->GetID()).c_str());
+							ImGui::Text(modelCache.GetFileName(meshComp->GetID()).c_str());
 
 							// Should be scrollable ----
 							if (ImGui::Button("Change Mesh"))
@@ -302,7 +357,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 							if (ImGui::BeginPopup("MeshPopup"))
 							{
-								std::vector<VertexBuffer>& vbVec = vbCache.GetAllResources();
+								std::vector<ModelAsset>& vbVec = modelCache.GetAllResources();
 
 								if (ImGui::Button("Load Mesh"))
 								{
@@ -311,15 +366,15 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 									// be set to the already loaded mesh.
 									std::optional<std::string> loadedName = LoadMeshFromDirectory();
 									if (loadedName.has_value())
-										meshComp->SetID(vbCache.GetID(loadedName.value()));
+										meshComp->SetID(modelCache.GetID(loadedName.value()));
 								}
 								else
 								{
-									for (VertexBuffer& vb : vbVec)
+									for (ModelAsset& vb : vbVec)
 									{
-										if (ImGui::Selectable(vb.GetName().c_str()))
+										if (ImGui::Selectable(vb.GetMeshName().c_str()))
 										{
-											meshComp->SetID(vbCache.GetID(vb.GetName()));
+											meshComp->SetID(modelCache.GetID(vb.GetMeshName()));
 											break;
 										}
 									}
@@ -360,7 +415,14 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 							ImGui::Text("Current: ");
 							ImGui::SameLine();
-							ImGui::Text(mManager.GetMaterial<PBRMaterial>(matComp->materialID)->GetName().c_str());
+							if (matComp->materialID != -1)
+							{
+								ImGui::Text(mManager.GetMaterial<PBRMaterial>(matComp->materialID)->GetName().c_str());
+							}
+							else
+							{
+								ImGui::Text("Default PBR");
+							}
 
 							// Should be scrollable ----
 							if (ImGui::Button("Change Material"))
@@ -473,7 +535,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 								if (ImGui::Button("Delete Point Light"))
 								{
-									currentScene->RemoveComponentFromEntity<PointLightComponent>(currentScene->GetEntity(selEntityID));
+									currentScene->RemoveComponentFromEntity<PointLightComponent>(rootEntity);
 									editingPLight = false;
 								}
 							}
@@ -516,10 +578,12 @@ void LevelEditorUI::ShowSceneWindow()
 				if (currentScene)
 					currentScene.reset();
 
-				currentScene = engine->LoadScene("..\\scenes\\", sceneNameWithoutExt);
+				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				currentScene = engine->LoadScene(context, "..\\scenes\\", sceneNameWithoutExt);
+				engine->GetCommandManager().ExecuteContext(context);
 
 				editingPLight = false;
-				selEntityID = -1;
+				selectionList.Clear();
 			}
 		}
 
@@ -529,7 +593,7 @@ void LevelEditorUI::ShowSceneWindow()
 			{
 				currentScene.reset();
 				editingPLight = false;
-				selEntityID = -1;
+				selectionList.Clear();
 			}
 
 			static char sceneNameBuffer[40] = "";
@@ -654,18 +718,19 @@ void LevelEditorUI::ShowEntityWindow()
 		if (ImGui::Button("Create Entity"))
 		{
 			Entity& ent = currentScene->CreateEntity("Entity_");
-			selEntityID = ent.id;
 		}
 
-		if (selEntityID != -1)
+		int rootEntity = selectionList.GetRoot();
+		if (rootEntity != -1)
 		{
+			Entity& currentEnt = currentScene->GetEntity(rootEntity);
+
 			if (ImGui::Button("Add Child"))
 				ImGui::OpenPopup("AddChildPopup");
 
 			if (ImGui::BeginPopup("AddChildPopup"))
 			{
 				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
-				Entity& currentEnt = currentScene->GetEntity(selEntityID);
 				std::vector<int> childrenIDs = pSys->GetChildrenEntityID(currentEnt);
 
 				for (Entity& ent : entityVec)
@@ -685,7 +750,7 @@ void LevelEditorUI::ShowEntityWindow()
 
 					if (!isChild)
 					{
-						if (ent.id != selEntityID)
+						if (ent.id != rootEntity)
 						{
 							int parId = pSys->GetParentEntityID(currentEnt);
 							if (parId != ent.id)
@@ -695,7 +760,7 @@ void LevelEditorUI::ShowEntityWindow()
 								{
 									if (ImGui::Selectable(entIDStr.value().c_str()))
 									{
-										if (ent.id != selEntityID)
+										if (ent.id != rootEntity)
 										{
 											pSys->Parent(currentEnt, ent);
 										}
@@ -711,7 +776,7 @@ void LevelEditorUI::ShowEntityWindow()
 			if (ImGui::Button("Remove As Child"))
 			{
 				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
-				Entity& currentEnt = currentScene->GetEntity(selEntityID);
+				Entity& currentEnt = currentScene->GetEntity(rootEntity);
 				int parentID = pSys->GetParentEntityID(currentEnt);
 				if (parentID != -1)
 				{
@@ -723,8 +788,8 @@ void LevelEditorUI::ShowEntityWindow()
 
 			if (ImGui::Button("Delete Entity"))
 			{
-				currentScene->DeleteEntity(selEntityID);
-				selEntityID = -1;
+				currentScene->DeleteEntity(rootEntity);
+				selectionList.Remove(rootEntity);
 			}
 			else
 			{
@@ -739,17 +804,16 @@ void LevelEditorUI::ShowEntityWindow()
 						const std::string newNameStr(newName);
 						if (newNameStr != "")
 						{
-							currentScene->RenameEntity(currentScene->GetEntity(selEntityID), newName);
+							currentScene->RenameEntity(currentScene->GetEntity(rootEntity), newName);
 							ZeroMemory(newName, ARRAYSIZE(newName));
 						}
 					}
 					ImGui::EndPopup();
 				}
 
-				DrawEntityComponents(currentScene->GetEntity(selEntityID));
+				DrawEntityComponents(currentScene->GetEntity(rootEntity));
 			}
 		}
-
 	}
 	ImGui::End();
 }
@@ -762,7 +826,7 @@ void LevelEditorUI::ShowEntityHierarchy(const Entity& _current)
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-	if (selEntityID == _current.id)
+	if(selectionList.Selected(_current.id))
 		flags |= ImGuiTreeNodeFlags_Selected;
 
 	std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
@@ -775,7 +839,18 @@ void LevelEditorUI::ShowEntityHierarchy(const Entity& _current)
 	{
 		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
 		{
-			selEntityID = _current.id;
+			if (InputManager::KeyHeld(VK_SHIFT))
+			{
+				if (selectionList.Selected(_current.id))
+					selectionList.Remove(_current.id);
+				else
+					selectionList.Add(_current.id);
+			}
+			else
+			{
+				selectionList.Clear();
+				selectionList.Add(_current.id);
+			}
 		}
 
 		for (int id : childrenIDs)
@@ -836,7 +911,9 @@ void LevelEditorUI::ShowMaterialWindow()
 			const std::string newMatTempName(matNameBuffer);
 			if (!mManager.Exists<PBRMaterial>(newMatTempName))
 			{
-				mManager.CreateMaterial<PBRMaterial>(newMatTempName);
+				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				mManager.CreateMaterial<PBRMaterial>(engine->GetDevice(), context, engine->GetFrameIndex(), newMatTempName);
+				engine->GetCommandManager().ExecuteContext(context);
 				ZeroMemory(matNameBuffer, ARRAYSIZE(matNameBuffer));
 				alrExists = false;
 			}
@@ -872,7 +949,11 @@ void LevelEditorUI::ShowMaterialWindow()
 				std::string::size_type const p(matNameWithExt.find_last_of('.'));
 				std::string matNameWithoutExt = matNameWithExt.substr(0, p);
 
-				mManager.LoadMaterial<PBRMaterial>(matNameWithoutExt);
+				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				mManager.LoadMaterial<PBRMaterial>(engine->GetDevice(), context,
+					engine->GetFrameIndex(), matNameWithoutExt);
+				engine->GetCommandManager().ExecuteContext(context);
+
 				PBRMaterial* mat = mManager.GetMaterial<PBRMaterial>(matNameWithoutExt);
 				if (mat)
 				{
@@ -921,9 +1002,9 @@ void LevelEditorUI::ShowMaterialWindow()
 
 				// Albedo
 				ImGui::Text("Albedo Texture");
-				Texture2D* t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.albedoMapIndex));
+				Texture* t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.albedoMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
 
 				ImGui::SameLine();
 				if (ImGui::Button("Apply Selected Texture##0"))
@@ -931,7 +1012,7 @@ void LevelEditorUI::ShowMaterialWindow()
 					t = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (t)
 					{
-						info.albedoMapIndex = t->GetHandle().GetHeapIndex();
+						info.albedoMapIndex = t->GetSRVHandle().GetHeapIndex();
 					}
 				}
 
@@ -939,7 +1020,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Roughness Texture");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.roughnessMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
 				else
 					ImGui::Text("NULL");
 
@@ -948,7 +1029,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					t = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (t)
-						info.roughnessMapIndex = t->GetHandle().GetHeapIndex();
+						info.roughnessMapIndex = t->GetSRVHandle().GetHeapIndex();
 				}
 
 				if (info.roughnessMapIndex != -1)
@@ -964,16 +1045,16 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Metallic Texture");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.metallicMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
 				else
 					ImGui::Text("NULL");
 
 				ImGui::SameLine();
 				if (ImGui::Button("Apply Selected Texture##000"))
 				{
-					Texture2D* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
+					Texture* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (tt)
-						info.metallicMapIndex = tt->GetHandle().GetHeapIndex();
+						info.metallicMapIndex = tt->GetSRVHandle().GetHeapIndex();
 				}
 
 				if (info.metallicMapIndex != -1)
@@ -989,16 +1070,16 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Normal Map");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.normalMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
 				else
 					ImGui::Text("NULL");
 
 				ImGui::SameLine();
 				if (ImGui::Button("Apply Selected Texture##0000"))
 				{
-					Texture2D* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
+					Texture* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (tt)
-						info.normalMapIndex = tt->GetHandle().GetHeapIndex();
+						info.normalMapIndex = tt->GetSRVHandle().GetHeapIndex();
 				}
 
 				if (info.normalMapIndex != -1)
@@ -1018,20 +1099,19 @@ void LevelEditorUI::ShowResourceWindow()
 	if (ImGui::Begin("Resources"))
 	{
 		Texture2DCache& tCache = engine->GetTexture2DCache();
-		VertexBufferCache& vbCache = engine->GetVertexBufferCache();
+		auto& modelCache = engine->GetModelCache();
 		MaterialManager& mManager = engine->GetMaterialManager();
-		ResourceEngine& rEngine = engine->GetResourceEngine();
 		std::vector<Entity>& entityVec = currentScene->GetEntityVector();
 
 		if (ImGui::BeginListBox("Meshes"))
 		{
-			for (auto& vb : vbCache.GetAllResources())
+			for (auto& vb : modelCache.GetAllResources())
 			{
-				const std::string name = vb.GetName();
+				const std::string name = vb.GetMeshName();
 				if (ImGui::Selectable(name.c_str()))
 				{
 					selMeshName = name;
-					selMeshID = vbCache.GetID(name);
+					selMeshID = modelCache.GetID(name);
 				}
 			}
 
@@ -1043,19 +1123,20 @@ void LevelEditorUI::ShowResourceWindow()
 			const std::string t = "Selected Mesh: " + selMeshName;
 			ImGui::Text(t.c_str());
 
-			VertexBuffer* selVB = vbCache.GetResource(selMeshID);
+			ModelAsset* selVB = modelCache.GetResource(selMeshID);
 			const std::string tx = "Number of Vertices: " + std::to_string(selVB->GetNumVertices());
 			ImGui::Text(tx.c_str());
 		}
 
 		if (ImGui::Button("Load Mesh"))
 		{
-			std::string fileName = "";
-			if (Helper::OpenFileDialogForExtension(".fbx", fileName))
+			std::optional<std::string> loadedName = LoadMeshFromDirectory();
+			if (loadedName.has_value())
 			{
-				int extIndex = fileName.find_last_of(".");
-				fileName.assign(fileName.begin(), fileName.begin() + extIndex);
-				vbCache.LoadResource(fileName, "..\\meshes\\");
+				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				modelCache.LoadResource(engine->GetDevice(), context,
+					engine->GetFrameIndex(), loadedName.value(), "..\\meshes\\");
+				engine->GetCommandManager().ExecuteContext(context);
 			}
 		}
 
@@ -1065,7 +1146,7 @@ void LevelEditorUI::ShowResourceWindow()
 			{
 				if (ImGui::Button("Delete Mesh"))
 				{
-					if (vbCache.Exists(selMeshID))
+					if (modelCache.Exists(selMeshID))
 					{
 						if (currentScene)
 						{
@@ -1074,12 +1155,12 @@ void LevelEditorUI::ShowResourceWindow()
 								Mesh* meshComp = currentScene->GetComponentForEntity<Mesh>(ent);
 								if (meshComp && (selMeshID == meshComp->GetID()))
 								{
-									meshComp->SetID(vbCache.GetID("defaultCube"));
+									meshComp->SetID(modelCache.GetID("defaultCube"));
 								}
 							}
 						}
 
-						vbCache.RemoveResource(selMeshID);
+						modelCache.RemoveResource(selMeshID);
 						selMeshID = -1;
 						selMeshName = "";
 					}
@@ -1091,8 +1172,9 @@ void LevelEditorUI::ShowResourceWindow()
 		{
 			for (auto& texture : tCache.GetAllResources())
 			{
-				const std::string name = texture.GetName();
-				if (ImGui::Selectable(name.c_str()))
+				const std::string name = tCache.GetFileNameByHeapIndex(texture.GetSRVHandle().GetHeapIndex());
+				const std::string selName = name + "##1";
+				if (ImGui::Selectable(selName.c_str()))
 				{
 					selTexture2DName = name;
 					selTexture2DID = tCache.GetID(name);
@@ -1107,13 +1189,17 @@ void LevelEditorUI::ShowResourceWindow()
 			std::string fileName = "";
 			if (Helper::OpenFileDialogForExtension(".png", fileName))
 			{
-				tCache.LoadResource(fileName, "..\\textures\\");
+
+				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				tCache.LoadResource(engine->GetDevice(), context,
+					engine->GetFrameIndex(), fileName, "..\\textures\\");
+				engine->GetCommandManager().ExecuteContext(context);
 			}
 		}
 
 		if (selTexture2DID != -1)
 		{
-			Texture2D* selText = tCache.GetResource(selTexture2DID);
+			Texture* selText = tCache.GetResource(selTexture2DID);
 
 			const std::string t = "Selected Texture: " + selTexture2DName;
 			ImGui::Text(t.c_str());
@@ -1122,19 +1208,23 @@ void LevelEditorUI::ShowResourceWindow()
 			ImGui::Text(tx.c_str());
 
 			if (selText)
-				ImGui::Image((ImTextureID)selText->GetHandle().GetGPUHandle().ptr, ImVec2(100, 100));
+				ImGui::Image((ImTextureID)selText->GetSRVHandle().GetGPUHandle().ptr, ImVec2(100, 100));
 
 			if (selTexture2DName != "defaultDiffuse.png")
 			{
 				// Move deleting to the scene
 				if (ImGui::Button("Delete Texture"))
 				{
-					int heapIndexToDelete = tCache.GetResource(selTexture2DID)->GetHandle().GetHeapIndex();
+					int heapIndexToDelete = tCache.GetResource(selTexture2DID)->GetSRVHandle().GetHeapIndex();
 					for (auto& mat : mManager.GetPBRMaterials())
 					{
 						if (mat.GetInfo().albedoMapIndex == heapIndexToDelete)
 						{
-							mat.GetInfo().albedoMapIndex = tCache.GetResource("defaultDiffuse.png")->GetHandle().GetHeapIndex();
+							mat.GetInfo().albedoMapIndex = tCache.GetResource("defaultDiffuse.png")->GetSRVHandle().GetHeapIndex();
+						}
+						else if (mat.GetInfo().normalMapIndex == heapIndexToDelete)
+						{
+							mat.GetInfo().normalMapIndex = -1;
 						}
 						else if (mat.GetInfo().roughnessMapIndex == heapIndexToDelete)
 						{

@@ -10,11 +10,11 @@ Github: https://github.com/NoahSch1999
 #include <bitset>
 #include <type_traits>
 #include <queue>
-#include "ResourceEngine.h"
 #include <deque>
 #include <memory>
 #include <utility>
 #include "UniqueIntList.h"
+#include "VertexDefinitions.h"
 class BaseResource;
 class VertexBuffer;
 class ConstantBuffer;
@@ -120,7 +120,6 @@ private:
 	std::vector<T> objects;
 
 public:
-
 	/** Allocates space for number of T elements.
 	@param _startSize Number of spaces that should be allocated. Total allocation in bytes are _startSize * sizeof(T).
 	*/
@@ -135,7 +134,7 @@ public:
 	@param _value The data to copy into the SlottedMap. It will always be added to the last index of the std::vector return by SlottedMap::GetObjects().
 	@return void
 	*/
-	void Add(int _id, const T& _value)
+	void Add(int _id, T&& _value)
 	{
 		if (Exists(_id))
 			return;
@@ -146,7 +145,7 @@ public:
 		}
 
 		int index = objects.size();
-		objects.emplace_back(_value);
+		objects.emplace_back(std::move(_value));
 		idToIndex.emplace(_id, index);
 		indexToId[index] = _id;
 	}
@@ -173,7 +172,7 @@ public:
 			return;
 		}
 
-		objects[index] = objects[indexOfLast];
+		objects[index] = std::move(objects[indexOfLast]);
 
 		int idOfLast = indexToId.at(indexOfLast);
 		idToIndex.at(idOfLast) = index;
@@ -239,14 +238,14 @@ public:
 	@param _data Data to copy to the object.
 	@return int The ID that can be used to access the element through NamedSlottedMap::GetObjectByID(). If an object with _key value already exists, the method returns -1.
 	*/
-	int Add(const std::string& _key, const T& _data)
+	int Add(const std::string& _key, T&& _data)
 	{
 		if (strToID.count(_key) > 0)
 			return -1;
 
 		int id = idList.LendKey();
 
-		map.Add(id, _data);
+		map.Add(id, std::move(_data));
 
 		strToID.emplace(_key, id);
 		IDtoStr.emplace(id, _key);
@@ -370,8 +369,57 @@ public:
 	template <typename T>
 	void RegisterComponent(Entity& _entity);
 
-	template <typename T>
-	T* RegisterComponent(Entity& _entity, const T& _initValue);
+	/*template <typename T>
+	T* RegisterComponent(Entity& _entity, T&& _initValue)
+	{
+		if constexpr (std::is_same_v<T, Transform>)
+		{
+			if (!_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
+			{
+				_entity.componentMask.set(COMPONENTENUM::TRANSFORM);
+				transformMap.Add(_entity.id, _initValue);
+				return transformMap.GetObjectByID(_entity.id);
+			}
+		}
+		else if constexpr (std::is_same_v<T, Mesh>)
+		{
+			if (!_entity.componentMask.test(COMPONENTENUM::MESH))
+			{
+				_entity.componentMask.set(COMPONENTENUM::MESH);
+				meshMap.Add(_entity.id, _initValue);
+				return meshMap.GetObjectByID(_entity.id);
+			}
+		}
+		else if constexpr (std::is_same_v<T, MaterialComponent>)
+		{
+			if (!_entity.componentMask.test(COMPONENTENUM::MATERIAL))
+			{
+				_entity.componentMask.set(COMPONENTENUM::MATERIAL);
+				materialMap.Add(_entity.id, _initValue);
+				return materialMap.GetObjectByID(_entity.id);
+			}
+		}
+		else if constexpr (std::is_same_v<T, PointLightComponent>)
+		{
+			if (!_entity.componentMask.test(COMPONENTENUM::PLIGHT))
+			{
+				_entity.componentMask.set(COMPONENTENUM::PLIGHT);
+				pLightMap.Add(_entity.id, _initValue);
+				return pLightMap.GetObjectByID(_entity.id);
+			}
+		}
+		else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
+		{
+			if (!_entity.componentMask.test(COMPONENTENUM::DLIGHT))
+			{
+				_entity.componentMask.set(COMPONENTENUM::DLIGHT);
+				dLightMap.Add(_entity.id, _initValue);
+				return dLightMap.GetObjectByID(_entity.id);
+			}
+		}
+
+		return nullptr;
+	}*/
 
 	/** Removes a component registered to the input Entity object. Component type is specified by using template arguments.
 	Ex. RemoveComponent<ComponentX>(_entityX) will remove a registered component of type ComponentX.
@@ -460,7 +508,7 @@ public:
 	@param _entity The Entity to bind to the ECSystem
 	@return void
 	*/
-	virtual bool Bind(const Entity& _entity)
+	virtual bool Bind(Entity& _entity)
 	{
 		// Note - CHANGE THIS TO BITWISE OPERATOR... HOW TO DO THAT WHEN U WANNA CHECK FOR PATTERN?
 		for (int i = 0; i < MAXCOMPONENTS; ++i)
@@ -478,7 +526,7 @@ public:
 		if (entityIDMap.Exists(_entity.id))
 			return true;
 
-		entityIDMap.Add(_entity.id, _entity);
+		entityIDMap.Add(_entity.id, std::move(_entity));
 
 		return true;
 	}
@@ -490,16 +538,16 @@ public:
 	@param _entity The Entity to bind to the ECSystem
 	@return void
 	*/
-	virtual void BindFast(const Entity& _entity)
+	virtual void BindFast(Entity& _entity)
 	{
-		entityIDMap.Add(_entity.id, _entity);
+		entityIDMap.Add(_entity.id, std::move(_entity));
 	}
 
 	/**Used to unbind an Entity object from the ECSystem.
 	@param _entity The Entity to unbind from the ECSystem
 	@return void
 	*/
-	virtual bool UnBind(const Entity& _entity)
+	virtual bool UnBind(Entity& _entity)
 	{
 		if (!entityIDMap.Exists(_entity.id))
 			return false;
@@ -507,7 +555,7 @@ public:
 		return true;
 	}
 
-	virtual void UnBindFast(const Entity& _entity)
+	virtual void UnBindFast(Entity& _entity)
 	{
 		entityIDMap.Remove(_entity.id);
 	}
@@ -696,14 +744,15 @@ public:
 	void RegisterComponent(Entity& _entity)
 	{
 		componentManager.RegisterComponent<T>(_entity);
-	}
-
-	template<typename T>
-	void RegisterComponent(Entity& _entity, const T& _data)
-	{
-		componentManager.RegisterComponent(_entity, _data);
 		systemManager.EntityModified(_entity);
 	}
+
+	/*template<typename T>
+	void RegisterComponent(Entity& _entity, T&& _data)
+	{
+		componentManager.RegisterComponent(_entity, std::forward(_data));
+		systemManager.EntityModified(_entity);
+	}*/
 
 	template<typename T>
 	void UnregisterComponent(Entity& _entity)
@@ -768,58 +817,6 @@ inline void ComponentManager::RegisterComponent(Entity& _entity)
 			dLightMap.Add(_entity.id, DirectionalLightComponent());
 		}
 	}
-}
-
-template<typename T>
-inline T* ComponentManager::RegisterComponent(Entity& _entity, const T& _data)
-{
-	if constexpr (std::is_same_v<T, Transform>)
-	{
-		if (!_entity.componentMask.test(COMPONENTENUM::TRANSFORM))
-		{
-			_entity.componentMask.set(COMPONENTENUM::TRANSFORM);
-			transformMap.Add(_entity.id, _data);
-			return transformMap.GetObjectByID(_entity.id);
-		}
-	}
-	else if constexpr (std::is_same_v<T, Mesh>)
-	{
-		if (!_entity.componentMask.test(COMPONENTENUM::MESH))
-		{
-			_entity.componentMask.set(COMPONENTENUM::MESH);
-			meshMap.Add(_entity.id, _data);
-			return meshMap.GetObjectByID(_entity.id);
-		}
-	}
-	else if constexpr (std::is_same_v<T, MaterialComponent>)
-	{
-		if (!_entity.componentMask.test(COMPONENTENUM::MATERIAL))
-		{
-			_entity.componentMask.set(COMPONENTENUM::MATERIAL);
-			materialMap.Add(_entity.id, _data);
-			return materialMap.GetObjectByID(_entity.id);
-		}
-	}
-	else if constexpr (std::is_same_v<T, PointLightComponent>)
-	{
-		if (!_entity.componentMask.test(COMPONENTENUM::PLIGHT))
-		{
-			_entity.componentMask.set(COMPONENTENUM::PLIGHT);
-			pLightMap.Add(_entity.id, _data);
-			return pLightMap.GetObjectByID(_entity.id);
-		}
-	}
-	else if constexpr (std::is_same_v<T, DirectionalLightComponent>)
-	{
-		if (!_entity.componentMask.test(COMPONENTENUM::DLIGHT))
-		{
-			_entity.componentMask.set(COMPONENTENUM::DLIGHT);
-			dLightMap.Add(_entity.id, _data);
-			return dLightMap.GetObjectByID(_entity.id);
-		}
-	}
-
-	return nullptr;
 }
 
 template<typename T>

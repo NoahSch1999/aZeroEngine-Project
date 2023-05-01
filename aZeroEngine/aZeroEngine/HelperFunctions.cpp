@@ -24,36 +24,40 @@ Microsoft::WRL::ComPtr<ID3DBlob> Helper::LoadBlobFromFile(const std::wstring& _f
 	return blob;
 }
 
-void Helper::LoadVertexListFromFile(BasicVertexListInfo* _vInfo, const std::string& _path)
+void Helper::LoadFBXFile(ModelFileData& dataContainer, const std::string& path)
 {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(_path + ".fbx", aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+	const aiScene* scene = importer.ReadFile(path + ".fbx", aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 	aiMesh* mesh = scene->mMeshes[0];
-
-	_vInfo->verticeData.resize(mesh->mNumVertices);
+	
+	dataContainer.verticeData.reserve(mesh->mNumVertices);
 	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 	{
-		aiVector3D value;
-		value = mesh->mVertices[i];
-		_vInfo->verticeData[i].position = { value.x, value.y, value.z };
+		BasicVertex vertex;
+		aiVector3D tempData;
+		tempData = mesh->mVertices[i];
+		vertex.position = { tempData.x, tempData.y, tempData.z };
 
-		value = mesh->mTextureCoords[0][i];
-		_vInfo->verticeData[i].uv = { value.x, value.y };
+		tempData = mesh->mTextureCoords[0][i];
+		vertex.uv = { tempData.x, tempData.y };
 
-		value = mesh->mNormals[i];
-		_vInfo->verticeData[i].normal = { value.x, value.y, value.z };
-		value.Normalize();
+		tempData = mesh->mNormals[i];
+		tempData.Normalize();
+		vertex.normal = { tempData.x, tempData.y, tempData.z };
 
-		value = mesh->mTangents[i];
-		value.Normalize();
-		_vInfo->verticeData[i].tangent = { value.x, value.y, value.z };
+		tempData = mesh->mTangents[i];
+		tempData.Normalize();
+		vertex.tangent = { tempData.x, tempData.y, tempData.z };
+
+		dataContainer.verticeData.emplace_back(std::move(vertex));
 	}
 
 	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
 	{
+		dataContainer.indexData.reserve(dataContainer.indexData.capacity() + mesh->mFaces->mNumIndices);
 		for (int h = 0; h < mesh->mFaces[i].mNumIndices; h++)
 		{
-			_vInfo->indexData.push_back(mesh->mFaces[i].mIndices[h]);
+			dataContainer.indexData.emplace_back(mesh->mFaces[i].mIndices[h]);
 		}
 	}
 
@@ -91,7 +95,7 @@ void Helper::Print(Vector3 _vec)
 
 void Helper::CreateCommitedResourceStatic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc,
 	ID3D12Resource*& _interResource, const D3D12_RESOURCE_DESC& _uDesc,
-	CommandList* _cmdList = nullptr, const void* _initData = nullptr, int _rowPitch = 0, int _slicePitch = 0)
+	ID3D12GraphicsCommandList* _cmdList = nullptr, const void* _initData = nullptr, int _rowPitch = 0, int _slicePitch = 0)
 {
 	D3D12_HEAP_PROPERTIES heapProps = {};
 	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -113,7 +117,7 @@ void Helper::CreateCommitedResourceStatic(ID3D12Device* _device, ID3D12Resource*
 	sData.RowPitch = _rowPitch;
 	sData.SlicePitch = _slicePitch;
 
-	UpdateSubresources(_cmdList->GetGraphicList(), _mainResource, _interResource, 0, 0, 1, &sData);
+	UpdateSubresources(_cmdList, _mainResource, _interResource, 0, 0, 1, &sData);
 
 }
 
@@ -166,8 +170,6 @@ bool Helper::OpenFileDialogForExtension(const std::string& _extension, std::stri
 Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateReadbackBuffer(ID3D12Device* _device, int _rowPitch, int _numRows)
 {
 	D3D12_HEAP_PROPERTIES readbackHeapProperties{ CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK) };
-	//int rowPitch = ((_rowPitch + 128) / 256) * 256;
-	//int rowPitch = (_rowPitch + 256) & ~256;
 	int totalSize = _rowPitch * _numRows;
 	D3D12_RESOURCE_DESC readbackBufferDesc{ CD3DX12_RESOURCE_DESC::Buffer(totalSize) };
 	Microsoft::WRL::ComPtr<ID3D12Resource> readbackBuffer;
@@ -183,7 +185,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateReadbackBuffer(ID3D12Device
 	return readbackBuffer;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateBufferResource(ID3D12Device* _device, int _width, D3D12_HEAP_TYPE _heapType)
+Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateBufferResource(ID3D12Device* _device, UINT _width, D3D12_HEAP_TYPE _heapType)
 {
 	D3D12_RESOURCE_DESC rDesc = {};
 	ZeroMemory(&rDesc, sizeof(rDesc));
@@ -214,7 +216,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateBufferResource(ID3D12Device
 	return retResource;
 }
 
-void Helper::CreateBufferResource(ID3D12Device* _device, CommandList& _cmdList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource, int _gpuOnlyWidth, Microsoft::WRL::ComPtr<ID3D12Resource>& _mappedResource, int _mappedWidth, void* _data)
+void Helper::CreateBufferResource(ID3D12Device* _device, ID3D12GraphicsCommandList* _cmdList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource, int _gpuOnlyWidth, Microsoft::WRL::ComPtr<ID3D12Resource>& _mappedResource, int _mappedWidth, void* _data)
 {
 	_gpuOnlyResource = Helper::CreateBufferResource(_device, _gpuOnlyWidth, D3D12_HEAP_TYPE_DEFAULT);
 	_mappedResource = Helper::CreateBufferResource(_device, _mappedWidth, D3D12_HEAP_TYPE_UPLOAD);
@@ -224,7 +226,7 @@ void Helper::CreateBufferResource(ID3D12Device* _device, CommandList& _cmdList, 
 	sData.RowPitch = _gpuOnlyWidth;
 	sData.SlicePitch = _gpuOnlyWidth;
 
-	UpdateSubresources(_cmdList.GetGraphicList(), _gpuOnlyResource.Get(), _mappedResource.Get(), 0, 0, 1, &sData);
+	UpdateSubresources(_cmdList, _gpuOnlyResource.Get(), _mappedResource.Get(), 0, 0, 1, &sData);
 }
 
 Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Device* _device, D3D12_RESOURCE_DESC& _desc, int _width, int _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_HEAP_TYPE _heapType, D3D12_CLEAR_VALUE _clearValue, D3D12_RESOURCE_STATES& _initialState)
@@ -264,8 +266,10 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Devic
 	return retResource;
 }
 
-void Helper::CreateTextureResource(ID3D12Device* _device, CommandList& _transitionList, CommandList& _copyList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource,
-	Microsoft::WRL::ComPtr<ID3D12Resource>& _intermediateResource, void* _data, int _width, int _height, int _channels, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState)
+void Helper::CreateTextureResource(ID3D12Device* _device, ID3D12GraphicsCommandList* _transitionList, ID3D12GraphicsCommandList* _copyList, 
+	Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource,
+	Microsoft::WRL::ComPtr<ID3D12Resource>& _intermediateResource, 
+	void* _data, int _width, int _height, int _channels, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState)
 {
 	D3D12_RESOURCE_DESC rDesc;
 	ZeroMemory(&rDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -303,10 +307,7 @@ void Helper::CreateTextureResource(ID3D12Device* _device, CommandList& _transiti
 	sData.RowPitch = _width * _channels;
 	sData.SlicePitch = _width * _channels * _height;
 
-	UpdateSubresources(_copyList.GetGraphicList(), _gpuOnlyResource.Get(), _intermediateResource.Get(), 0, 0, 1, &sData);
-
-	/*D3D12_RESOURCE_BARRIER barrier(CD3DX12_RESOURCE_BARRIER::Transition(_gpuOnlyResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, _initState));
-	_transitionList.GetGraphicList()->ResourceBarrier(1, &barrier);*/
+	UpdateSubresources(_copyList, _gpuOnlyResource.Get(), _intermediateResource.Get(), 0, 0, 1, &sData);
 }
 
 void Helper::CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format)
@@ -337,4 +338,61 @@ void Helper::CreateSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D1
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	_device->CreateShaderResourceView(_resource.Get(), &srvDesc, _cpuHandle);
+}
+
+Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Device* _device, UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState, D3D12_CLEAR_VALUE* _clearValue)
+{
+	D3D12_RESOURCE_DESC rDesc = {};
+	rDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	rDesc.Width = _width;
+	rDesc.Height = _height;
+	rDesc.DepthOrArraySize = 1;
+	rDesc.MipLevels = 1;
+	rDesc.Format = _format;
+	rDesc.SampleDesc.Count = 1;
+	rDesc.SampleDesc.Quality = 0;
+	rDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	rDesc.Flags = _flags;
+
+	D3D12_HEAP_PROPERTIES properties = {};
+	properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> retResource = nullptr;
+	HRESULT hr = _device->CreateCommittedResource(&properties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+		&rDesc, _initialState, _clearValue, IID_PPV_ARGS(&retResource));
+	if (FAILED(hr))
+		throw;
+
+	return retResource;
+}
+
+Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateUploadResource(ID3D12Device* _device,
+	UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState)
+{
+	D3D12_RESOURCE_DESC rDesc;
+	ZeroMemory(&rDesc, sizeof(D3D12_RESOURCE_DESC));
+	rDesc.MipLevels = 1;
+	rDesc.Format = _format;
+	rDesc.Width = _width;
+	rDesc.Height = _height;
+	rDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	rDesc.DepthOrArraySize = 1;
+	rDesc.SampleDesc.Count = 1;
+	rDesc.SampleDesc.Quality = 0;
+	rDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	rDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	rDesc.Alignment = 0;
+
+	D3D12_RESOURCE_ALLOCATION_INFO allocInfo = _device->GetResourceAllocationInfo(0, 1, &rDesc);
+	CD3DX12_RESOURCE_DESC uDesc = CD3DX12_RESOURCE_DESC::Buffer(allocInfo.SizeInBytes);
+
+	D3D12_HEAP_PROPERTIES heapProps = {};
+
+	heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> resource;
+	if(FAILED(_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &uDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&resource))))
+		throw;
+
+	return resource;
 }

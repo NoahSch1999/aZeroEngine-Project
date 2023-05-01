@@ -3,7 +3,7 @@
 Scene::Scene(Scene&& _other) noexcept
 {
 	ecs = _other.ecs;
-	vbCache = _other.vbCache;
+	modelCache = _other.modelCache;
 	mManager = _other.mManager;
 	name = _other.name;
 	lSystem = _other.lSystem;
@@ -70,7 +70,7 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 		if (entity.componentMask.test(COMPONENTENUM::MESH))
 		{
 			Mesh* mesh = ecs->GetComponentManager().GetComponent<Mesh>(entity);
-			std::string fileName = vbCache->GetResource(mesh->GetID())->GetName();
+			std::string fileName = modelCache->GetResource(mesh->GetID())->GetMeshName();
 			Helper::WriteToFile(file, fileName);
 			file.write((char*)&mesh->castShadows, sizeof(bool));
 			file.write((char*)&mesh->receiveShadows, sizeof(float));
@@ -85,7 +85,15 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 				file.write((char*)&matComp->type, sizeof(int));
 
 				PBRMaterial* pbrMat = mManager->GetMaterial<PBRMaterial>(matComp->materialID);
-				Helper::WriteToFile(file, pbrMat->GetName());
+				if (pbrMat)
+				{
+					Helper::WriteToFile(file, pbrMat->GetName());
+				}
+				else
+				{
+					pbrMat = mManager->GetMaterial<PBRMaterial>("DefaultPBRMaterial");
+					Helper::WriteToFile(file, pbrMat->GetName());
+				}
 
 				pbrMat->Save("..\\materials\\", *_textureCache);
 			}
@@ -107,7 +115,7 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 	file.close();
 }
 
-bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName)
+bool Scene::Load(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& _fileDirectory, const std::string& _fileName)
 {
 	std::ifstream file(_fileDirectory + "/" + _fileName + ".azs", std::ios::in | std::ios::binary);
 
@@ -156,14 +164,14 @@ bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName
 
 			Mesh tempMesh;
 
-			if (vbCache->Exists(name))
+			if (modelCache->Exists(name))
 			{
-				tempMesh.SetID(vbCache->GetID(name));
+				tempMesh.SetID(modelCache->GetID(name));
 			}
 			else
 			{
-				vbCache->LoadResource(name, "..\\meshes\\");
-				tempMesh.SetID(vbCache->GetID(name));
+				modelCache->LoadResource(device, context, frameIndex, name, "..\\meshes\\");
+				tempMesh.SetID(modelCache->GetID(name));
 			}
 
 			file.read((char*)&tempMesh.castShadows, sizeof(bool));
@@ -190,7 +198,7 @@ bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName
 				}
 				else
 				{
-					mManager->LoadMaterial<PBRMaterial>( matName);
+					mManager->LoadMaterial<PBRMaterial>(device, context, frameIndex, matName);
 					matComp.materialID = mManager->GetReferenceID<PBRMaterial>(matName);
 				}
 			}
@@ -202,29 +210,25 @@ bool Scene::Load(const std::string& _fileDirectory, const std::string& _fileName
 		if (tempSet.test(COMPONENTENUM::PLIGHT))
 		{
 			PointLight pLight;
-			PointLightComponent pComp;
 			file.read((char*)&pLight, sizeof(PointLight));
-			lSystem->GetLightManager()->AddLight(pComp.id, pLight);
 
 			ecs->RegisterComponent<PointLightComponent>(tempEnt);
-			ecs->UpdateComponent<PointLightComponent>(tempEnt, pComp);
+			PointLightComponent* pComp = ecs->GetComponent<PointLightComponent>(tempEnt);
+			lSystem->GetLightManager()->UpdateLight(*pComp, pLight, frameIndex);
 		}
 
+		// TO REMOVE
 		if (tempSet.test(COMPONENTENUM::DLIGHT))
 		{
 			DirectionalLight dLight;
-			DirectionalLightComponent dComp;
 			file.read((char*)&dLight, sizeof(DirectionalLight));
-			lSystem->GetLightManager()->AddLight(dComp.id, dLight);
-
-			ecs->RegisterComponent<DirectionalLightComponent>(tempEnt);
-			ecs->UpdateComponent<DirectionalLightComponent>(tempEnt, dComp);
 		}
 
 		ecs->ForceUpdate(tempEnt); // Change so that the entities arent tried to get bound for each AddComponent and instead is only bound here.
 	}
 
 	file.close();
+
 	return true;
 }
 
@@ -240,12 +244,13 @@ Entity& Scene::CreateEntity(const std::string& _name)
 	Entity tempEnt = ecs->CreateEntity();
 	const std::string name = CheckName(_name);
 
-	entities.Add(tempEnt.id, tempEnt);
+	entities.Add(tempEnt.id, std::move(tempEnt));
 	entityIdToName.emplace(tempEnt.id, name);
 	entityNameToId.emplace(name, tempEnt.id);
 
 	Entity* entity = entities.GetObjectByID(tempEnt.id);
-	AddComponentToEntity<Transform>(*entity, Transform());
+	Transform tf;
+	AddComponentToEntity<Transform>(*entity, std::move(tf));
 
 	return *entities.GetObjectByID(tempEnt.id);
 }

@@ -1,8 +1,9 @@
 #pragma once
 #include <unordered_map>
 #include "HelperFunctions.h"
-#include "ResourceEngine.h"
+#include "ResourceTrashcan.h"
 #include "ECSBase.h"
+#include "GraphicsContextHandle.h"
 
 /** @brief Virtual base class for storing and handeling loaded resources within a NamedSlottedMap.
 */
@@ -10,20 +11,15 @@ template<typename T>
 class ResourceCache
 {
 protected:
-	ResourceEngine& resourceEngine;
 	NamedSlottedMap<T> resources;
+	ResourceTrashcan& m_trashcan;
 public:
-	ResourceCache(ResourceEngine& _resourceEngine)
-		:resourceEngine(_resourceEngine), resources(100, 100) { }
+	ResourceCache(ResourceTrashcan& trashcan)
+		:m_trashcan(trashcan), resources(100, 100) { }
 
 	/**Clears all the resources within the unordered map
 	*/
 	virtual ~ResourceCache();
-
-	/**Clears all the resources within the unordered map
-	@return void
-	*/
-	void ShutDown();
 
 	/**Returns a reference to the resources.
 	@return std::vector<T>&
@@ -41,7 +37,7 @@ public:
 	@param _directory The directory of the resource to load.
 	@return void
 	*/
-	virtual void LoadResource(const std::string& _name, const std::string& _directory) = 0;
+	virtual void LoadResource(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& name, const std::string& directory) = 0;
 
 	/** Pure virtual method that should be overwritten by the inheriting subclass.
 	* Removes resources by filename.
@@ -110,12 +106,3 @@ public:
 
 template<typename T>
 inline ResourceCache<T>::~ResourceCache() { }
-
-template<typename T>
-inline void ResourceCache<T>::ShutDown()
-{
-	for (auto& res : resources.GetObjects())
-	{
-		resourceEngine.RemoveResource(res);
-	}
-}

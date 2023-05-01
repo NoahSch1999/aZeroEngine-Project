@@ -1,7 +1,5 @@
 #pragma once
 #include "Texture2DCache.h"
-#include "ResourceEngine.h"
-#include "DescriptorManager.h"
 
 /** @brief The base class of all the materials within the engine.
 * It contains the CPU-side data and its name.
@@ -49,5 +47,5 @@ public:
 	@param _textureCache The Texture2DCache which contains and will contain all the neccessary Texture2D objects for the Material.
 	@return void
 	*/
-	virtual void Load(ResourceEngine& _resourceEngine, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) = 0;
+	virtual void Load(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache) = 0;
 };

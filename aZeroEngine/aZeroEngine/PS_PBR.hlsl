@@ -171,7 +171,7 @@ struct Output
     int pickingOutput : SV_TARGET1;
 };
 
-Output main(FragmentInput input)/* : SV_Target*/
+Output main(FragmentInput input)
 {
     MaterialConstants matData = materials[materialIndex];
     

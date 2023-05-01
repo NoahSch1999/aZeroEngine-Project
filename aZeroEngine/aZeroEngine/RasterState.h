@@ -6,34 +6,34 @@
 class RasterState
 {
 private:
-	D3D12_RASTERIZER_DESC desc = {};
+	D3D12_RASTERIZER_DESC m_rasterDescription = {};
 
 public:
 	RasterState() = default;
 	/** @brief Initializes the object.
-	@param _fillMode D3D12_FILL_MODE for the RasterState.
-	@param _cullMode D3D12_CULL_MODE for the RasterState.
-	@param _frontCCW If the RasterState should use clockwise or counter-clockwise culling. Defaulted to false.
-	@param _multiSample If the RasterState should use multisampling. Defaulted to true.
-	@param _antiAliasing If the RasterState should use anti-aliasing. Defaulted to true.
+	@param fillMode D3D12_FILL_MODE for the RasterState.
+	@param cullMode D3D12_CULL_MODE for the RasterState.
+	@param frontCCW If the RasterState should use clockwise or counter-clockwise culling. Defaulted to false.
+	@param multiSample If the RasterState should use multisampling. Defaulted to true.
+	@param antiAliasing If the RasterState should use anti-aliasing. Defaulted to true.
 	*/
-	RasterState(D3D12_FILL_MODE _fillMode, D3D12_CULL_MODE _cullMode, bool _frontCCW = false, bool _multiSample = true, bool _antiAliasing = true)
+	RasterState(D3D12_FILL_MODE fillMode, D3D12_CULL_MODE cullMode, bool frontCCW = false, bool multiSample = true, bool antiAliasing = true)
 	{
-		desc.CullMode = _cullMode;
-		desc.FillMode = _fillMode;
-		desc.AntialiasedLineEnable = _antiAliasing;
-		desc.MultisampleEnable = _multiSample;
-		desc.FrontCounterClockwise = _frontCCW;
+		m_rasterDescription.CullMode = cullMode;
+		m_rasterDescription.FillMode = fillMode;
+		m_rasterDescription.AntialiasedLineEnable = antiAliasing;
+		m_rasterDescription.MultisampleEnable = multiSample;
+		m_rasterDescription.FrontCounterClockwise = frontCCW;
 	}
 
 	/** @brief Returns the D3D12_RASTERIZER_DESC for the RasterState.
 	@return D3D12_RASTERIZER_DESC.
 	*/
-	D3D12_RASTERIZER_DESC GetDesc() const { return desc; }
+	D3D12_RASTERIZER_DESC GetDesc() const { return m_rasterDescription; }
 
 	/** @brief Sets the D3D12_RASTERIZER_DESC for the RasterState.
-	@param _desc D3D12_RASTERIZER_DESC object.
+	@param desc D3D12_RASTERIZER_DESC object.
 	*/
-	void SetDesc(const D3D12_RASTERIZER_DESC& _desc) { desc = _desc; }
+	void SetDesc(const D3D12_RASTERIZER_DESC& newDescription) { m_rasterDescription = newDescription; }
 
 };

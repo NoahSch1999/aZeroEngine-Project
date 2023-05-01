@@ -1,18 +1,18 @@
 #include "PBRMaterial.h"
 
-PBRMaterial::PBRMaterial(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache, const std::string& _fileDirectory, const std::string& _name)
+PBRMaterial::PBRMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, Texture2DCache& _textureCache, const std::string& _fileDirectory, const std::string& _name)
 	:Material()
 {
-	Load(_resourceEngine, _fileDirectory, _name, _textureCache);
+	Load(device, context, frameIndex, _fileDirectory, _name, _textureCache);
 }
 
-PBRMaterial::PBRMaterial(ResourceEngine& _resourceEngine, Texture2DCache& _textureCache, const std::string& _name)
+PBRMaterial::PBRMaterial(Texture2DCache& _textureCache, const std::string& _name)
 	:Material()
 {
 	name = _name;
-	Texture2D* defaultText = _textureCache.GetResource("defaultDiffuse.png");
+	Texture* defaultText = _textureCache.GetResource("defaultDiffuse.png");
 	if (defaultText)
-		info.albedoMapIndex = defaultText->GetHandle().GetHeapIndex();
+		info.albedoMapIndex = defaultText->GetSRVHandle().GetHeapIndex();
 }
 
 void PBRMaterial::Save(const std::string& _fileDirectory, const Texture2DCache& _textureCache) const
@@ -67,7 +67,7 @@ void PBRMaterial::Save(const std::string& _fileDirectory, const Texture2DCache& 
 	}
 }
 
-void PBRMaterial::Load(ResourceEngine& _resourceEngine, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache)
+void PBRMaterial::Load(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& _fileDirectory, const std::string& _name, Texture2DCache& _textureCache)
 {
 	std::ifstream file(_fileDirectory + _name + ".azmpbr", std::ios::in | std::ios::binary);
 
@@ -79,12 +79,12 @@ void PBRMaterial::Load(ResourceEngine& _resourceEngine, const std::string& _file
 	Helper::ReadFromFile(file, mapName);
 	if (_textureCache.Exists(mapName))
 	{
-		info.albedoMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+		info.albedoMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 	}
 	else
 	{
-		_textureCache.LoadResource(mapName, "..\\textures\\");
-		info.albedoMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+		_textureCache.LoadResource(device, context, frameIndex, mapName, "..\\textures\\");
+		info.albedoMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 	}
 
 	// Roughness Map
@@ -95,12 +95,12 @@ void PBRMaterial::Load(ResourceEngine& _resourceEngine, const std::string& _file
 
 		if (_textureCache.Exists(mapName))
 		{
-			info.roughnessMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+			info.roughnessMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 		}
 		else
 		{
-			_textureCache.LoadResource(mapName, "..\\textures\\");
-			info.roughnessMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+			_textureCache.LoadResource(device, context, frameIndex, mapName, "..\\textures\\");
+			info.roughnessMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 		}
 	}
 	file.read((char*)&info.roughnessFactor, sizeof(float));
@@ -113,12 +113,12 @@ void PBRMaterial::Load(ResourceEngine& _resourceEngine, const std::string& _file
 
 		if (_textureCache.Exists(mapName))
 		{
-			info.metallicMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+			info.metallicMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 		}
 		else
 		{
-			_textureCache.LoadResource(mapName, "..\\textures\\");
-			info.metallicMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+			_textureCache.LoadResource(device, context, frameIndex, mapName, "..\\textures\\");
+			info.metallicMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 		}
 	}
 	file.read((char*)&info.metallicFactor, sizeof(float));
@@ -131,12 +131,12 @@ void PBRMaterial::Load(ResourceEngine& _resourceEngine, const std::string& _file
 
 		if (_textureCache.Exists(mapName))
 		{
-			info.normalMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+			info.normalMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 		}
 		else
 		{
-			_textureCache.LoadResource(mapName, "..\\textures\\");
-			info.normalMapIndex = _textureCache.GetResource(mapName)->GetHandle().GetHeapIndex();
+			_textureCache.LoadResource(device, context, frameIndex, mapName, "..\\textures\\");
+			info.normalMapIndex = _textureCache.GetResource(mapName)->GetSRVHandle().GetHeapIndex();
 		}
 	}
 }

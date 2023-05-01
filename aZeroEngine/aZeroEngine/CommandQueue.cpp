@@ -1,88 +1,78 @@
 #include "CommandQueue.h"
 
-CommandQueue::CommandQueue(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type, D3D12_COMMAND_QUEUE_PRIORITY _prio = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
-	D3D12_COMMAND_QUEUE_FLAGS _flags = D3D12_COMMAND_QUEUE_FLAG_NONE)
+void CommandQueue::Init(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY prio = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+	D3D12_COMMAND_QUEUE_FLAGS flags = D3D12_COMMAND_QUEUE_FLAG_NONE)
 {
-	D3D12_COMMAND_QUEUE_DESC desc{ _type, _prio, _flags, 0 };
-	HRESULT hr = _device->CreateCommandQueue(&desc, IID_PPV_ARGS(queue.GetAddressOf()));
-	if (FAILED(hr))
+	m_type = type;
+
+	D3D12_COMMAND_QUEUE_DESC desc{ m_type, prio, flags, 0 };
+	if(FAILED(device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_queue.GetAddressOf()))))
 		throw;
 
-	hr = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf()));
-	if (FAILED(hr))
+	if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()))))
 		throw;
 
-	hr = fence->Signal(0);
-	if (FAILED(hr))
+	if (FAILED(m_fence->Signal(0)))
 		throw;
-
-	type = _type;
-	nextFenceValue = 0;
 }
 
-void CommandQueue::Init(ID3D12Device* _device, D3D12_COMMAND_LIST_TYPE _type, D3D12_COMMAND_QUEUE_PRIORITY _prio = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
-	D3D12_COMMAND_QUEUE_FLAGS _flags = D3D12_COMMAND_QUEUE_FLAG_NONE)
+UINT64 CommandQueue::Execute(ID3D12CommandList* commandLists, UINT numLists)
 {
-	D3D12_COMMAND_QUEUE_DESC desc{ _type, _prio, _flags, 0 };
-	HRESULT hr = _device->CreateCommandQueue(&desc, IID_PPV_ARGS(queue.GetAddressOf()));
-	if (FAILED(hr))
-		throw;
+	m_queue->ExecuteCommandLists(numLists, &commandLists);
 
-	hr = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.GetAddressOf()));
-	if (FAILED(hr))
-		throw;
-
-	hr = fence->Signal(0);
-	if (FAILED(hr))
-		throw;
-
-	type = _type;
-	nextFenceValue = 0;
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_queue->Signal(m_fence.Get(), m_nextFenceValue);
+	m_lastFenceValue = m_nextFenceValue;
+	return m_nextFenceValue++; // Postincrements the value. This means that the nextFenceValue that is returned equals nextFenceValue without ++.
 }
 
-UINT64 CommandQueue::Execute(CommandList& _cmdList)
+UINT64 CommandQueue::Execute(ID3D12CommandList* commandList)
 {
-	// Close the graphics list to enable execution
-	//_cmdList.CloseGraphic();
+	ID3D12CommandList* commandLists = { commandList };
+	m_queue->ExecuteCommandLists(1, &commandLists);
 
-	// Execute the command list
-	ID3D12CommandList* cmdLists = { _cmdList.GetBaseList() };
-	queue->ExecuteCommandLists(1, &cmdLists);
-
-	// Set a command queue signal for the fence and then return it.
-	queue->Signal(fence.Get(), nextFenceValue);
-	return nextFenceValue++; // Postincrements the value. This means that the nextFenceValue that is returned equals nextFenceValue without ++.
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_queue->Signal(m_fence.Get(), m_nextFenceValue);
+	m_lastFenceValue = m_nextFenceValue;
+	return m_nextFenceValue++;
 }
 
 // Waits for the signaled value returned from CommandQueue::Execute()
-void CommandQueue::StallCPU(int _valueToWaitFor)
+void CommandQueue::StallCPU(UINT64 valueToWaitFor)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	// Get last fence value reached 
 	// The fence is automatically updated whenever the ID3D12CommandQueue reaches a signal command for the fence.
-	int currentFenceValue = fence->GetCompletedValue();
+	UINT64 currentFenceValue = m_fence->GetCompletedValue();
 
 	// Check if the fence has reached _valueToWaitFor. _valueToWaitFor has to have been set using ID3D12CommandQueue::Signal()
 	// Simply return if the fence value has been reached since nothing on the queue is pending that was executed before _valueToWaitFor was signaled for the fence.
-	if (_valueToWaitFor <= currentFenceValue)
+	if (valueToWaitFor <= currentFenceValue)
 	{
 		return;
 	}
 	
 	// Set an event handle that will be notified, and thus stop locking, once the fence has reached _valueToWaitFor.
 	// Nullptr will result in an INFINITE wait until the fence has been signaled.
-	fence->SetEventOnCompletion(_valueToWaitFor, nullptr);
+	m_fence->SetEventOnCompletion(valueToWaitFor, nullptr);
 
 	return;
 }
 
-// Waits for the input CommandQueue and its signaled value
-void CommandQueue::WaitForOther(CommandQueue& _other, int _valueToWaitFor)
+void CommandQueue::WaitForOther(CommandQueue& other, UINT64 valueToWaitFor)
 {
-	queue->Wait(_other.fence.Get(), _valueToWaitFor);
-	//_other.WaitForValue(_valueToWaitFor);
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_queue->Wait(other.m_fence.Get(), valueToWaitFor);
 }
 
-void CommandQueue::WaitForFence(int _valueToWaitFor)
+void CommandQueue::WaitForFence(UINT64 valueToWaitFor)
 {
-	queue->Wait(fence.Get(), _valueToWaitFor);
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_queue->Wait(m_fence.Get(), valueToWaitFor);
+}
+
+UINT64 CommandQueue::GetLastSignalValue()
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return m_lastFenceValue;
 }

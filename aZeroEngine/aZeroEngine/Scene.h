@@ -1,6 +1,6 @@
 #pragma once
 #include "ECSBase.h"
-#include "VertexBufferCache.h"
+#include "ModelCache.h"
 #include "Texture2DCache.h"
 #include "MaterialManager.h"
 #include "LightManager.h"
@@ -15,7 +15,7 @@ class Scene
 {
 private:
 	ECS* ecs = nullptr;
-	VertexBufferCache* vbCache = nullptr;
+	ModelCache* modelCache = nullptr;
 	MaterialManager* mManager = nullptr;
 	LightSystem* lSystem = nullptr;
 
@@ -40,9 +40,9 @@ public:
 	@param _lSystem The LightSystem instance to retrieve neccessary light object's from when loading and saving the Scene
 	@return void
 	*/
-	Scene(ECS* _ecs, VertexBufferCache* _vbCache, MaterialManager* _mManager, 
+	Scene(ECS* _ecs, ModelCache* _modelCache, MaterialManager* _mManager,
 		LightSystem* _lSystem)
-		:ecs(_ecs), vbCache(_vbCache), mManager(_mManager), lSystem(_lSystem)
+		:ecs(_ecs), modelCache(_modelCache), mManager(_mManager), lSystem(_lSystem)
 		{ }
 
 	~Scene();
@@ -71,7 +71,7 @@ public:
 	@param _fileName The name of the scene file without the extension
 	@return bool TRUE: The Scene was successfully loaded, FALSE: The Scene failed to be loaded
 	*/
-	bool Load(const std::string& _fileDirectory, const std::string& _fileName);
+	bool Load(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& _fileDirectory, const std::string& _fileName);
 
 	/**Generates a new Entity with a transform component and returns the reference to it.
 	* The name of the Entity will be slightly modified if the name is already taken.
@@ -111,7 +111,10 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void AddComponentToEntity(Entity& _entity, const T& _data) { ecs->RegisterComponent(_entity, _data); }
+	void AddComponentToEntity(Entity& _entity, const T& _data) 
+	{ 
+		ecs->RegisterComponent<T>(_entity);
+	}
 
 	/**Registers a default Mesh component for the specified Entity object WITHOUT binding it to the appropriate systems.
 	@param _entityName The Entity to register a mesh component for

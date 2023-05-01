@@ -1,35 +1,44 @@
 #include "Texture2DCache.h"
 
-Texture2DCache::Texture2DCache(ResourceEngine& _resourceEngine)
-	:ResourceCache(_resourceEngine) { }
+Texture2DCache::Texture2DCache(DescriptorManager& descriptorManager, ResourceTrashcan& trashcan)
+	:ResourceCache(trashcan), descriptorManager(descriptorManager) { }
 
 Texture2DCache::~Texture2DCache() { }
 
-void Texture2DCache::Init()
+void Texture2DCache::Init(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex)
 {
 	if(!Exists("defaultDiffuse.png"))
-		LoadResource("defaultDiffuse.png", "..\\textures\\");
+		LoadResource(device, context, frameIndex, "defaultDiffuse.png", "..\\textures\\");
 }
 
-void Texture2DCache::LoadResource(const std::string& _name, const std::string& _directory)
+void Texture2DCache::LoadResource(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& name, const std::string& directory)
 {
-	if (resources.Exists(_name))
+	if (resources.Exists(name))
 		return;
 
-	Helper::STBIImageData loadedData = Helper::LoadSTBIImage("../textures/" + _name);
+	Helper::STBIImageData loadedData = Helper::LoadSTBIImage("../textures/" + name);
 
-	Texture2D r;
-	int id = resources.Add(_name, r);
-	Texture2D* tempResource = resources.GetObjectByKey(id);
-	resourceEngine.CreateResource(*tempResource, loadedData.rawData, loadedData.width,
-		loadedData.height, loadedData.channels, DXGI_FORMAT_R8G8B8A8_UNORM, _name);
-	
-#ifdef _DEBUG
-	std::wstring wstrName(_name.begin(), _name.end());
-	tempResource->GetGPUOnlyResource()->SetName(wstrName.c_str());
-#endif // DEBUG
+	int id = resources.Add(name, Texture());
+	Texture& tempResource = *resources.GetObjectByKey(id);
 
-	heapIndexToStr.emplace(tempResource->GetHandle().GetHeapIndex(), _name);
+	TextureSettings settings;
+	settings.createReadback = false;
+	settings.flags = D3D12_RESOURCE_FLAG_NONE;
+	settings.bytesPerTexel = loadedData.channels;
+	settings.height = loadedData.height;
+	settings.width = loadedData.width;
+	settings.initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	settings.srvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	settings.clearValue.Color[0] = 0;
+	settings.clearValue.Color[1] = 0;
+	settings.clearValue.Color[2] = 0;
+	settings.clearValue.Color[3] = 0;
+	settings.uploadSettings.discardUpload = true;
+	settings.uploadSettings.initialData = loadedData.rawData;
+
+	tempResource = std::move(Texture(device, context.GetList(), settings, descriptorManager, m_trashcan));
+
+	heapIndexToStr.emplace(tempResource.GetSRVHandle().GetHeapIndex(), name);
 }
 
 void Texture2DCache::RemoveResource(const std::string& _key)
@@ -37,9 +46,7 @@ void Texture2DCache::RemoveResource(const std::string& _key)
 	if (resources.Exists(_key))
 	{
 		int id = resources.GetID(_key);
-		heapIndexToStr.erase(resources.GetObjectByKey(id)->GetHandle().GetHeapIndex());
-		Texture2D* t = resources.GetObjectByKey(id);
-		resourceEngine.RemoveResource(*t);
+		heapIndexToStr.erase(resources.GetObjectByKey(id)->GetSRVHandle().GetHeapIndex());
 		resources.Remove(id);
 	}
 }
@@ -48,9 +55,7 @@ void Texture2DCache::RemoveResource(int _key)
 {
 	if (resources.Exists(_key))
 	{
-		heapIndexToStr.erase(resources.GetObjectByKey(_key)->GetHandle().GetHeapIndex());
-		Texture2D* t = resources.GetObjectByKey(_key);
-		resourceEngine.RemoveResource(*t);
+		heapIndexToStr.erase(resources.GetObjectByKey(_key)->GetSRVHandle().GetHeapIndex());
 		resources.Remove(_key);
 	}
 }
@@ -65,18 +70,18 @@ std::string Texture2DCache::GetTextureName(int _index) const
 
 int Texture2DCache::GetTextureHeapID(const std::string& _key)
 {
-	Texture2D* text = resources.GetObjectByKey(_key);
+	Texture* text = resources.GetObjectByKey(_key);
 	if (text)
-		return text->GetHandle().GetHeapIndex();
+		return text->GetSRVHandle().GetHeapIndex();
 
 	return -1;
 }
 
 int Texture2DCache::GetTextureHeapID(int _key)
 {
-	Texture2D* text = resources.GetObjectByKey(_key);
+	Texture* text = resources.GetObjectByKey(_key);
 	if (text)
-		return text->GetHandle().GetHeapIndex();
+		return text->GetSRVHandle().GetHeapIndex();
 
 	return -1;
 }

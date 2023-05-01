@@ -5,8 +5,8 @@ class LightSystem : public ECSystem
 {
 private:
 	std::shared_ptr<LightManager> lightManager = nullptr;
-	ResourceEngine* resourceEngine = nullptr;
 	ID3D12Device* device = nullptr;
+	UINT m_frameIndex = 0;
 
 public:
 
@@ -18,15 +18,18 @@ public:
 		
 	}
 
-	void Init(ResourceEngine* _resourceEngine)
+	void Init(ID3D12Device* device, ResourceTrashcan& trashcan)
 	{
-		resourceEngine = _resourceEngine;
-
-		lightManager = std::make_shared<LightManager>(*resourceEngine, 1000);
+		lightManager = std::make_shared<LightManager>(device, trashcan, 1000);
 
 		// Signature Setup
 		componentMask.set(false);
 		componentMask.set(COMPONENTENUM::PLIGHT, true);
+	}
+
+	void BeginFrame(UINT frameIndex)
+	{
+		m_frameIndex = frameIndex;
 	}
 
 	std::shared_ptr<LightManager>GetLightManager() { return lightManager; }
@@ -55,7 +58,7 @@ public:
 		//}
 
 		if(_component.id != -1)
-			lightManager->UpdateLight(_component, _data);
+			lightManager->UpdateLight(_component, _data, m_frameIndex);
 	}
 
 	void RemoveLight(const Entity& _entity)
@@ -64,11 +67,11 @@ public:
 		{
 			PointLightComponent* pLight = componentManager.GetComponent<PointLightComponent>(_entity);
 			if(pLight)
-				lightManager->RemoveLight(*pLight);
+				lightManager->RemoveLight(*pLight, m_frameIndex);
 		}
 	}
 
-	virtual bool Bind(const Entity& _entity)
+	virtual bool Bind(Entity& _entity)
 	{
 		if (ECSystem::Bind(_entity))
 		{
@@ -77,7 +80,7 @@ public:
 			{
 				PointLight pLightData;
 				int id = -1;
-				lightManager->AddLight(id, pLightData);
+				lightManager->AddLight(id, pLightData, m_frameIndex);
 				pLight->id = id;
 			}
 			return true;
@@ -86,7 +89,7 @@ public:
 		return false;
 	}
 
-	virtual bool UnBind(const Entity& _entity)
+	virtual bool UnBind(Entity& _entity)
 	{
 		/*if (entityIDMap.Exists(_entity.id))
 		{
@@ -100,6 +103,11 @@ public:
 	// Inherited via ECSystem
 	virtual void Update() override
 	{	
-		lightManager->Update();
+		throw;
+	}
+
+	void Update(ID3D12GraphicsCommandList* _cmdList)
+	{
+		lightManager->Update(_cmdList, m_frameIndex);
 	}
 };

@@ -10,7 +10,7 @@ class DescriptorHandle
 private:
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
-	int heapIndex;
+	int heapIndex = -1;
 
 public:
 	/** Sets both GPU and CPU handles to NULL and the descriptor heap index to -1.

@@ -18,12 +18,10 @@ public:
 		ui = std::make_shared<LevelEditorUI>("LevelEditorUI", engine.get());
 		engine->AttachUI(ui);
 
-		camera = std::make_shared<Camera>(engine->GetResourceEngine(), 0.4f * 3.14f, engine->GetWindowApsectRatio());
+		camera = std::make_shared<Camera>(engine->GetDevice(), engine->GetResourceTrashcan(), 0.4f * 3.14f, engine->GetWindowApsectRatio());
 
 		ui->SetCamera(camera);
 		engine->SetCamera(camera);
-
-		engine->GetResourceEngine().EndCopy();
 	}
 
 	~LevelEditor()
@@ -35,9 +33,11 @@ public:
 		Timer timer;
 		timer.StartCountDown();
 
-		engine->GetResourceEngine().BeginCopy();
+		/*engine->GetResourceEngine().GetCopy();
 		ui->currentScene = engine->LoadScene("../scenes/", "NewScene");
-		engine->GetResourceEngine().EndCopy();
+		engine->GetResourceEngine().ExecuteCopy();*/
+
+		engine->GetRenderSystem().lock()->uiSelectionList = &ui->selectionList;
 
 		while (!WINDOWQUIT)
 		{
@@ -61,37 +61,29 @@ public:
 				if (camera->Active())
 				{
 					Vector2 clientDimensions = engine->GetClientWindowSize();
-					camera->Update(timer.deltaTime, (float)clientDimensions.x / (float)clientDimensions.y);
-				}
-			}
-			
-			if (InputManager::MouseBtnDown(LEFT))
-			{
-				if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
-				{
-					if (!ImGuizmo::IsOver())
-					{
-						std::optional<Vector2> mousePos = engine->GetMouseWindowPosition();
-						if (mousePos)
-						{
-							ui->SetSelectedEntity(engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y));
-							std::cout << engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y) << "\n";
-						}
-					}
+					CopyContextHandle context = engine->GetCommandManager().GetCopyContext();
+					camera->Update(timer.deltaTime, (float)clientDimensions.x / (float)clientDimensions.y, 
+						context.GetList(), engine->GetFrameIndex());
+					engine->GetCommandManager().ExecuteContext(context);
 				}
 			}
 
 			if (InputManager::KeyHeld('R') && InputManager::KeyHeld(VK_CONTROL))
 			{
 				camera.reset();
-				camera = std::make_shared<Camera>(engine->GetResourceEngine(), 0.4f * 3.14f, engine->GetWindowApsectRatio());
+				camera = std::make_shared<Camera>(engine->GetDevice(), engine->GetResourceTrashcan(), 0.4f * 3.14f, engine->GetWindowApsectRatio());
 				camera->GetPosition().z = -2.f;
 				Vector2 clientDimensions = engine->GetClientWindowSize();
-				camera->Update((float)clientDimensions.x / (float)clientDimensions.y);
+				{
+					CopyContextHandle context = engine->GetCommandManager().GetCopyContext();
+					camera->Update(context.GetList(), engine->GetFrameIndex(), (float)clientDimensions.x / (float)clientDimensions.y);
+					engine->GetCommandManager().ExecuteContext(context);
+				}
 				engine->SetCamera(camera);
 				ui->SetCamera(camera);
 			}
 
+			engine->GetRenderSystem().lock()->currentScene = ui->currentScene.get();
 			engine->Render();
 			engine->EndFrame();
 			InputManager::EndFrame();
