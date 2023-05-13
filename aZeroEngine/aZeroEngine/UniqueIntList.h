@@ -6,66 +6,74 @@
 class UniqueIntList
 {
 private:
-	std::set<int> keys;
-	int maxKeys = 0;
-	int incStep = 100;
+	std::set<int> m_keys;
+	int m_maxKeys = 0;
+	int m_incStep = 100;
+	int m_currentlyLent = 0;
+
 public:
 
 	/* Initializes the UniqueIntList object.
-	@param _startNumKeys The number of unique integers for the UniqueIntList to start with. Goes from the range 0...._startNumKeys.
-	@param _incStep The number of unique integers to increase with whenever all the current keys are already lent.
+	@param startNumKeys The number of unique integers for the UniqueIntList to start with. Goes from the range 0...._startNumKeys.
+	@param incStep The number of unique integers to increase with whenever all the current keys are already lent.
 	*/
-	UniqueIntList(int _startNumKeys = 100, int _incStep = 100)
-		:maxKeys(_startNumKeys), incStep(_incStep)
+	UniqueIntList(int startNumKeys = 100, int incStep = 100)
+		:m_maxKeys(startNumKeys), m_incStep(incStep)
 	{
-		for (int i = 0; i < maxKeys; i++)
+		for (int i = 0; i < m_maxKeys; i++)
 		{
-			keys.emplace(i);
+			m_keys.emplace(i);
 		}
 	}
 
 	/* Initializes the UniqueIntList object.
-	@param _startNumKeys The number of unique integers for the UniqueIntList to start with. Goes from the range 0...._startNumKeys.
-	@param _incStep The number of unique integers to increase with whenever all the current keys are already lent.
+	@param startNumKeys The number of unique integers for the UniqueIntList to start with. Goes from the range 0...._startNumKeys.
+	@param incStep The number of unique integers to increase with whenever all the current keys are already lent.
 	@return void
 	*/
-	void Init(int _startNumKeys = 100, int _incStep = 100)
+	void init(int startNumKeys = 100, int incStep = 100)
 	{
-		maxKeys = _startNumKeys;
-		incStep = _incStep;
+		m_maxKeys = startNumKeys;
+		m_incStep = incStep;
 
-		for (int i = 0; i < maxKeys; i++)
+		for (int i = 0; i < m_maxKeys; i++)
 		{
-			keys.emplace(i);
+			m_keys.emplace(i);
 		}
 	}
 
 	/* Gets a unique integer value that preferably should be given back using UniqueIntList::ReturnKey() later.
 	@return int The unique key.
 	*/
-	int LendKey()
+	int lendKey()
 	{
-		if (keys.size() == 0)
+		if (m_keys.size() == 0)
 		{
-			for (int i = maxKeys; i < maxKeys + incStep; i++)
+			for (int i = m_maxKeys; i < m_maxKeys + m_incStep; i++)
 			{
-				keys.emplace(i);
+				m_keys.emplace(i);
 			}
 		}
 
-		return keys.extract(keys.begin()).value();
+		m_currentlyLent++;
+
+		return m_keys.extract(m_keys.begin()).value();
 	}
 
 	/* Returns the key to the UniqueIntList object to enable it to be reused using for example UniqueIntList::LendKey().
-	@param _key The key to return. This is set to -1 to specify that it has been returned.
+	@param key The key to return. This is set to -1 to specify that it has been returned.
 	@return void
 	*/
-	void ReturnKey(int& _key)
+	void returnKey(int& key)
 	{
-		if (keys.count(_key) == 0)
+		if (m_keys.count(key) == 0)
 		{
-			keys.emplace(_key);
+			m_keys.emplace(key);
+			m_currentlyLent--;
 		}
-		_key = -1;
+
+		key = -1;
 	}
+
+	int getNumCurrentlyLent() const { return m_currentlyLent; }
 };

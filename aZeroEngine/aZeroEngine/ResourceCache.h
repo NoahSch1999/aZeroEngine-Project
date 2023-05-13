@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include "HelperFunctions.h"
 #include "ResourceTrashcan.h"
-#include "ECSBase.h"
+#include "ECS.h"
 #include "GraphicsContextHandle.h"
 
 /** @brief Virtual base class for storing and handeling loaded resources within a NamedSlottedMap.
@@ -11,7 +11,7 @@ template<typename T>
 class ResourceCache
 {
 protected:
-	NamedSlottedMap<T> resources;
+	NamedMappedVector<T> resources;
 	ResourceTrashcan& m_trashcan;
 public:
 	ResourceCache(ResourceTrashcan& trashcan)

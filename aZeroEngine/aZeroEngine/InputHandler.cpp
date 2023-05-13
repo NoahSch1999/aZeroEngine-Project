@@ -4,13 +4,13 @@
 std::bitset<256> InputManager::keydownThisFrameSet;
 std::bitset<256> InputManager::keydownLastFrameSet;
 std::bitset<256> InputManager::keyupThisFrameSet;
-Vector2 InputManager::clickedPosition = Vector2(0.f, 0.f);
-Vector2 InputManager::cursorDirectionFrame = Vector2(0.f, 0.f);
-Vector2 InputManager::lastCursorPosition = Vector2(0.f, 0.f);
+DXM::Vector2 InputManager::clickedPosition = DXM::Vector2(0.f, 0.f);
+DXM::Vector2 InputManager::cursorDirectionFrame = DXM::Vector2(0.f, 0.f);
+DXM::Vector2 InputManager::lastCursorPosition = DXM::Vector2(0.f, 0.f);
 bool InputManager::mouseMoved = false;
 InputManager::MouseBtnState InputManager::mouseBtns[MOUSEBTN::MAX];
 
-void InputManager::OnMouseBtnPressed(Vector2 _pos, MOUSEBTN _btn)
+void InputManager::OnMouseBtnPressed(DXM::Vector2 _pos, MOUSEBTN _btn)
 {
 	if (!InputManager::mouseBtns[_btn].mouseDownLastFrame)
 	{
@@ -22,7 +22,7 @@ void InputManager::OnMouseBtnPressed(Vector2 _pos, MOUSEBTN _btn)
 	InputManager::mouseBtns[_btn].mouseDown = true;
 }
 
-void InputManager::OnMouseBtnReleased(Vector2 _pos, MOUSEBTN _btn)
+void InputManager::OnMouseBtnReleased(DXM::Vector2 _pos, MOUSEBTN _btn)
 {
 	if (InputManager::mouseBtns[_btn].mouseDownLastFrame)
 	{
@@ -69,7 +69,7 @@ void InputManager::OnMouseMove(LONG _xPos, LONG _yPos)
 	mouseMoved = true;
 }
 
-void InputManager::OnMouseMove(Vector2 _pos)
+void InputManager::OnMouseMove(DXM::Vector2 _pos)
 {
 	cursorDirectionFrame = _pos;
 	mouseMoved = true;

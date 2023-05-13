@@ -1,7 +1,8 @@
 #pragma once
 #include "LightManager.h"
+#include <memory>
 
-class LightSystem : public ECSystem
+class LightSystem : public aZeroECS::System
 {
 private:
 	std::shared_ptr<LightManager> lightManager = nullptr;
@@ -12,20 +13,20 @@ public:
 
 	LightSystem() = default;
 	
-	LightSystem(ComponentManager& _componentManager)
-		:ECSystem(_componentManager)
-	{
-		
-	}
-
-	void Init(ID3D12Device* device, ResourceTrashcan& trashcan)
+	LightSystem(aZeroECS::ComponentManager& _componentManager, ID3D12Device* device, ResourceTrashcan& trashcan)
+		:System(_componentManager)
 	{
 		lightManager = std::make_shared<LightManager>(device, trashcan, 1000);
-
-		// Signature Setup
-		componentMask.set(false);
-		componentMask.set(COMPONENTENUM::PLIGHT, true);
+		m_componentMask.set(m_componentManager.GetComponentBit<PointLightComponent>());
 	}
+
+	//void Init()
+	//{
+	//	
+
+	//	// Signature Setup
+	//	
+	//}
 
 	void BeginFrame(UINT frameIndex)
 	{
@@ -61,21 +62,21 @@ public:
 			lightManager->UpdateLight(_component, _data, m_frameIndex);
 	}
 
-	void RemoveLight(const Entity& _entity)
+	void RemoveLight(const aZeroECS::Entity& _entity)
 	{
-		if (entityIDMap.Exists(_entity.id))
+		if (m_entities.Contains(_entity.m_id))
 		{
-			PointLightComponent* pLight = componentManager.GetComponent<PointLightComponent>(_entity);
+			PointLightComponent* pLight = m_componentManager.GetComponent<PointLightComponent>(_entity);
 			if(pLight)
 				lightManager->RemoveLight(*pLight, m_frameIndex);
 		}
 	}
 
-	virtual bool Bind(Entity& _entity)
+	virtual bool Bind(aZeroECS::Entity& _entity)
 	{
-		if (ECSystem::Bind(_entity))
+		if (aZeroECS::System::Bind(_entity))
 		{
-			PointLightComponent* pLight = componentManager.GetComponent<PointLightComponent>(_entity);
+			PointLightComponent* pLight = m_componentManager.GetComponent<PointLightComponent>(_entity);
 			if (pLight->id == -1)
 			{
 				PointLight pLightData;
@@ -89,7 +90,7 @@ public:
 		return false;
 	}
 
-	virtual bool UnBind(Entity& _entity)
+	virtual bool UnBind(const aZeroECS::Entity& _entity)
 	{
 		/*if (entityIDMap.Exists(_entity.id))
 		{
@@ -97,7 +98,7 @@ public:
 			lightManager->RemoveLight(*pLight);
 		}*/
 
-		return ECSystem::UnBind(_entity);
+		return aZeroECS::System::UnBind(_entity);
 	}
 
 	// Inherited via ECSystem

@@ -1,6 +1,7 @@
 #pragma once
 #include "PBRMaterial.h"
-#include "LinearResourceAllocator.h"
+//#include "LinearUploadAllocator.h"
+#include "ECS.h"
 
 /** @brief This class manages materials.
 * It stores each Material subclass inside their own NameSlottedMap member variable. This member functions then manage those member variables internally.
@@ -14,7 +15,7 @@
 class MaterialManager
 {
 private:
-	NamedSlottedMap<PBRMaterial>pbrMaterials;
+	NamedMappedVector<PBRMaterial> pbrMaterials;
 
 	Texture2DCache& textureCache;
 
@@ -39,7 +40,7 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void CreateMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string _materialName);
+	void CreateMaterial(const std::string materialName);
 
 	/** Loads a material (.azm) file from disk and adds it to the internal NameSlottedMap for the template specified material type.
 	@param _materialName Name of the material. Has to be unique for the specified material type. Otherwise the material won't be created
@@ -100,6 +101,8 @@ public:
 	*/
 	std::vector<PBRMaterial>& GetPBRMaterials();
 
+	NamedMappedVector<PBRMaterial>& GetNamedMappedVector() { return pbrMaterials; }
+
 	/** Checks if a Material subclass with the input key is currently stored (std::string).
 	* Template specification has to be used to control what Material subclass to check for.
 	@param _key The key to check for.
@@ -119,10 +122,10 @@ public:
 };
 
 template<typename T>
-inline void MaterialManager::CreateMaterial(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string _materialName)
+inline void MaterialManager::CreateMaterial(const std::string materialName)
 {
 	if constexpr (std::is_same_v<T, PBRMaterial>)
-		pbrMaterials.Add(_materialName, PBRMaterial(device, context, frameIndex, textureCache, "../materials/", _materialName));
+		pbrMaterials.Add(materialName, PBRMaterial(textureCache, materialName));
 }
 
 template<typename T>

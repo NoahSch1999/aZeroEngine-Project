@@ -1,5 +1,6 @@
 #pragma once
-#include "ECSBase.h"
+//#include "ECSBase.h"
+#include "ECS.h"
 #include "ModelCache.h"
 #include "Texture2DCache.h"
 #include "MaterialManager.h"
@@ -14,7 +15,8 @@
 class Scene
 {
 private:
-	ECS* ecs = nullptr;
+	aZeroECS::ComponentManager* m_componentManager;
+	aZeroECS::EntityManager* m_entityManager;
 	ModelCache* modelCache = nullptr;
 	MaterialManager* mManager = nullptr;
 	LightSystem* lSystem = nullptr;
@@ -22,9 +24,9 @@ private:
 	std::string name = "";
 	std::unordered_map<int, std::string> entityIdToName;
 	std::unordered_map<std::string, int> entityNameToId;
-	SlottedMap<Entity> entities;
+	MappedVector<aZeroECS::Entity> entities;
 
-	bool loaded = false;
+	bool loaded = true;
 
 private:
 	std::string CheckName(const std::string _name) const;
@@ -40,9 +42,9 @@ public:
 	@param _lSystem The LightSystem instance to retrieve neccessary light object's from when loading and saving the Scene
 	@return void
 	*/
-	Scene(ECS* _ecs, ModelCache* _modelCache, MaterialManager* _mManager,
-		LightSystem* _lSystem)
-		:ecs(_ecs), modelCache(_modelCache), mManager(_mManager), lSystem(_lSystem)
+	Scene(ModelCache* _modelCache, MaterialManager* _mManager,
+		LightSystem* _lSystem, aZeroECS::ComponentManager* componentManager, aZeroECS::EntityManager* entityManager)
+		:modelCache(_modelCache), mManager(_mManager), lSystem(_lSystem), m_componentManager(componentManager), m_entityManager(entityManager)
 		{ }
 
 	~Scene();
@@ -52,10 +54,10 @@ public:
 	// Getters / Setters
 	std::string GetName() const { return name; }
 	void SetName(const std::string& _name) { name = _name; }
-	Entity& GetEntity(const std::string& _name) { return *entities.GetObjectByID(entityNameToId.at(_name)); }
-	Entity& GetEntity(int _ID) { return *entities.GetObjectByID(_ID); }
-	std::optional<std::string> GetEntityName(Entity _entity) const;
-	std::vector<Entity>& GetEntityVector() { return entities.GetObjects(); }
+	aZeroECS::Entity& GetEntity(const std::string& _name) { return *entities.GetByID(entityNameToId.at(_name)); }
+	aZeroECS::Entity& GetEntity(int _ID) { return *entities.GetByID(_ID); }
+	std::optional<std::string> GetEntityName(aZeroECS::Entity _entity) const;
+	std::vector<aZeroECS::Entity>& GetEntityVector() { return entities.GetObjects(); }
 
 	/**Saves the contents of the Scene object into a .azs file inside the specified directory and with the specified name.
 	@param _fileDirectory The directory to save the scene file to
@@ -78,7 +80,7 @@ public:
 	@param _name Name of the new Entity
 	@return Entity&
 	*/
-	Entity& CreateEntity(const std::string& _name);
+	aZeroECS::Entity& CreateEntity(const std::string& _name);
 
 	/**Removes the Entity from the Scene if it exists.
 	@param _ID The unique ID of the Entity to remove
@@ -103,7 +105,7 @@ public:
 	@param _newName The new name of the Entity
 	@return void
 	*/
-	void RenameEntity(const Entity& _entity, const std::string& _newName);
+	void RenameEntity(const aZeroECS::Entity& _entity, const std::string& _newName);
 
 	/**Registers a default Mesh component for the specified Entity object and binds the Entity to the appropriate systems.
 	@param _entityName The Entity to register a mesh component for
@@ -111,9 +113,9 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void AddComponentToEntity(Entity& _entity, const T& _data) 
+	void AddComponentToEntity(aZeroECS::Entity& _entity, T&& _data)
 	{ 
-		ecs->RegisterComponent<T>(_entity);
+		m_componentManager->AddComponent<T>(_entity, std::move(_data));
 	}
 
 	/**Registers a default Mesh component for the specified Entity object WITHOUT binding it to the appropriate systems.
@@ -121,24 +123,24 @@ public:
 	@return void
 	*/
 	template<typename T>
-	void AddComponentToEntity(Entity& _entity) { ecs->RegisterComponent<T>(_entity); }
+	void AddComponentToEntity(aZeroECS::Entity& _entity) { m_componentManager->AddComponent<T>(_entity); }
 
 	/**Removes a Mesh component for the specified Entity object and unbinds the Entity from the appropriate systems.
 	@param _entityName The Entity to remove a Mesh component for
 	@return void
 	*/
 	template<typename T>
-	void RemoveComponentFromEntity(Entity& _entity)
+	void RemoveComponentFromEntity(aZeroECS::Entity& _entity)
 	{
 		if constexpr (std::is_same_v<T, PointLightComponent>)
 		{
-			PointLightComponent* pComp = ecs->GetComponentManager().GetComponent<PointLightComponent>(_entity);
+			PointLightComponent* pComp = m_componentManager->GetComponent<PointLightComponent>(_entity);
 			if (pComp)
 			{
 				lSystem->RemoveLight(_entity);
 			}
 		}
-		ecs->UnregisterComponent<T>(_entity);
+		m_componentManager->RemoveComponent<T>(_entity);
 	}
 
 	/**Returns a pointer for the input Entity objects component specified by the template parameter.
@@ -147,5 +149,5 @@ public:
 	@return T*
 	*/
 	template<typename T>
-	T* GetComponentForEntity(Entity _entity) { return ecs->GetComponent<T>(_entity); }
+	T* GetComponentForEntity(aZeroECS::Entity _entity) { return m_componentManager->GetComponent<T>(_entity); }
 };

@@ -14,7 +14,7 @@ public:
 
 	UploadBuffer<T> dataBuffer;
 
-	SlottedMap<T>data;
+	MappedVector<T>data;
 
 	StructuredList() = default;
 
@@ -51,7 +51,7 @@ public:
 
 	bool RemoveElement(int& _ID, int _frameIndex)
 	{
-		if (data.Exists(_ID))
+		if (data.Contains(_ID))
 		{
 			freeIDs.push_back(_ID);
 
@@ -74,9 +74,9 @@ public:
 
 	void UpdateElement(const T& _data, int _ID, int _frameIndex)
 	{
-		if (data.Exists(_ID))
+		if (data.Contains(_ID))
 		{
-			*data.GetObjectByID(_ID) = _data;
+			*data.GetByID(_ID) = _data;
 		}
 	}
 

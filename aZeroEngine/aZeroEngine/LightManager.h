@@ -1,13 +1,14 @@
 #pragma once
-#include "ECSBase.h"
+//#include "ECSBase.h"
+#include "ECS.h"
 #include "StructuredList.h"
 #include "UploadBuffer.h"
 
 struct PointLight
 {
-	Vector3 color = Vector3(1.f, 1.f, 1.f);
+	DXM::Vector3 color = DXM::Vector3(1.f, 1.f, 1.f);
 	float intensity = 1.f;
-	Vector3 position = Vector3(0.f, 0.f, 0.f);
+	DXM::Vector3 position = DXM::Vector3(0.f, 0.f, 0.f);
 	float range = 10.f;
 	PointLight() = default;
 	PointLight(const PointLight& _other)
@@ -47,10 +48,10 @@ struct PointLight
 
 struct DirectionalLight
 {
-	Matrix VPMatrix = Matrix::Identity;
-	Vector3 direction = Vector3(0.f, 0.f, 1.f);
+	DXM::Matrix VPMatrix = DXM::Matrix::Identity;
+	DXM::Vector3 direction = DXM::Vector3(0.f, 0.f, 1.f);
 	float pad = 0;
-	Vector3 color = Vector3(1.f, 1.f, 1.f);
+	DXM::Vector3 color = DXM::Vector3(1.f, 1.f, 1.f);
 	float intensity = 1.f;
 };
 
@@ -99,12 +100,12 @@ public:
 	{
 		if (pLigthDirty)
 		{
-			pLightList.dataBuffer.Update(_cmdList, _frameIndex, pLightList.data.GetObjects().data());
+			pLightList.dataBuffer.update(_cmdList, _frameIndex, pLightList.data.GetObjects().data());
 			pLigthDirty = false;
 		}
 		if (numLightDirty)
 		{
-			numLightsCB->Update(_cmdList, _frameIndex, numLightsData, 0);
+			numLightsCB->update(_cmdList, _frameIndex, numLightsData, 0);
 			numLightDirty = false;
 		}
 	}
@@ -114,8 +115,8 @@ public:
 	{
 		if constexpr (std::is_same_v<T, PointLight>)
 		{
-			if(pLightList.data.Exists(_id))
-				return pLightList.data.GetObjectByID(_id);
+			if(pLightList.data.Contains(_id))
+				return pLightList.data.GetByID(_id);
 		}
 
 		return nullptr;

@@ -35,16 +35,16 @@ public:
 
 	~SwapChain() = default;
 
-	int GetRefreshRate() const { return m_refreshRate; }
-	int GetNumBackBuffers() const { return m_numBackBuffers; }
-	Vector2 GetBackBufferDimensions() const { return { static_cast<float>(m_width), static_cast<float>(m_height) }; }
+	int getRefreshRate() const { return m_refreshRate; }
+	int getNumBackBuffers() const { return m_numBackBuffers; }
+	DXM::Vector2 getBackBufferDimensions() const { return { static_cast<float>(m_width), static_cast<float>(m_height) }; }
 
-	D3D12_VIEWPORT& GetViewPort() { return m_viewport; }
-	D3D12_RECT& GetScissorRect() { return m_scissorRect; }
-	DXGI_FORMAT GetBackBufferFormat() const { return m_bbFormat; }
+	D3D12_VIEWPORT& getViewPort() { return m_viewport; }
+	D3D12_RECT& getScissorRect() { return m_scissorRect; }
+	DXGI_FORMAT getBackBufferFormat() const { return m_bbFormat; }
 
-	Texture* GetBackBuffer(int index) const { return m_backBuffers[index].get(); }
-	std::array<std::unique_ptr<Texture>, 3>& GetBackBuffers() { return m_backBuffers; }
-	IDXGISwapChain1* GetSwapChain() const { return m_swapChain.Get(); }
+	Texture* getBackBuffer(int index) const { return m_backBuffers[index].get(); }
+	std::array<std::unique_ptr<Texture>, 3>& getBackBuffers() { return m_backBuffers; }
+	IDXGISwapChain1* getSwapChain() const { return m_swapChain.Get(); }
 
 };

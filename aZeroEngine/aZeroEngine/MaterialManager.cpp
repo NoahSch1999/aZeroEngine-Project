@@ -7,7 +7,7 @@ MaterialManager::MaterialManager(Texture2DCache& _textureCache)
 
 void MaterialManager::Init(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex)
 {
-	CreateMaterial<PBRMaterial>(device, context, frameIndex, "DefaultPBRMaterial");
+	LoadMaterial<PBRMaterial>(device, context, frameIndex, "DefaultPBRMaterial");
 }
 
 std::unordered_map<std::string, int>& MaterialManager::GetPBRStringToIndexMap()

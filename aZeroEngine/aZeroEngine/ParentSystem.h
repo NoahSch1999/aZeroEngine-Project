@@ -1,27 +1,28 @@
 #pragma once
-#include "ECSBase.h"
+//#include "ECSBase.h"
+#include "ECS.h"
 #include "TreeHierarchy.h"
+
 
 // NOTE! Add so lights are local to the same entities transform as well...
 /** @brief The system used for parenting and managing the parenting calculations of Entity objects and their components.
 * All Entity objects with a registered Transform component are bound to this system.
 */
-class ParentSystem : public ECSystem
+class ParentSystem : public aZeroECS::System
 {
 private:
 	TreeHierearchy hierarchy;
 	std::set<int> updateNodeIDs;
 
 	// NOTE! Make this non-recursive to be more efficient...
-	void CalcBasisParents(TreeHierearchy::Node* _parent, Matrix& _matrix)
+	void CalcBasisParents(TreeHierearchy::Node* _parent, DXM::Matrix& _matrix)
 	{
 		if (!_parent->parent)
 			return;
 
-		Entity tempEnt;
-		tempEnt.id = _parent->parent->id;
-		Transform* parentTf = componentManager.GetComponentFast<Transform>(tempEnt);
-		_matrix *= parentTf->GetLocalMatrix();
+		aZeroECS::Entity tempEnt(_parent->parent->id);
+		Transform& parentTf = m_componentManager.GetComponentFast<Transform>(tempEnt);
+		_matrix *= parentTf.GetLocalMatrix();
 
 		CalcBasisParents(_parent->parent, _matrix);
 	}
@@ -52,11 +53,12 @@ public:
 	/**Dependency injects the ComponentManager object. This constructor should only be called indirectly by SystemManager::RegisterSystem().
 	@param _componentManager The ComponentManager to dependency inject and use when retrieving components for the object's method's
 	*/
-	ParentSystem(ComponentManager& _componentManager)
-		:ECSystem(_componentManager)
+	ParentSystem(aZeroECS::ComponentManager& _componentManager)
+		:/*ECSystem(_componentManager)*/aZeroECS::System(_componentManager)
 	{
-		componentMask.set(false);
-		componentMask.set(COMPONENTENUM::TRANSFORM, true);
+		m_componentMask.set(m_componentManager.GetComponentBit<Transform>());
+		/*componentMask.set(false);
+		componentMask.set(COMPONENTENUM::TRANSFORM, true);*/
 	}
 
 	/**Overridden ECSystem::Bind() which is called whenever a Transform component is registered to an Entity.
@@ -64,11 +66,11 @@ public:
 	@param _entity The Entity to bind.
 	@return bool TRUE: Entity was bound, FALSE: Entity was not bound
 	*/
-	virtual bool Bind(Entity& _entity) override
+	virtual bool Bind(aZeroECS::Entity& _entity) override
 	{
-		if (ECSystem::Bind(_entity))
+		if (aZeroECS::System::Bind(_entity))
 		{
-			hierarchy.Add(_entity.id);
+			hierarchy.Add(_entity.m_id);
 			return true;
 		}
 
@@ -80,15 +82,15 @@ public:
 	@param _entity The Entity to unbind.
 	@return bool TRUE: Entity was unbound, FALSE: Entity was not unbound
 	*/
-	virtual bool UnBind(Entity& _entity) override
+	virtual bool UnBind(const aZeroECS::Entity& _entity) override
 	{
-		if (updateNodeIDs.contains(_entity.id))
+		if (updateNodeIDs.contains(_entity.m_id))
 		{
-			updateNodeIDs.erase(_entity.id);
+			updateNodeIDs.erase(_entity.m_id);
 		}
 
-		hierarchy.Remove(_entity.id);
-		return ECSystem::UnBind(_entity);
+		hierarchy.Remove(_entity.m_id);
+		return aZeroECS::System::UnBind(_entity);
 	}
 
 	/**CURRENTLY UNNUSED!
@@ -105,13 +107,13 @@ public:
 	@param _transform The Transform which is registered for the argument _entity.
 	@return void
 	*/
-	void CalculateWorld(const Entity& _entity, Transform* const _transform)
+	void CalculateWorld(const aZeroECS::Entity& _entity, Transform* const _transform)
 	{
-		TreeHierearchy::Node* targetNode = hierarchy.GetNode(_entity.id);
+		TreeHierearchy::Node* targetNode = hierarchy.GetNode(_entity.m_id);
 
 		if (targetNode->parent)
 		{
-			Matrix parentMatrix = Matrix::Identity;
+			DXM::Matrix parentMatrix = DXM::Matrix::Identity;
 			CalcBasisParents(targetNode, parentMatrix);
 			_transform->SetWorldMatrix(_transform->GetLocalMatrix() * parentMatrix);
 		}
@@ -128,11 +130,11 @@ public:
 	@param _childEntity The Entity that should become the child
 	@return void
 	*/
-	void Parent(const Entity& _parentEntity, const Entity& _childEntity)
+	void Parent(const aZeroECS::Entity& _parentEntity, const aZeroECS::Entity& _childEntity)
 	{
 		// Add so its world position becomes it's current local position...
 
-		hierarchy.Parent(_parentEntity.id, _childEntity.id);
+		hierarchy.Parent(_parentEntity.m_id, _childEntity.m_id);
 	}
 
 	/**Removes _childEntity as a child for _parentEntity.
@@ -141,11 +143,11 @@ public:
 	@param _childEntity The Entity that is the child
 	@return void
 	*/
-	void UnParent(const Entity& _parentEntity, const Entity& _childEntity)
+	void UnParent(const aZeroECS::Entity& _parentEntity, const aZeroECS::Entity& _childEntity)
 	{
 		// Add so its local position becomes it's current world position...
 
-		hierarchy.UnParent(_parentEntity.id, _childEntity.id);
+		hierarchy.UnParent(_parentEntity.m_id, _childEntity.m_id);
 	}
 	
 	/**Returns the TreeHierarchy::Node id of the parent node for the input Entity.
@@ -153,9 +155,9 @@ public:
 	@param _targetEntity The Entity to retrieve a parent for
 	@return int
 	*/
-	int GetParentEntityID(const Entity& _targetEntity)
+	int GetParentEntityID(const aZeroECS::Entity& _targetEntity)
 	{
-		TreeHierearchy::Node* targetNode = hierarchy.GetNode(_targetEntity.id);
+		TreeHierearchy::Node* targetNode = hierarchy.GetNode(_targetEntity.m_id);
 
 		if (targetNode->parent)
 			return targetNode->parent->id;
@@ -167,9 +169,9 @@ public:
 	@param _targetEntity The parent Entity to retrieve children ids for
 	@return std::vector<int>
 	*/
-	std::vector<int> GetChildrenEntityID(const Entity& _targetEntity)
+	std::vector<int> GetChildrenEntityID(const aZeroECS::Entity& _targetEntity)
 	{
-		TreeHierearchy::Node* targetNode = hierarchy.GetNode(_targetEntity.id);
+		TreeHierearchy::Node* targetNode = hierarchy.GetNode(_targetEntity.m_id);
 
 		std::vector<int> entityIDs;
 		entityIDs.reserve(targetNode->children.size());
@@ -184,9 +186,9 @@ public:
 	@param _childIDToLookFor The TreeHierarchy::Node id to check for
 	@return bool TRUE: _childIDToLookFor matches a child in the branch of _branchTopEntity, FALSE: The branch of _branchTopEntity doesn't contain a child with the specified ID.
 	*/
-	bool IsChildInBranch(const Entity& _branchTopEntity, int _childIDToLookFor)
+	bool IsChildInBranch(const aZeroECS::Entity& _branchTopEntity, int _childIDToLookFor)
 	{
-		return hierarchy.IsChildInBranch(hierarchy.GetNode(_branchTopEntity.id), _childIDToLookFor);
+		return hierarchy.IsChildInBranch(hierarchy.GetNode(_branchTopEntity.m_id), _childIDToLookFor);
 	}
 
 

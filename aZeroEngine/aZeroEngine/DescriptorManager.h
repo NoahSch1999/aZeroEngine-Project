@@ -8,10 +8,10 @@ Contains all ID3D12DescriptorHeap objects and necessary methods to access them.
 class DescriptorManager
 {
 private:
-	ShaderDescriptorHeap resourceHeap;
-	ShaderDescriptorHeap samplerHeap;
-	HiddenDescriptorHeap dsvHeap;
-	HiddenDescriptorHeap rtvHeap;
+	ShaderDescriptorHeap m_resourceHeap;
+	ShaderDescriptorHeap m_samplerHeap;
+	HiddenDescriptorHeap m_dsvHeap;
+	HiddenDescriptorHeap m_rtvHeap;
 
 public:
 	DescriptorManager() = default;
@@ -23,7 +23,7 @@ public:
 	@param _numRTVDescriptors Max number of D3D12_DESCRIPTOR_HEAP_TYPE_RTV DescriptorHandle objects supported.
 	@param _numDSVDescriptors Max number of D3D12_DESCRIPTOR_HEAP_TYPE_DSV DescriptorHandle objects supported.
 	*/
-	DescriptorManager(ID3D12Device* _device, int _numResourceDescriptors, int _numSamplerDescriptors = 1000, int _numRTVDescriptors = 1000, int _numDSVDescriptors = 1000);
+	DescriptorManager(ID3D12Device* device, int numResourceDescriptors, int numSamplerDescriptors = 1000, int numRTVDescriptors = 1000, int numDSVDescriptors = 1000);
 
 	~DescriptorManager() = default;
 
@@ -35,85 +35,90 @@ public:
 	@param _numDSVDescriptors Max number of D3D12_DESCRIPTOR_HEAP_TYPE_DSV DescriptorHandle objects supported.
 	@return void
 	*/
-	void Init(ID3D12Device* _device, int _numResourceDescriptors, int _numSamplerDescriptors = 1000, int _numRTVDescriptors = 1000, int _numDSVDescriptors = 1000);
+	void Init(ID3D12Device* device, int numResourceDescriptors, int numSamplerDescriptors = 1000, int numRTVDescriptors = 1000, int numDSVDescriptors = 1000);
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetResourceHeap() const { return resourceHeap.GetHeap(); }
+	ID3D12DescriptorHeap* getResourceHeap() const { return m_resourceHeap.getHeap(); }
+
+	ShaderDescriptorHeap& getResourceShaderDescriptorHeap() { return m_resourceHeap; }
+	ShaderDescriptorHeap& getSamplerShaderDescriptorHeap() { return m_samplerHeap; }
+	HiddenDescriptorHeap& getRTVDescriptorHeap() { return m_rtvHeap; }
+	HiddenDescriptorHeap& getDSVDescriptorHeap() { return m_dsvHeap; }
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetSamplerHeap() const { return samplerHeap.GetHeap(); }
+	ID3D12DescriptorHeap* getSamplerHeap() const { return m_samplerHeap.getHeap(); }
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_RTV descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetRTVHeap() const { return rtvHeap.GetHeap(); }
+	ID3D12DescriptorHeap* getRTVHeap() const { return m_rtvHeap.getHeap(); }
 
 	/** Returns a pointer to the internal ID3D12DescriptorHeap that contains D3D12_DESCRIPTOR_HEAP_TYPE_DSV descriptors.
 	@return ID3D12DescriptorHeap*
 	*/
-	ID3D12DescriptorHeap* GetDSVHeap() const { return dsvHeap.GetHeap(); }
+	ID3D12DescriptorHeap* getDSVHeap() const { return m_dsvHeap.getHeap(); }
 
 	/** Returns a new unused DescriptorHandle for D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV resources.
 	@return DescriptorHandle
 	*/
-	DescriptorHandle GetResourceDescriptor() { return resourceHeap.GetDescriptorHandle(); }
+	DescriptorHandle getResourceDescriptor() { return m_resourceHeap.getDescriptorHandle(); }
 
 	/**Returns a std::vector of new unused DescriptorHandle objects for D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV resources.
 	@return std::vector<DescriptorHandle>
 	*/
-	std::vector<DescriptorHandle> GetResourceDescriptor(int _numDescriptors) { return resourceHeap.GetDescriptorHandles(_numDescriptors); }
+	std::vector<DescriptorHandle> getResourceDescriptor(int numDescriptors) { return m_resourceHeap.getDescriptorHandles(numDescriptors); }
 
 	/** Frees up the input DescriptorHandle which allows it to be reused by calling DescriptorManager::GetResourceDescriptor().
-	@param _handle The DescriptorHandle to free. The reference is modified and will contain a heap index of -1 to indicate it being freed.
+	@param handle The DescriptorHandle to free. The reference is modified and will contain a heap index of -1 to indicate it being freed.
 	@return void
 	*/
-	void FreeResourceDescriptor(DescriptorHandle& _handle) { resourceHeap.FreeDescriptorHandle(_handle); }
+	void freeResourceDescriptor(DescriptorHandle& handle) { m_resourceHeap.freeDescriptorHandle(handle); }
 
 	/** Returns a copy of a new unused DescriptorHandle for D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER resources.
 	@return DescriptorHandle
 	*/
-	DescriptorHandle GetSamplerDescriptor() { return samplerHeap.GetDescriptorHandle(); }
+	DescriptorHandle getSamplerDescriptor() { return m_samplerHeap.getDescriptorHandle(); }
 
 	/** Frees up the input DescriptorHandle for a D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER resource which allows it to be reused by calling DescriptorManager::GetSamplerDescriptor().
-	@param _handle The DescriptorHandle to free. The reference is modified and will contain a heap index of -1 to indicate it being freed.
+	@param handle The DescriptorHandle to free. The reference is modified and will contain a heap index of -1 to indicate it being freed.
 	@return void
 	*/
-	void FreeSamplerDescriptor(DescriptorHandle& _handle) { resourceHeap.FreeDescriptorHandle(_handle); }
+	void freeSamplerDescriptor(DescriptorHandle& handle) { m_resourceHeap.freeDescriptorHandle(handle); }
 
 	/** Returns a copy of a new unused DescriptorHandle for D3D12_DESCRIPTOR_HEAP_TYPE_RTV resources.
 	@return DescriptorHandle
 	*/
-	DescriptorHandle GetRTVDescriptor() { return rtvHeap.GetDescriptorHandle(); }
+	DescriptorHandle getRTVDescriptor() { return m_rtvHeap.getDescriptorHandle(); }
 
 	/**Returns a std::vector of new unused DescriptorHandle objects for D3D12_DESCRIPTOR_HEAP_TYPE_RTV resources.
 	@return std::vector<DescriptorHandle>
 	*/
-	std::vector<DescriptorHandle> GetRTVDescriptor(int _numDescriptors) { return rtvHeap.GetDescriptorHandles(_numDescriptors); }
+	std::vector<DescriptorHandle> getRTVDescriptor(int numDescriptors) { return m_rtvHeap.getDescriptorHandles(numDescriptors); }
 
 	/** Frees up the input DescriptorHandle for a D3D12_DESCRIPTOR_HEAP_TYPE_RTV resource which allows it to be reused by calling DescriptorManager::GetRTVDescriptor().
 	@param _handle The DescriptorHandle to free. The reference is modified and will contain a heap index of -1 to indicate it being freed.
 	@return void
 	*/
-	void FreeRTVDescriptor(DescriptorHandle& _handle) { rtvHeap.FreeDescriptorHandle(_handle); }
+	void freeRTVDescriptor(DescriptorHandle& handle) { m_rtvHeap.freeDescriptorHandle(handle); }
 
 	/** Returns a copy of a new unused DescriptorHandle for D3D12_DESCRIPTOR_HEAP_TYPE_DSV resources.
 	@return DescriptorHandle
 	*/
-	DescriptorHandle GetDSVDescriptor() { return dsvHeap.GetDescriptorHandle(); }
+	DescriptorHandle getDSVDescriptor() { return m_dsvHeap.getDescriptorHandle(); }
 
 	/**Returns a std::vector of new unused DescriptorHandle objects for D3D12_DESCRIPTOR_HEAP_TYPE_DSV resources.
 	@return std::vector<DescriptorHandle>
 	*/
-	std::vector<DescriptorHandle> GetDSVDescriptor(int _numDescriptors){	return dsvHeap.GetDescriptorHandles(_numDescriptors);}
+	std::vector<DescriptorHandle> getDSVDescriptor(int numDescriptors) { return m_dsvHeap.getDescriptorHandles(numDescriptors); }
 
 	/** Frees up the input DescriptorHandle for a D3D12_DESCRIPTOR_HEAP_TYPE_DSV resource which allows it to be reused by calling DescriptorManager::GetDSVDescriptor().
 	@param _handle The DescriptorHandle to free. The reference is modified and will contain a heap index of -1 to indicate it being freed.
 	@return void
 	*/
-	void FreeDSVDescriptor(DescriptorHandle& _handle) { dsvHeap.FreeDescriptorHandle(_handle); }
+	void freeDSVDescriptor(DescriptorHandle& handle) { m_dsvHeap.freeDescriptorHandle(handle); }
 
 };

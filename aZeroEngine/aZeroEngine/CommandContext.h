@@ -19,10 +19,10 @@ private:
 	bool m_dirty = false;
 
 private:
-	void StartRecording(ID3D12PipelineState* resetPSO = nullptr);
-	void StopRecording();
-	bool HasRecorded();
-	void Reset();
+	void startRecording(ID3D12PipelineState* resetPSO = nullptr);
+	void stopRecording();
+	bool hasRecorded();
+	void reset();
 
 public:
 

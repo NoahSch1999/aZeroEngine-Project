@@ -18,12 +18,12 @@ public:
 	/** @brief Returns a pointer to the start of the parameter list.
 	@return D3D12_ROOT_PARAMETER*
 	*/
-	D3D12_ROOT_PARAMETER* GetParameterData() { return m_parameters.data(); }
+	D3D12_ROOT_PARAMETER* getParameterData() { return m_parameters.data(); }
 
 	/** @brief Returns the number of parameters within the list.
 	@return int
 	*/
-	int GetParameterNum() { return static_cast<int>(m_parameters.size()); }
+	int getParameterNum() { return static_cast<int>(m_parameters.size()); }
 
 	/** @brief Adds a descriptor table with the specified arguments to the parameter list.
 	@param rangeType D3D12_DESCRIPTOR_RANGE_TYPE of the descriptor table.
@@ -34,10 +34,16 @@ public:
 	@param registerSpace The register space for the descriptor table parameter. Defaulted to 0.
 	@return void
 	*/
-	void AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT baseShaderRegister, 
+	void addDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT baseShaderRegister, 
 		UINT numDescriptors = 1, D3D12_SHADER_VISIBILITY shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT offsetFromStart = 0, UINT registerSpace = 0)
 	{
-		const D3D12_DESCRIPTOR_RANGE range{ rangeType, numDescriptors, baseShaderRegister, registerSpace, offsetFromStart };
+		D3D12_DESCRIPTOR_RANGE range = {};
+		range.BaseShaderRegister = baseShaderRegister;
+		range.NumDescriptors = numDescriptors;
+		range.OffsetInDescriptorsFromTableStart = offsetFromStart;
+		range.RangeType = rangeType;
+		range.RegisterSpace = registerSpace;
+
 		m_ranges[m_numParameters] = range;
 		D3D12_ROOT_DESCRIPTOR_TABLE table{ 1, &m_ranges[m_numParameters] };
 		m_numParameters++;
@@ -52,7 +58,7 @@ public:
 	@param registerSpace The register space for the root descriptor parameter. Defaulted to 0.	
 	@return void
 	*/
-	void AddRootDescriptor(UINT shaderRegister, D3D12_ROOT_PARAMETER_TYPE paramType, 
+	void addRootDescriptor(UINT shaderRegister, D3D12_ROOT_PARAMETER_TYPE paramType, 
 		D3D12_SHADER_VISIBILITY shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT registerSpace = 0)
 	{
 		const D3D12_ROOT_DESCRIPTOR descriptor{ shaderRegister, registerSpace };
@@ -70,7 +76,7 @@ public:
 	@param registerSpace The register space for the root descriptor parameter. Defaulted to 0.	
 	@return void
 	*/
-	void AddRootConstants(UINT shaderRegister, UINT num32BitValues, 
+	void addRootConstants(UINT shaderRegister, UINT num32BitValues, 
 		D3D12_SHADER_VISIBILITY shaderVisability = D3D12_SHADER_VISIBILITY_ALL, UINT registerSpace = 0)
 	{
 		const D3D12_ROOT_CONSTANTS constants{ shaderRegister, registerSpace, num32BitValues };

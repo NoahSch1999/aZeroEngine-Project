@@ -22,23 +22,23 @@ void Texture2DCache::LoadResource(ID3D12Device* device, GraphicsContextHandle& c
 	Texture& tempResource = *resources.GetObjectByKey(id);
 
 	TextureSettings settings;
-	settings.createReadback = false;
-	settings.flags = D3D12_RESOURCE_FLAG_NONE;
-	settings.bytesPerTexel = loadedData.channels;
-	settings.height = loadedData.height;
-	settings.width = loadedData.width;
-	settings.initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	settings.srvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	settings.clearValue.Color[0] = 0;
-	settings.clearValue.Color[1] = 0;
-	settings.clearValue.Color[2] = 0;
-	settings.clearValue.Color[3] = 0;
-	settings.uploadSettings.discardUpload = true;
-	settings.uploadSettings.initialData = loadedData.rawData;
+	/*settings.m_createReadback = false;*/
+	settings.m_flags = D3D12_RESOURCE_FLAG_NONE;
+	settings.m_bytesPerTexel = loadedData.channels;
+	settings.m_height = loadedData.height;
+	settings.m_width = loadedData.width;
+	settings.m_initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	settings.m_srvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	settings.m_clearValue.Color[0] = 0;
+	settings.m_clearValue.Color[1] = 0;
+	settings.m_clearValue.Color[2] = 0;
+	settings.m_clearValue.Color[3] = 0;
+	settings.m_uploadSettings.m_discardUpload = true;
+	settings.m_uploadSettings.m_initialData = loadedData.rawData;
 
-	tempResource = std::move(Texture(device, context.GetList(), settings, descriptorManager, m_trashcan));
+	tempResource = std::move(Texture(device, context.getList(), settings, descriptorManager, m_trashcan));
 
-	heapIndexToStr.emplace(tempResource.GetSRVHandle().GetHeapIndex(), name);
+	heapIndexToStr.emplace(tempResource.getSRVHandle().getHeapIndex(), name);
 }
 
 void Texture2DCache::RemoveResource(const std::string& _key)
@@ -46,7 +46,7 @@ void Texture2DCache::RemoveResource(const std::string& _key)
 	if (resources.Exists(_key))
 	{
 		int id = resources.GetID(_key);
-		heapIndexToStr.erase(resources.GetObjectByKey(id)->GetSRVHandle().GetHeapIndex());
+		heapIndexToStr.erase(resources.GetObjectByKey(id)->getSRVHandle().getHeapIndex());
 		resources.Remove(id);
 	}
 }
@@ -55,7 +55,7 @@ void Texture2DCache::RemoveResource(int _key)
 {
 	if (resources.Exists(_key))
 	{
-		heapIndexToStr.erase(resources.GetObjectByKey(_key)->GetSRVHandle().GetHeapIndex());
+		heapIndexToStr.erase(resources.GetObjectByKey(_key)->getSRVHandle().getHeapIndex());
 		resources.Remove(_key);
 	}
 }
@@ -72,7 +72,7 @@ int Texture2DCache::GetTextureHeapID(const std::string& _key)
 {
 	Texture* text = resources.GetObjectByKey(_key);
 	if (text)
-		return text->GetSRVHandle().GetHeapIndex();
+		return text->getSRVHandle().getHeapIndex();
 
 	return -1;
 }
@@ -81,7 +81,7 @@ int Texture2DCache::GetTextureHeapID(int _key)
 {
 	Texture* text = resources.GetObjectByKey(_key);
 	if (text)
-		return text->GetSRVHandle().GetHeapIndex();
+		return text->getSRVHandle().getHeapIndex();
 
 	return -1;
 }

@@ -1,22 +1,22 @@
 #include "CommandContext.h"
-#include <assert.h>
-void CommandContext::StartRecording(ID3D12PipelineState* resetPSO)
+
+void CommandContext::startRecording(ID3D12PipelineState* resetPSO)
 {
 	m_dirty = true;
 	static_cast<ID3D12GraphicsCommandList*>(m_commandList.Get())->Reset(m_allocator.Get(), resetPSO);
 }
 
-void CommandContext::StopRecording()
+void CommandContext::stopRecording()
 {
 	static_cast<ID3D12GraphicsCommandList*>(m_commandList.Get())->Close();
 }
 
-bool CommandContext::HasRecorded()
+bool CommandContext::hasRecorded()
 {
 	return m_dirty;
 }
 
-void CommandContext::Reset()
+void CommandContext::reset()
 {
 	m_dirty = false;
 	m_allocator.Get()->Reset();

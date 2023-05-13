@@ -10,23 +10,22 @@
 
 struct TextureUploadSettings
 {
-	bool discardUpload = true;
-	void* initialData = nullptr;
+	bool m_discardUpload = true;
+	void* m_initialData = nullptr;
 };
 
 struct TextureSettings
 {
-	DXGI_FORMAT srvFormat = DXGI_FORMAT_FORCE_UINT;
-	DXGI_FORMAT rtvFormat = DXGI_FORMAT_FORCE_UINT;
-	DXGI_FORMAT dsvFormat = DXGI_FORMAT_FORCE_UINT;
-	UINT height = 0;
-	UINT width = 0;
-	UINT bytesPerTexel = 0;
-	bool createReadback = false;
-	D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON;
-	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-	D3D12_CLEAR_VALUE clearValue;
-	TextureUploadSettings uploadSettings;
+	DXGI_FORMAT m_srvFormat = DXGI_FORMAT_FORCE_UINT;
+	DXGI_FORMAT m_rtvFormat = DXGI_FORMAT_FORCE_UINT;
+	DXGI_FORMAT m_dsvFormat = DXGI_FORMAT_FORCE_UINT;
+	UINT m_height = 0;
+	UINT m_width = 0;
+	UINT m_bytesPerTexel = 0;
+	D3D12_RESOURCE_STATES m_initialState = D3D12_RESOURCE_STATE_COMMON;
+	D3D12_RESOURCE_FLAGS m_flags = D3D12_RESOURCE_FLAG_NONE;
+	D3D12_CLEAR_VALUE m_clearValue;
+	TextureUploadSettings m_uploadSettings;
 };
 
 class Texture
@@ -36,59 +35,58 @@ class Texture
 	friend class GraphicsContextHandle;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D12Resource> gpuOnlyResource = nullptr;
-	D3D12_RESOURCE_STATES gpuOnlyResourceState = D3D12_RESOURCE_STATE_COMMON;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_gpuOnlyResource = nullptr;
+	D3D12_RESOURCE_STATES m_gpuOnlyResourceState = D3D12_RESOURCE_STATE_COMMON;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> uploadResource = nullptr;
-	D3D12_RESOURCE_STATES uploadResourceState = D3D12_RESOURCE_STATE_COMMON;
-	void* mappedBuffer = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadResource = nullptr;
+	D3D12_RESOURCE_STATES m_uploadResourceState = D3D12_RESOURCE_STATE_COMMON;
+	void* m_mappedBuffer = nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> readbackResource = nullptr;
-	void* readbackMappedPtr = nullptr;
-	UINT rowPitch = 0;
+	UINT m_rowPitch = 0;
 
-	DescriptorHandle handleSRV;
-	DescriptorHandle handleRTVDSV;
+	DescriptorHandle m_handleSRV;
+	DescriptorHandle m_handleRTVDSV;
+	DescriptorHandle m_handleUAV;
 
-	TextureSettings settings;
+	TextureSettings m_settings;
 
-	DescriptorManager* descriptorManager = nullptr;
-	ResourceTrashcan* trashcan = nullptr;
+	DescriptorManager* m_descriptorManager = nullptr;
+	ResourceTrashcan* m_trashcan = nullptr;
 
 public:
-	ID3D12Resource* GetGPUOnlyResource() { return gpuOnlyResource.Get(); }
+	ID3D12Resource* getGPUOnlyResource() { return m_gpuOnlyResource.Get(); }
 
-	ID3D12Resource* GetUploadResource() { return uploadResource.Get(); }
+	ID3D12Resource* getUploadResource() { return m_uploadResource.Get(); }
 
-	ID3D12Resource* GetReadbackResource() { return readbackResource.Get(); }
-	void* GetReadbackPtr() const { return readbackMappedPtr; }
+	DescriptorHandle& getSRVHandle() { return m_handleSRV; }
+	DescriptorHandle& getRTVDSVHandle() { return m_handleRTVDSV; }
+	DescriptorHandle& getUAVHandle() { return m_handleUAV; }
+	DXGI_FORMAT getSRVFormat() const { return m_settings.m_srvFormat; }
+	DXGI_FORMAT getRTVFormat() const { return m_settings.m_rtvFormat; }
+	DXGI_FORMAT getDSVFormat() const { return m_settings.m_dsvFormat; }
 
-	DescriptorHandle& GetSRVHandle() { return handleSRV; }
-	DescriptorHandle& GetRTVDSVHandle() { return handleRTVDSV; }
-	DXGI_FORMAT GetSRVFormat() const { return settings.srvFormat; }
-	DXGI_FORMAT GetRTVFormat() const { return settings.rtvFormat; }
-	DXGI_FORMAT GetDSVFormat() const { return settings.dsvFormat; }
+	DXM::Vector2 getDimensions() const { return DXM::Vector2(m_settings.m_width, m_settings.m_height); }
+	UINT getBytesPerTexel() const { return m_settings.m_bytesPerTexel; }
+	UINT getPaddedRowPitch() const { return m_rowPitch; }
 
-	Vector2 GetDimensions() const { return Vector2(settings.width, settings.height); }
-	UINT GetBytesPerTexel() const { return settings.bytesPerTexel; }
-	UINT GetRowPitch() const { return rowPitch; }
+	void setResourceState(D3D12_RESOURCE_STATES newState) { m_gpuOnlyResourceState = newState; }
 
-	void SetResourceState(D3D12_RESOURCE_STATES _newState) { gpuOnlyResourceState = _newState; }
+	void initUAV(ID3D12Device* device, DXGI_FORMAT format);
 
 public:
 	Texture() = default;
 	Texture(const Texture&) = delete;
 	Texture& operator=(const Texture&) = delete;
 
-	Texture(ID3D12Device* _device, ID3D12GraphicsCommandList* _commandList, const TextureSettings& _settings,
-		DescriptorManager& _descriptorManager, ResourceTrashcan& _trashcan);
+	Texture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const TextureSettings& settings,
+		DescriptorManager& descriptorManager, ResourceTrashcan& trashcan);
 		
 	~Texture();
 
-	Texture(Texture&& _other) noexcept;
+	Texture(Texture&& other) noexcept;
 
-	Texture& operator=(Texture&& _other) noexcept;
+	Texture& operator=(Texture&& other) noexcept;
 
-	void Transition(ID3D12GraphicsCommandList* _commandList, D3D12_RESOURCE_STATES _newState);
+	void transition(ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES newState);
 
 };

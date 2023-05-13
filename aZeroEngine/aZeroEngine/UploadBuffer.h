@@ -1,4 +1,5 @@
 #pragma once
+#undef GetObject
 #include "ResourceTrashcan.h"
 #include "HelperFunctions.h"
 
@@ -75,11 +76,11 @@ public:
 
 		if (m_settings.m_numSubresources == 1)
 		{
-			this->Update(commandList, initSettings.m_initialData);
+			this->update(commandList, initSettings.m_initialData);
 		}
 		else
 		{
-			this->Update(commandList, frameIndex, initSettings.m_initialData);
+			this->update(commandList, frameIndex, initSettings.m_initialData);
 		}
 
 		if (initSettings.m_discardUpload)
@@ -104,24 +105,24 @@ public:
 		}
 	}
 
-	UploadBuffer(UploadBuffer&& _other) noexcept
+	UploadBuffer(UploadBuffer&& other) noexcept
 	{
-		m_gpuOnlyResource = _other.m_gpuOnlyResource;
-		m_uploadResource = _other.m_uploadResource;
-		m_mappedBuffer = _other.m_mappedBuffer;
-		m_virtualAddress = _other.m_virtualAddress;
-		m_sizePerSubresource = _other.m_sizePerSubresource;
-		m_trashcan = _other.m_trashcan;
-		m_settings = _other.m_settings;
+		m_gpuOnlyResource = other.m_gpuOnlyResource;
+		m_uploadResource = other.m_uploadResource;
+		m_mappedBuffer = other.m_mappedBuffer;
+		m_virtualAddress = other.m_virtualAddress;
+		m_sizePerSubresource = other.m_sizePerSubresource;
+		m_trashcan = other.m_trashcan;
+		m_settings = other.m_settings;
 
-		_other.m_gpuOnlyResource = nullptr;
-		_other.m_uploadResource = nullptr;
-		_other.m_mappedBuffer = nullptr;
+		other.m_gpuOnlyResource = nullptr;
+		other.m_uploadResource = nullptr;
+		other.m_mappedBuffer = nullptr;
 	}
 
-	UploadBuffer& operator=(UploadBuffer&& _other) noexcept
+	UploadBuffer& operator=(UploadBuffer&& other) noexcept
 	{
-		if (this != &_other)
+		if (this != &other)
 		{
 			if (m_gpuOnlyResource)
 			{
@@ -134,24 +135,24 @@ public:
 				m_trashcan->resources.push_back(m_uploadResource);
 			}
 
-			m_gpuOnlyResource = _other.m_gpuOnlyResource;
-			m_uploadResource = _other.m_uploadResource;
-			m_mappedBuffer = _other.m_mappedBuffer;
-			m_virtualAddress = _other.m_virtualAddress;
-			m_sizePerSubresource = _other.m_sizePerSubresource;
-			m_trashcan = _other.m_trashcan;
-			m_settings = _other.m_settings;
+			m_gpuOnlyResource = other.m_gpuOnlyResource;
+			m_uploadResource = other.m_uploadResource;
+			m_mappedBuffer = other.m_mappedBuffer;
+			m_virtualAddress = other.m_virtualAddress;
+			m_sizePerSubresource = other.m_sizePerSubresource;
+			m_trashcan = other.m_trashcan;
+			m_settings = other.m_settings;
 
-			_other.m_gpuOnlyResource = nullptr;
-			_other.m_uploadResource = nullptr;
-			_other.m_mappedBuffer = nullptr;
+			other.m_gpuOnlyResource = nullptr;
+			other.m_uploadResource = nullptr;
+			other.m_mappedBuffer = nullptr;
 		}
 
 		return *this;
 	}
 
 	// For singular subresource buffer
-	void Update(ID3D12GraphicsCommandList* commandList, T& data, UINT elementIndex)
+	void update(ID3D12GraphicsCommandList* commandList, T& data, UINT elementIndex)
 	{
 		UINT64 offset = (sizeof(T) * elementIndex);
 		memcpy((char*)m_mappedBuffer + offset, (char*)&data, m_sizePerSubresource);
@@ -159,14 +160,14 @@ public:
 	}
 
 	// For singular subresource buffer
-	void Update(ID3D12GraphicsCommandList* commandList, void* data)
+	void update(ID3D12GraphicsCommandList* commandList, void* data)
 	{
 		memcpy(reinterpret_cast<char*>(m_mappedBuffer), data, m_sizePerSubresource);
 		commandList->CopyBufferRegion(m_gpuOnlyResource.Get(), 0, m_uploadResource.Get(), 0, m_sizePerSubresource);
 	}
 
 	// For buffer with multiple subresources based on frames in flight
-	void Update(ID3D12GraphicsCommandList* commandList, UINT frameIndex, T& data, UINT elementIndex)
+	void update(ID3D12GraphicsCommandList* commandList, UINT frameIndex, T& data, UINT elementIndex)
 	{
 		UINT64 offset = (m_sizePerSubresource * frameIndex) + (sizeof(T) * elementIndex);
 		memcpy((char*)m_mappedBuffer + offset, (char*)&data, m_sizePerSubresource);
@@ -175,12 +176,12 @@ public:
 
 	// TO-FIX sizePerSubresource might exceed the data that _data is pointer to which might cause UB
 	// For buffer with multiple subresources based on frames in flight
-	void Update(ID3D12GraphicsCommandList* commandList, UINT frameIndex, void* data)
+	void update(ID3D12GraphicsCommandList* commandList, UINT frameIndex, void* data)
 	{
 		UINT64 offset = m_sizePerSubresource * frameIndex;
 		memcpy(reinterpret_cast<char*>(m_mappedBuffer) + offset, data, m_sizePerSubresource);
 		commandList->CopyBufferRegion(m_gpuOnlyResource.Get(), 0, m_uploadResource.Get(), offset, m_sizePerSubresource);
 	}
 
-	D3D12_GPU_VIRTUAL_ADDRESS GetVirtualAddress() const { return m_virtualAddress; }
+	D3D12_GPU_VIRTUAL_ADDRESS getVirtualAddress() const { return m_virtualAddress; }
 };

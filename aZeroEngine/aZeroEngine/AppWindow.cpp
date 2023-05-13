@@ -14,18 +14,18 @@ bool AppWindow::Update()
 	return true;
 }
 
-Vector2 AppWindow::GetClientSize()
+DXM::Vector2 AppWindow::GetClientSize()
 {
 	RECT size;
 	GetClientRect(handle, &size);
-	return Vector2((float)(size.right - size.left), (float)(size.bottom - size.top));
+	return DXM::Vector2((float)(size.right - size.left), (float)(size.bottom - size.top));
 }
 
-Vector2 AppWindow::GetWindowSize()
+DXM::Vector2 AppWindow::GetWindowSize()
 {
 	RECT size;
 	GetClientRect(handle, &size);
-	return Vector2((float)(size.right - size.left), (float)(size.bottom - size.top));
+	return DXM::Vector2((float)(size.right - size.left), (float)(size.bottom - size.top));
 }
 
 LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
@@ -58,7 +58,7 @@ LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 		{
 			if (ScreenToClient(_hWnd, &point))
 			{
-				InputManager::OnMouseBtnPressed(Vector2(point.x, point.y), MOUSEBTN::LEFT);
+				InputManager::OnMouseBtnPressed(DXM::Vector2(point.x, point.y), MOUSEBTN::LEFT);
 			}
 		}
 		break;
@@ -70,7 +70,7 @@ LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 		{
 			if (ScreenToClient(_hWnd, &point))
 			{
-				InputManager::OnMouseBtnReleased(Vector2(point.x, point.y), MOUSEBTN::LEFT);
+				InputManager::OnMouseBtnReleased(DXM::Vector2(point.x, point.y), MOUSEBTN::LEFT);
 			}
 		}
 		break;
@@ -82,7 +82,7 @@ LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 		{
 			if (ScreenToClient(_hWnd, &point))
 			{
-				InputManager::OnMouseBtnPressed(Vector2(point.x, point.y), MOUSEBTN::RIGHT);
+				InputManager::OnMouseBtnPressed(DXM::Vector2(point.x, point.y), MOUSEBTN::RIGHT);
 			}
 		}
 		break;
@@ -94,7 +94,7 @@ LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 		{
 			if (ScreenToClient(_hWnd, &point))
 			{
-				InputManager::OnMouseBtnReleased(Vector2(point.x, point.y), MOUSEBTN::RIGHT);
+				InputManager::OnMouseBtnReleased(DXM::Vector2(point.x, point.y), MOUSEBTN::RIGHT);
 			}
 		}
 		break;

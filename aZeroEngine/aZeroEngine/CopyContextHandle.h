@@ -12,7 +12,7 @@ class CopyContextHandle
 private:
 	CommandManager* m_manager = nullptr;
 	std::shared_ptr<CommandContext> m_context = nullptr;
-	void SetLastFence(UINT64 lastFence) { m_context->m_lastSignal = lastFence; }
+	void setLastFence(UINT64 lastFence) { m_context->m_lastSignal = lastFence; }
 
 public:
 	CopyContextHandle() = delete;
@@ -29,7 +29,7 @@ public:
 	/**Returns the internal CommandList object.
 	@return CommandList&
 	*/
-	ID3D12GraphicsCommandList* GetList() { return static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()); }
+	ID3D12GraphicsCommandList* getList() { return static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()); }
 
 	// -------------------------------------------------------------------------------------------------------------------
 	// WRAPPER METHODS
@@ -40,7 +40,7 @@ public:
 	@param heaps A pointer to an array of DescriptorHeap objects
 	@return void
 	*/
-	void SetDescriptorHeaps(UINT numHeaps, ID3D12DescriptorHeap* const* heaps)
+	void setDescriptorHeaps(UINT numHeaps, ID3D12DescriptorHeap* const* heaps)
 	{
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetDescriptorHeaps(numHeaps, heaps);
 	}
@@ -49,7 +49,7 @@ public:
 	@param 
 	@return
 	*/
-	void UpdateSubresource(ID3D12Resource* const dest, ID3D12Resource* const src, UINT64 srcOffset, 
+	void updateSubresource(ID3D12Resource* const dest, ID3D12Resource* const src, UINT64 srcOffset, 
 		UINT64 rowPitch, UINT64 slicePitch, const void* const data)
 	{
 		D3D12_SUBRESOURCE_DATA sData = {};
@@ -63,7 +63,7 @@ public:
 	@param
 	@return
 	*/
-	void CopyBufferRegion(ID3D12Resource* const destBuffer, UINT64 destOffset, ID3D12Resource* const srcBuffer, UINT64 srcOffset, UINT64 numBytes)
+	void copyBufferRegion(ID3D12Resource* const destBuffer, UINT64 destOffset, ID3D12Resource* const srcBuffer, UINT64 srcOffset, UINT64 numBytes)
 	{
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->CopyBufferRegion(destBuffer, destOffset, srcBuffer, srcOffset, numBytes);
 	}

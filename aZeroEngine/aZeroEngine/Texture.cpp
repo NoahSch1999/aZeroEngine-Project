@@ -1,195 +1,192 @@
 #include "Texture.h"
 #include "HelperFunctions.h"
 
-Texture::Texture(ID3D12Device* _device, ID3D12GraphicsCommandList* _commandList, const TextureSettings& _settings,
-	DescriptorManager& _descriptorManager, ResourceTrashcan& _trashcan)
-	:settings(_settings), descriptorManager(&_descriptorManager), trashcan(&_trashcan)
+Texture::Texture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const TextureSettings& settings,
+	DescriptorManager& descriptorManager, ResourceTrashcan& trashcan)
+	:m_settings(settings), m_descriptorManager(&descriptorManager), m_trashcan(&trashcan)
 {
-	if (settings.flags == D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+	m_rowPitch = ((m_settings.m_width * m_settings.m_bytesPerTexel + 128) / 256) * 256;
+
+	if (m_settings.m_flags == D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
 	{
-		gpuOnlyResource = Helper::CreateTextureResource(_device, settings.width, settings.height,
-			settings.dsvFormat, settings.flags, settings.initialState, &settings.clearValue);
+		m_gpuOnlyResource = Helper::CreateTextureResource(device, m_settings.m_width, m_settings.m_height,
+			m_settings.m_dsvFormat, m_settings.m_flags, m_settings.m_initialState, &m_settings.m_clearValue);
 	}
-	else if (settings.flags == D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+	else if (m_settings.m_flags == D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
 	{
-		gpuOnlyResource = Helper::CreateTextureResource(_device, settings.width, settings.height,
-			settings.rtvFormat, settings.flags, settings.initialState, &settings.clearValue);
+		m_gpuOnlyResource = Helper::CreateTextureResource(device, m_settings.m_width, m_settings.m_height,
+			m_settings.m_rtvFormat, m_settings.m_flags, m_settings.m_initialState, &m_settings.m_clearValue);
 	}
-	else if (settings.flags == D3D12_RESOURCE_FLAG_NONE)
+	else if (m_settings.m_flags == (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS))
 	{
-		gpuOnlyResource = Helper::CreateTextureResource(_device, settings.width, settings.height,
-			settings.srvFormat, settings.flags, D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
+		m_gpuOnlyResource = Helper::CreateTextureResource(device, m_settings.m_width, m_settings.m_height,
+			m_settings.m_rtvFormat, m_settings.m_flags, m_settings.m_initialState, &m_settings.m_clearValue);
+	}
+	else if (m_settings.m_flags == D3D12_RESOURCE_FLAG_NONE)
+	{
+		m_gpuOnlyResource = Helper::CreateTextureResource(device, m_settings.m_width, m_settings.m_height,
+			m_settings.m_srvFormat, m_settings.m_flags, D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
 	}
 	else
 		throw;
 
-	if (settings.srvFormat != -1)
+	if (m_settings.m_srvFormat != -1)
 	{
-		handleSRV = descriptorManager->GetResourceDescriptor();
-		Helper::CreateSRVHandle(_device, gpuOnlyResource, handleSRV.GetCPUHandle(), settings.srvFormat);
+		m_handleSRV = m_descriptorManager->getResourceDescriptor();
+		Helper::CreateSRVHandle(device, m_gpuOnlyResource, m_handleSRV.getCPUHandle(), m_settings.m_srvFormat);
 	}
 
-	if (settings.rtvFormat != -1)
+	if (m_settings.m_rtvFormat != -1)
 	{
-		handleRTVDSV = descriptorManager->GetRTVDescriptor();
-		Helper::CreateRTVHandle(_device, gpuOnlyResource, handleRTVDSV.GetCPUHandle(), settings.rtvFormat);
+		m_handleRTVDSV = m_descriptorManager->getRTVDescriptor();
+		Helper::CreateRTVHandle(device, m_gpuOnlyResource, m_handleRTVDSV.getCPUHandle(), m_settings.m_rtvFormat);
 	}
-	else if (settings.dsvFormat != -1)
+	else if (m_settings.m_dsvFormat != -1)
 	{
-		handleRTVDSV = descriptorManager->GetDSVDescriptor();
-		Helper::CreateDSVHandle(_device, gpuOnlyResource, handleRTVDSV.GetCPUHandle(), settings.dsvFormat);
+		m_handleRTVDSV = m_descriptorManager->getDSVDescriptor();
+		Helper::CreateDSVHandle(device, m_gpuOnlyResource, m_handleRTVDSV.getCPUHandle(), m_settings.m_dsvFormat);
 	}
 
-	if (settings.uploadSettings.initialData)
+	if (m_settings.m_uploadSettings.m_initialData)
 	{
-		uploadResource = Helper::CreateUploadResource(_device, settings.width, settings.height, settings.srvFormat, settings.flags, D3D12_RESOURCE_STATE_COPY_SOURCE);
-		uploadResourceState = D3D12_RESOURCE_STATE_COPY_SOURCE;
+		m_uploadResource = Helper::CreateUploadResource(device, m_settings.m_width, m_settings.m_height, m_settings.m_srvFormat, 
+			m_settings.m_flags, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		m_uploadResourceState = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
 		D3D12_SUBRESOURCE_DATA sData = {};
-		sData.pData = settings.uploadSettings.initialData;
-		sData.RowPitch = settings.width * settings.bytesPerTexel;
-		sData.SlicePitch = settings.width * settings.bytesPerTexel * settings.height;
+		sData.pData = m_settings.m_uploadSettings.m_initialData;
+		sData.RowPitch = m_settings.m_width * m_settings.m_bytesPerTexel;
+		sData.SlicePitch = m_settings.m_width * m_settings.m_bytesPerTexel * m_settings.m_height;
 
-		UpdateSubresources(_commandList, gpuOnlyResource.Get(), uploadResource.Get(), 0, 0, 1, &sData);
+		UpdateSubresources(commandList, m_gpuOnlyResource.Get(), m_uploadResource.Get(), 0, 0, 1, &sData);
 
-		if (settings.uploadSettings.discardUpload)
+		if (m_settings.m_uploadSettings.m_discardUpload)
 		{
-			trashcan->resources.push_back(uploadResource);
-			uploadResource = nullptr;
+			m_trashcan->resources.push_back(m_uploadResource);
+			m_uploadResource = nullptr;
 		}
 		else
 		{
-			uploadResource->Map(0, NULL, reinterpret_cast<void**>(&mappedBuffer));
+			m_uploadResource->Map(0, NULL, reinterpret_cast<void**>(&m_mappedBuffer));
 		}
 	}
 
-	if (settings.createReadback)
+	if (m_settings.m_flags == D3D12_RESOURCE_FLAG_NONE)
 	{
-		rowPitch = ((settings.width * settings.bytesPerTexel + 128) / 256) * 256;
-		readbackResource = Helper::CreateReadbackBuffer(_device, rowPitch, settings.height);
-		readbackResource->Map(0, nullptr, reinterpret_cast<void**>(&readbackMappedPtr));
-	}
-
-	if (settings.flags == D3D12_RESOURCE_FLAG_NONE)
-	{
-		gpuOnlyResourceState = D3D12_RESOURCE_STATE_COPY_DEST;
-		Transition(_commandList, settings.initialState);
+		m_gpuOnlyResourceState = D3D12_RESOURCE_STATE_COPY_DEST;
+		transition(commandList, m_settings.m_initialState);
 	}
 	else
 	{
-		gpuOnlyResourceState = settings.initialState;
+		m_gpuOnlyResourceState = m_settings.m_initialState;
 	}
 }
 
 Texture::~Texture()
 {
-	if (gpuOnlyResource)
+	if (m_gpuOnlyResource)
 	{
-		if (handleSRV.GetHeapIndex() != -1)
-			descriptorManager->FreeResourceDescriptor(handleSRV);
+		if (m_handleSRV.getHeapIndex() != -1)
+			m_descriptorManager->freeResourceDescriptor(m_handleSRV);
 
-		if (settings.rtvFormat != -1)
+		if (m_settings.m_rtvFormat != -1)
 		{
-			descriptorManager->FreeRTVDescriptor(handleRTVDSV);
+			m_descriptorManager->freeRTVDescriptor(m_handleRTVDSV);
 		}
-		else if (settings.dsvFormat != -1)
+		else if (m_settings.m_dsvFormat != -1)
 		{
-			descriptorManager->FreeDSVDescriptor(handleRTVDSV);
+			m_descriptorManager->freeDSVDescriptor(m_handleRTVDSV);
 		}
-		trashcan->resources.push_back(gpuOnlyResource);
+
+		if (m_handleUAV.getHeapIndex() != -1)
+		{
+			m_descriptorManager->freeResourceDescriptor(m_handleUAV);
+		}
+
+		m_trashcan->resources.push_back(m_gpuOnlyResource);
 	}
 
-	if (uploadResource)
+	if (m_uploadResource)
 	{
-		uploadResource->Unmap(0, NULL);
-		trashcan->resources.push_back(uploadResource);
-	}
-
-	if (readbackResource)
-	{
-		readbackResource->Unmap(0, NULL);
-		trashcan->resources.push_back(readbackResource);
+		m_uploadResource->Unmap(0, NULL);
+		m_trashcan->resources.push_back(m_uploadResource);
 	}
 }
 
-Texture::Texture(Texture&& _other) noexcept
+Texture::Texture(Texture&& other) noexcept
 {
-	gpuOnlyResource = _other.gpuOnlyResource;
-	uploadResource = _other.uploadResource;
-	readbackResource = _other.readbackResource;
-	handleSRV = _other.handleSRV;
-	handleRTVDSV = _other.handleRTVDSV;
-	descriptorManager = _other.descriptorManager;
-	gpuOnlyResourceState = _other.gpuOnlyResourceState;
-	uploadResourceState = _other.uploadResourceState;
-	mappedBuffer = _other.mappedBuffer;
-	readbackMappedPtr = _other.readbackMappedPtr;
-	trashcan = _other.trashcan;
-	settings = _other.settings;
-	rowPitch = _other.rowPitch;
+	m_gpuOnlyResource = other.m_gpuOnlyResource;
+	m_uploadResource = other.m_uploadResource;
+	m_handleSRV = other.m_handleSRV;
+	m_handleRTVDSV = other.m_handleRTVDSV;
+	m_handleUAV = other.m_handleUAV;
+	m_descriptorManager = other.m_descriptorManager;
+	m_gpuOnlyResourceState = other.m_gpuOnlyResourceState;
+	m_uploadResourceState = other.m_uploadResourceState;
+	m_mappedBuffer = other.m_mappedBuffer;
+	m_trashcan = other.m_trashcan;
+	m_settings = other.m_settings;
+	m_rowPitch = other.m_rowPitch;
 
-	_other.gpuOnlyResource = nullptr;
-	_other.uploadResource = nullptr;
-	_other.readbackResource = nullptr;
+	other.m_gpuOnlyResource = nullptr;
+	other.m_uploadResource = nullptr;
 }
 
-Texture& Texture::operator=(Texture&& _other) noexcept
+Texture& Texture::operator=(Texture&& other) noexcept
 {
-	if (this != &_other)
+	if (this != &other)
 	{
-		if (gpuOnlyResource)
+		if (m_gpuOnlyResource)
 		{
-			if (handleSRV.GetHeapIndex() != -1)
-				descriptorManager->FreeResourceDescriptor(handleSRV);
+			if (m_handleSRV.getHeapIndex() != -1)
+				m_descriptorManager->freeResourceDescriptor(m_handleSRV);
 
-			if (settings.rtvFormat != -1)
+			if (m_settings.m_rtvFormat != -1)
 			{
-				descriptorManager->FreeRTVDescriptor(handleRTVDSV);
+				m_descriptorManager->freeRTVDescriptor(m_handleRTVDSV);
 			}
-			else if (settings.dsvFormat != -1)
+			else if (m_settings.m_dsvFormat != -1)
 			{
-				descriptorManager->FreeDSVDescriptor(handleRTVDSV);
+				m_descriptorManager->freeDSVDescriptor(m_handleRTVDSV);
 			}
-			trashcan->resources.push_back(gpuOnlyResource);
+			m_trashcan->resources.push_back(m_gpuOnlyResource);
 		}
 
-		if (uploadResource)
+		if (m_uploadResource)
 		{
-			uploadResource->Unmap(0, NULL);
-			trashcan->resources.push_back(uploadResource);
+			m_uploadResource->Unmap(0, NULL);
+			m_trashcan->resources.push_back(m_uploadResource);
 		}
 
-		if (readbackResource)
-		{
-			readbackResource->Unmap(0, NULL);
-			trashcan->resources.push_back(readbackResource);
-		}
+		m_gpuOnlyResource = other.m_gpuOnlyResource;
+		m_uploadResource = other.m_uploadResource;
+		m_handleSRV = other.m_handleSRV;
+		m_handleRTVDSV = other.m_handleRTVDSV;
+		m_handleUAV = other.m_handleUAV;
+		m_descriptorManager = other.m_descriptorManager;
+		m_gpuOnlyResourceState = other.m_gpuOnlyResourceState;
+		m_uploadResourceState = other.m_uploadResourceState;
+		m_mappedBuffer = other.m_mappedBuffer;
+		m_trashcan = other.m_trashcan;
+		m_settings = other.m_settings;
+		m_rowPitch = other.m_rowPitch;
 
-		gpuOnlyResource = _other.gpuOnlyResource;
-		uploadResource = _other.uploadResource;
-		readbackResource = _other.readbackResource;
-		handleSRV = _other.handleSRV;
-		handleRTVDSV = _other.handleRTVDSV;
-		descriptorManager = _other.descriptorManager;
-		gpuOnlyResourceState = _other.gpuOnlyResourceState;
-		uploadResourceState = _other.uploadResourceState;
-		mappedBuffer = _other.mappedBuffer;
-		readbackMappedPtr = _other.readbackMappedPtr;
-		trashcan = _other.trashcan;
-		settings = _other.settings;
-		rowPitch = _other.rowPitch;
-
-		_other.gpuOnlyResource = nullptr;
-		_other.uploadResource = nullptr;
-		_other.readbackResource = nullptr;
+		other.m_gpuOnlyResource = nullptr;
+		other.m_uploadResource = nullptr;
 	}
 
 	return *this;
 }
 
-void Texture::Transition(ID3D12GraphicsCommandList* _commandList, D3D12_RESOURCE_STATES _newState)
+void Texture::transition(ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES newState)
 {
-	D3D12_RESOURCE_BARRIER barrier(CD3DX12_RESOURCE_BARRIER::Transition(gpuOnlyResource.Get(), gpuOnlyResourceState, _newState));
-	_commandList->ResourceBarrier(1, &barrier);
-	gpuOnlyResourceState = _newState;
+	D3D12_RESOURCE_BARRIER barrier(CD3DX12_RESOURCE_BARRIER::Transition(m_gpuOnlyResource.Get(), m_gpuOnlyResourceState, newState));
+	commandList->ResourceBarrier(1, &barrier);
+	m_gpuOnlyResourceState = newState;
+}
+
+void Texture::initUAV(ID3D12Device* device, DXGI_FORMAT format)
+{
+	m_handleUAV = m_descriptorManager->getResourceDescriptor();
+	Helper::createUAVHandle(device, m_gpuOnlyResource.Get(), m_handleUAV.getCPUHandle(), format);
 }

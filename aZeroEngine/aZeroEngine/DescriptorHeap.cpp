@@ -1,69 +1,69 @@
 #include "DescriptorHeap.h"
 
-DescriptorHeap::DescriptorHeap(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS _flags)
+DescriptorHeap::DescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int maxDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
 {
-	Init(_device, _type, _maxDescriptors, _flags);
+	init(device, type, maxDescriptors, flags);
 }
 
-void DescriptorHeap::Init(ID3D12Device* _device, D3D12_DESCRIPTOR_HEAP_TYPE _type, int _maxDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS _flags)
+void DescriptorHeap::init(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, int maxDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC desc;
-	desc.NumDescriptors = _maxDescriptors;
-	desc.Type = _type;
-	desc.Flags = _flags;
+	desc.NumDescriptors = maxDescriptors;
+	desc.Type = type;
+	desc.Flags = flags;
 	desc.NodeMask = 0;
 
-	HRESULT hr = _device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(heap.GetAddressOf()));
+	HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_heap.GetAddressOf()));
 	if (FAILED(hr))
 		throw;
 
-	handle.SetHandle(heap->GetCPUDescriptorHandleForHeapStart());
+	m_handle.setHandle(m_heap->GetCPUDescriptorHandleForHeapStart());
 
-	type = _type;
-	maxDescriptors = _maxDescriptors;
-	descriptorSize = _device->GetDescriptorHandleIncrementSize(_type);
+	m_type = type;
+	m_maxDescriptors = maxDescriptors;
+	m_descriptorSize = device->GetDescriptorHandleIncrementSize(type);
 
-	descriptorList.Init(_maxDescriptors);
+	m_descriptorList.init(maxDescriptors);
 
-	if (_flags == D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+	if (flags == D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
 	{
-		handle.SetHandle(heap->GetGPUDescriptorHandleForHeapStart());
-		isShaderVisible = true;
+		m_handle.setHandle(m_heap->GetGPUDescriptorHandleForHeapStart());
+		m_isShaderVisible = true;
 	}
 }
 
-DescriptorHandle DescriptorHeap::GetDescriptorHandle()
+DescriptorHandle DescriptorHeap::getDescriptorHandle()
 {
-	int index = descriptorList.LendKey();
-	D3D12_CPU_DESCRIPTOR_HANDLE startCPUHandle = handle.GetCPUHandle();
-	D3D12_GPU_DESCRIPTOR_HANDLE startGPUHandle = handle.GetGPUHandle();
-	startCPUHandle.ptr += index * descriptorSize;
+	int index = m_descriptorList.lendKey();
+	D3D12_CPU_DESCRIPTOR_HANDLE startCPUHandle = m_handle.getCPUHandle();
+	D3D12_GPU_DESCRIPTOR_HANDLE startGPUHandle = m_handle.getGPUHandle();
+	startCPUHandle.ptr += index * m_descriptorSize;
 
 	DescriptorHandle newHandle(startCPUHandle, index);
 
-	if (isShaderVisible)
+	if (m_isShaderVisible)
 	{
-		startGPUHandle.ptr += index * descriptorSize;
-		newHandle.SetHandle(startGPUHandle);
+		startGPUHandle.ptr += index * m_descriptorSize;
+		newHandle.setHandle(startGPUHandle);
 	}
 
 	return newHandle;
 }
 
-std::vector<DescriptorHandle> DescriptorHeap::GetDescriptorHandles(int _numHandles)
+std::vector<DescriptorHandle> DescriptorHeap::getDescriptorHandles(int numHandles)
 {
-	std::vector<DescriptorHandle>handles(_numHandles);
-	for (int i = 0; i < _numHandles; i++)
+	std::vector<DescriptorHandle>handles(numHandles);
+	for (int i = 0; i < numHandles; i++)
 	{
-		handles[i] = GetDescriptorHandle();
+		handles[i] = getDescriptorHandle();
 	}
 
 	return handles;
 }
 
-void DescriptorHeap::FreeDescriptorHandle(DescriptorHandle& _handle)
+void DescriptorHeap::freeDescriptorHandle(DescriptorHandle& handle)
 {
-	int temp = _handle.GetHeapIndex();
-	descriptorList.ReturnKey(temp);
-	_handle.SetHeapIndex(temp);
+	int temp = handle.getHeapIndex();
+	m_descriptorList.returnKey(temp);
+	handle.setHeapIndex(temp);
 }

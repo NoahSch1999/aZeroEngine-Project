@@ -36,7 +36,7 @@ namespace Helper
 
 	void GetWindowDimensions(UINT* _width, UINT* _height);
 
-	void Print(Vector3 _vec);
+	void Print(DXM::Vector3 _vec);
 
 	void CreateCommitedResourceStatic(ID3D12Device* _device, ID3D12Resource*& _mainResource, const D3D12_RESOURCE_DESC& _rDesc, 
 		ID3D12Resource*& _interResource,  const D3D12_RESOURCE_DESC& _uDesc,
@@ -106,6 +106,8 @@ namespace Helper
 	void CreateDSVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
 
 	void CreateSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+
+	void createUAVHandle(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format);
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* _device,
 		UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState,

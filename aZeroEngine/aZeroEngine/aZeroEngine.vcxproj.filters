@@ -5,316 +5,382 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="D3D12 Core">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="D3D12 Core\Command Handling">
-      <UniqueIdentifier>{8eb92d3c-b7a3-4845-98bc-aec97aeb1462}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="D3D12 Core\Descriptor Handling">
-      <UniqueIdentifier>{a368e836-a482-4825-ac74-9b831dbef00d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="D3D12 Core\Pipeline Functionality">
-      <UniqueIdentifier>{cc818853-e756-432b-ab19-3dc15cd30148}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="D3D12 Core\Resources">
-      <UniqueIdentifier>{2730c2a2-f4b9-4e15-a0d5-880d6b32acbc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Engine Core">
       <UniqueIdentifier>{008dab9f-1237-4b0b-a3d9-2a7c1dbfcd46}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{9babefa8-e750-4f74-8836-fc377ada768b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Random">
-      <UniqueIdentifier>{cc9c5012-9a7e-4510-8bb7-98bebbd4a36f}</UniqueIdentifier>
+    <Filter Include="D3D12 Wrapping">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="D3D12 Core\Shader Materials">
-      <UniqueIdentifier>{a244e172-1715-473f-8319-59cf4e43d9f1}</UniqueIdentifier>
+    <Filter Include="D3D12 Wrapping\Command Handling">
+      <UniqueIdentifier>{8eb92d3c-b7a3-4845-98bc-aec97aeb1462}</UniqueIdentifier>
     </Filter>
-    <Filter Include="D3D12 Core\Resource Management">
+    <Filter Include="D3D12 Wrapping\Descriptor Handling">
+      <UniqueIdentifier>{a368e836-a482-4825-ac74-9b831dbef00d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core\Resource Management">
       <UniqueIdentifier>{fb2d9368-a1c5-447f-880f-c7c1a7719e55}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ImGui">
+    <Filter Include="D3D12 Wrapping\Resources">
+      <UniqueIdentifier>{2730c2a2-f4b9-4e15-a0d5-880d6b32acbc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="D3D12 Wrapping\Additional Wrappers">
+      <UniqueIdentifier>{cc818853-e756-432b-ab19-3dc15cd30148}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{616779a3-9c9e-4b1c-ad58-52f5576c91cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core\Material Management">
+      <UniqueIdentifier>{a244e172-1715-473f-8319-59cf4e43d9f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core\App Base">
+      <UniqueIdentifier>{c8de645e-2904-4a7c-9f07-204db2b25290}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers and Data structures">
+      <UniqueIdentifier>{5dc3aa1a-182d-4cbd-932f-62043333e915}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies">
+      <UniqueIdentifier>{e65c635c-d293-468a-a808-f4e80e4b2190}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\ImGui">
       <UniqueIdentifier>{ab7cb659-243a-4944-8463-3cac9304a831}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core\Light Management">
+      <UniqueIdentifier>{deab33f7-d5b8-4e6b-8811-bdea5a9748ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core\Scene Management">
+      <UniqueIdentifier>{8e5a22ca-5316-41da-824a-f404882d4e44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems">
+      <UniqueIdentifier>{8cabcdfc-ba85-48a2-9660-e230a8e9752b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine Core\ECS">
+      <UniqueIdentifier>{eba07634-f92d-4bde-b97c-f3497b9e28da}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CommandAllocator.cpp">
-      <Filter>D3D12 Core\Command Handling</Filter>
-    </ClCompile>
     <ClCompile Include="CommandQueue.cpp">
-      <Filter>D3D12 Core\Command Handling</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandList.cpp">
-      <Filter>D3D12 Core\Command Handling</Filter>
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
     </ClCompile>
     <ClCompile Include="PipelineState.cpp">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClCompile>
     <ClCompile Include="RootSignature.cpp">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClCompile>
     <ClCompile Include="ShaderDescriptorHeap.cpp">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClCompile>
     <ClCompile Include="SwapChain.cpp">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderTarget.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="DepthStencil.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="VertexBuffer.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture2D.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Application.cpp">
-      <Filter>Engine Core</Filter>
-    </ClCompile>
-    <ClCompile Include="AppWindow.cpp">
-      <Filter>Engine Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics.cpp">
-      <Filter>Engine Core</Filter>
-    </ClCompile>
-    <ClCompile Include="HelperFunctions.cpp">
-      <Filter>Random</Filter>
-    </ClCompile>
-    <ClCompile Include="stbiHack.cpp">
-      <Filter>Random</Filter>
-    </ClCompile>
-    <ClCompile Include="ConstantBuffer.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Sampler.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene.cpp">
-      <Filter>Engine Core</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClCompile>
     <ClCompile Include="Texture2DCache.cpp">
-      <Filter>D3D12 Core\Resource Management</Filter>
+      <Filter>Engine Core\Resource Management</Filter>
     </ClCompile>
-    <ClCompile Include="VertexBufferCache.cpp">
-      <Filter>D3D12 Core\Resource Management</Filter>
+    <ClCompile Include="ModelCache.cpp">
+      <Filter>Engine Core\Resource Management</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImGui\imgui.cpp">
-      <Filter>ImGui</Filter>
+    <ClCompile Include="MaterialManager.cpp">
+      <Filter>Engine Core\Material Management</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImGui\imgui_demo.cpp">
-      <Filter>ImGui</Filter>
+    <ClCompile Include="Sampler.cpp">
+      <Filter>D3D12 Wrapping\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImGui\imgui_draw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ImGui\backends\imgui_impl_dx12.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ImGui\backends\imgui_impl_win32.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ImGui\imgui_tables.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ImGui\imgui_widgets.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="UserInterface.cpp">
-      <Filter>Engine Core</Filter>
-    </ClCompile>
-    <ClCompile Include="StructuredBuffer.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PhongMaterial.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="BaseResource.cpp">
-      <Filter>D3D12 Core\Resources</Filter>
+    <ClCompile Include="DescriptorManager.cpp">
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClCompile>
     <ClCompile Include="RenderSystem.cpp">
-      <Filter>Engine Core</Filter>
+      <Filter>Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="UserInterface.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp">
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="HiddenDescriptorHeap.cpp">
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="AppWindow.cpp">
+      <Filter>Engine Core\App Base</Filter>
+    </ClCompile>
+    <ClCompile Include="HelperFunctions.cpp">
+      <Filter>Helpers and Data structures</Filter>
+    </ClCompile>
+    <ClCompile Include="stbiHack.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Engine Core\Scene Management</Filter>
+    </ClCompile>
+    <ClCompile Include="InputHandler.cpp">
+      <Filter>Helpers and Data structures</Filter>
+    </ClCompile>
+    <ClCompile Include="LevelEditorUI.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="PBRMaterial.cpp">
+      <Filter>Engine Core\Material Management</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui.cpp">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_demo.cpp">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_draw.cpp">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_tables.cpp">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\imgui_widgets.cpp">
+      <Filter>Dependencies\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="..\ImGui\ImGuizmo.cpp">
-      <Filter>ImGui</Filter>
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\backends\imgui_impl_dx12.cpp">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ImGui\backends\imgui_impl_win32.cpp">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandManager.cpp">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandContext.cpp">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelAsset.cpp">
+      <Filter>D3D12 Wrapping\Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CommandAllocator.h">
-      <Filter>D3D12 Core\Command Handling</Filter>
-    </ClInclude>
     <ClInclude Include="CommandQueue.h">
-      <Filter>D3D12 Core\Command Handling</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandList.h">
-      <Filter>D3D12 Core\Command Handling</Filter>
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorHandle.h">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClInclude>
     <ClInclude Include="PipelineState.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="RootSignature.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="RootParameter.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="InputLayout.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="RasterState.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="SwapChain.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
-    </ClInclude>
-    <ClInclude Include="BaseResource.h">
-      <Filter>D3D12 Core\Resources</Filter>
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="ShaderDescriptorHeap.h">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderTarget.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="DepthStencil.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="VertexBuffer.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture2D.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Application.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="AppWindow.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="VertexDefinitions.h">
-      <Filter>D3D12 Core\Pipeline Functionality</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="D3D12Include.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\directx\d3dx12.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="HelperFunctions.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="stb_image.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="stbiHack.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="ConstantBuffer.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Sampler.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Timer.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>Random</Filter>
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClInclude>
     <ClInclude Include="HiddenDescriptorHeap.h">
-      <Filter>D3D12 Core\Descriptor Handling</Filter>
-    </ClInclude>
-    <ClInclude Include="ECSBase.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="PhongMaterial.h">
-      <Filter>D3D12 Core\Shader Materials</Filter>
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClInclude>
     <ClInclude Include="MaterialManager.h">
-      <Filter>D3D12 Core\Shader Materials</Filter>
+      <Filter>Engine Core\Material Management</Filter>
     </ClInclude>
     <ClInclude Include="Texture2DCache.h">
-      <Filter>D3D12 Core\Resource Management</Filter>
+      <Filter>Engine Core\Resource Management</Filter>
     </ClInclude>
-    <ClInclude Include="VertexBufferCache.h">
-      <Filter>D3D12 Core\Resource Management</Filter>
+    <ClInclude Include="ModelCache.h">
+      <Filter>Engine Core\Resource Management</Filter>
     </ClInclude>
     <ClInclude Include="ResourceCache.h">
-      <Filter>D3D12 Core\Resource Management</Filter>
-    </ClInclude>
-    <ClInclude Include="UserInterface.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\imconfig.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\imgui.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\backends\imgui_impl_dx12.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\backends\imgui_impl_win32.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\imgui_internal.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\imstb_rectpack.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\imstb_textedit.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ImGui\imstb_truetype.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceManager.h">
-      <Filter>Engine Core</Filter>
-    </ClInclude>
-    <ClInclude Include="FreeList.h">
-      <Filter>Random</Filter>
-    </ClInclude>
-    <ClInclude Include="MappedVector.h">
-      <Filter>Random</Filter>
+      <Filter>Engine Core\Resource Management</Filter>
     </ClInclude>
     <ClInclude Include="Material.h">
-      <Filter>D3D12 Core\Shader Materials</Filter>
+      <Filter>Engine Core\Material Management</Filter>
     </ClInclude>
-    <ClInclude Include="Light.h">
-      <Filter>Random</Filter>
+    <ClInclude Include="PBRMaterial.h">
+      <Filter>Engine Core\Material Management</Filter>
     </ClInclude>
-    <ClInclude Include="StructuredBuffer.h">
-      <Filter>D3D12 Core\Resources</Filter>
+    <ClInclude Include="DescriptorHeap.h">
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="Sampler.h">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorManager.h">
+      <Filter>D3D12 Wrapping\Descriptor Handling</Filter>
     </ClInclude>
     <ClInclude Include="RenderSystem.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="UserInterface.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="AppWindow.h">
+      <Filter>Engine Core\App Base</Filter>
+    </ClInclude>
+    <ClInclude Include="ECSBase.h">
+      <Filter>Engine Core\App Base</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Include.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="HelperFunctions.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\directx\d3dx12.h">
+      <Filter>Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="LightManager.h">
+      <Filter>Engine Core\Light Management</Filter>
+    </ClInclude>
+    <ClInclude Include="StructuredList.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="UniqueIntList.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="stbiHack.h">
+      <Filter>Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Engine Core\Scene Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexDefinitions.h">
       <Filter>Engine Core</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="LightSystem.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="InputHandler.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Engine Core</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelEditorUI.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelEditor.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imconfig.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imgui.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imgui_internal.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
     <ClInclude Include="..\ImGui\ImGuizmo.h">
-      <Filter>ImGui</Filter>
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imstb_rectpack.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imstb_textedit.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\imstb_truetype.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\backends\imgui_impl_dx12.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ImGui\backends\imgui_impl_win32.h">
+      <Filter>Dependencies\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ParentSystem.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeHierarchy.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContext.h">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandManager.h">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsContextHandle.h">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="CopyContextHandle.h">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeContextHandle.h">
+      <Filter>D3D12 Wrapping\Command Handling</Filter>
+    </ClInclude>
+    <ClInclude Include="SelectionList.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="UploadBuffer.h">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceTrashcan.h">
+      <Filter>Helpers and Data structures</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelAsset.h">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="aZeroECS.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentManager.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="EntityManager.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="System.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemManager.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="MappedVector.h">
+      <Filter>Engine Core\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="ReadbackBuffer.h">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearAllocator.h">
+      <Filter>D3D12 Wrapping\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputePipelineState.h">
+      <Filter>D3D12 Wrapping\Additional Wrappers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -322,6 +388,36 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="VS_Basic.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VS_ShadowPass.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VS_MaterialPrev.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PS_MaterialPrev.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PS_PBR.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VS_PBR.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VS_Picking.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PS_Picking.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="VS_Outline.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PS_Outline.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="CS_FXOutline.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

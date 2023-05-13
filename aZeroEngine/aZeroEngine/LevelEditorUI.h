@@ -23,18 +23,19 @@ private:
 
 private:
 	void ShowPerformanceData();
+	void showApplicationInfo();
 
 	void SetupVisuals();
 
 	void ShowSceneWindow();
 	
 	void ShowEntityWindow();
-	void ShowEntityHierarchy(const Entity& _current);
+	void ShowEntityHierarchy(const aZeroECS::Entity& _current);
 
 	void ShowMaterialWindow();
 	void ShowResourceWindow();
 
-	void DrawEntityComponents(Entity& _entity);
+	void DrawEntityComponents(aZeroECS::Entity& _entity);
 	std::optional<std::string> LoadMeshFromDirectory();
 	std::optional<std::string> LoadPBRMaterialFromDirectory();
 

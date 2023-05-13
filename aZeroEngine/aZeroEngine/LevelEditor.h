@@ -36,6 +36,12 @@ public:
 		/*engine->GetResourceEngine().GetCopy();
 		ui->currentScene = engine->LoadScene("../scenes/", "NewScene");
 		engine->GetResourceEngine().ExecuteCopy();*/
+		{
+			GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
+			ui->currentScene = engine->LoadScene(context, "../scenes/", "Epic Scene");
+			engine->GetCommandManager().executeContext(context);
+			engine->GetCommandManager().flushCPU();
+		}
 
 		engine->GetRenderSystem().lock()->uiSelectionList = &ui->selectionList;
 
@@ -60,11 +66,11 @@ public:
 			{
 				if (camera->Active())
 				{
-					Vector2 clientDimensions = engine->GetClientWindowSize();
-					CopyContextHandle context = engine->GetCommandManager().GetCopyContext();
+					DXM::Vector2 clientDimensions = engine->GetClientWindowSize();
+					CopyContextHandle context = engine->GetCommandManager().getCopyContext();
 					camera->Update(timer.deltaTime, (float)clientDimensions.x / (float)clientDimensions.y, 
-						context.GetList(), engine->GetFrameIndex());
-					engine->GetCommandManager().ExecuteContext(context);
+						context.getList(), engine->GetFrameIndex());
+					engine->GetCommandManager().executeContext(context);
 				}
 			}
 
@@ -73,11 +79,11 @@ public:
 				camera.reset();
 				camera = std::make_shared<Camera>(engine->GetDevice(), engine->GetResourceTrashcan(), 0.4f * 3.14f, engine->GetWindowApsectRatio());
 				camera->GetPosition().z = -2.f;
-				Vector2 clientDimensions = engine->GetClientWindowSize();
+				DXM::Vector2 clientDimensions = engine->GetClientWindowSize();
 				{
-					CopyContextHandle context = engine->GetCommandManager().GetCopyContext();
-					camera->Update(context.GetList(), engine->GetFrameIndex(), (float)clientDimensions.x / (float)clientDimensions.y);
-					engine->GetCommandManager().ExecuteContext(context);
+					CopyContextHandle context = engine->GetCommandManager().getCopyContext();
+					camera->Update(context.getList(), engine->GetFrameIndex(), (float)clientDimensions.x / (float)clientDimensions.y);
+					engine->GetCommandManager().executeContext(context);
 				}
 				engine->SetCamera(camera);
 				ui->SetCamera(camera);

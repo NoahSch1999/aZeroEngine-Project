@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#undef GetObject
 #include <string>
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -43,21 +44,21 @@ public:
 
 	bool Update();
 
-	std::optional<Vector2> GetCursorPosition() {
+	std::optional<DXM::Vector2> GetCursorPosition() {
 		POINT point;
 		if (GetCursorPos(&point))
 		{
 			if (ScreenToClient(handle, &point))
 			{
-				return Vector2(point.x, point.y);
+				return DXM::Vector2(point.x, point.y);
 			}
 		}
 		return {};
 	}
 
-	Vector2 GetClientSize();
+	DXM::Vector2 GetClientSize();
 
-	Vector2 GetWindowSize();
+	DXM::Vector2 GetWindowSize();
 
 	uint32_t GetAspectRatio() { return GetClientSize().x / GetClientSize().y; }
 

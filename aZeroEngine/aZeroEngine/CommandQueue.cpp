@@ -1,6 +1,6 @@
 #include "CommandQueue.h"
 
-void CommandQueue::Init(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY prio = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+void CommandQueue::init(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY prio = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 	D3D12_COMMAND_QUEUE_FLAGS flags = D3D12_COMMAND_QUEUE_FLAG_NONE)
 {
 	m_type = type;
@@ -16,7 +16,7 @@ void CommandQueue::Init(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, D3D1
 		throw;
 }
 
-UINT64 CommandQueue::Execute(ID3D12CommandList* commandLists, UINT numLists)
+UINT64 CommandQueue::execute(ID3D12CommandList* commandLists, UINT numLists)
 {
 	m_queue->ExecuteCommandLists(numLists, &commandLists);
 
@@ -26,7 +26,7 @@ UINT64 CommandQueue::Execute(ID3D12CommandList* commandLists, UINT numLists)
 	return m_nextFenceValue++; // Postincrements the value. This means that the nextFenceValue that is returned equals nextFenceValue without ++.
 }
 
-UINT64 CommandQueue::Execute(ID3D12CommandList* commandList)
+UINT64 CommandQueue::execute(ID3D12CommandList* commandList)
 {
 	ID3D12CommandList* commandLists = { commandList };
 	m_queue->ExecuteCommandLists(1, &commandLists);
@@ -38,7 +38,7 @@ UINT64 CommandQueue::Execute(ID3D12CommandList* commandList)
 }
 
 // Waits for the signaled value returned from CommandQueue::Execute()
-void CommandQueue::StallCPU(UINT64 valueToWaitFor)
+void CommandQueue::stallCPU(UINT64 valueToWaitFor)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	// Get last fence value reached 
@@ -59,19 +59,19 @@ void CommandQueue::StallCPU(UINT64 valueToWaitFor)
 	return;
 }
 
-void CommandQueue::WaitForOther(CommandQueue& other, UINT64 valueToWaitFor)
+void CommandQueue::waitForOther(CommandQueue& other, UINT64 valueToWaitFor)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_queue->Wait(other.m_fence.Get(), valueToWaitFor);
 }
 
-void CommandQueue::WaitForFence(UINT64 valueToWaitFor)
+void CommandQueue::waitForFence(UINT64 valueToWaitFor)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_queue->Wait(m_fence.Get(), valueToWaitFor);
 }
 
-UINT64 CommandQueue::GetLastSignalValue()
+UINT64 CommandQueue::getLastSignalValue()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_lastFenceValue;

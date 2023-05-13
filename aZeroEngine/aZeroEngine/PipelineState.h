@@ -33,7 +33,7 @@ public:
 	@param primitiveType Primitive topology type to be used.
 	@return void
 	*/
-	void Init(ID3D12Device* device, RootSignature* rootSignature, const InputLayout& inputLayout, const RasterState& rasterState, 
+	void init(ID3D12Device* device, RootSignature* rootSignature, const InputLayout& inputLayout, const RasterState& rasterState, 
 		UINT numRenderTargets, DXGI_FORMAT* const rtvFormats, DXGI_FORMAT dsvFormat, const std::wstring& vsPath, const std::wstring& psPath,
 		const std::wstring& dsPath, const std::wstring& hsPath, const std::wstring& gsPath, bool enableBlending = true,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
@@ -41,6 +41,6 @@ public:
 	/** @brief Returns a pointer to the internal ID3D12PipelineState* object.
 	@return ID3D12PipelineState*
 	*/
-	ID3D12PipelineState* GetPipelineState() { return m_pipelineState.Get(); }
+	ID3D12PipelineState* getPipelineState() { return m_pipelineState.Get(); }
 };
 

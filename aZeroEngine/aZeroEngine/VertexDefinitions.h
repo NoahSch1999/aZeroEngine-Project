@@ -1,11 +1,11 @@
 #pragma once
 #include "DirectToolKit/Inc/SimpleMath.h"
-using namespace DirectX::SimpleMath;
+namespace DXM = DirectX::SimpleMath;
 
 struct BasicVertex
 {
-	Vector3 position;
-	Vector2 uv;
-	Vector3 normal;
-	Vector3 tangent;
+	DXM::Vector3 position;
+	DXM::Vector2 uv;
+	DXM::Vector3 normal;
+	DXM::Vector3 tangent;
 };

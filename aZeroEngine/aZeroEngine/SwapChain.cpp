@@ -34,24 +34,26 @@ SwapChain::SwapChain(ID3D12Device* device, CommandQueue& commandQueue, Descripto
 	fullScreenDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
 	fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 
-	if(FAILED(m_dxgiFactory->CreateSwapChainForHwnd(commandQueue.GetQueue(), windowHandle, &scDesc, nullptr, 0, &m_swapChain)))
+	if(FAILED(m_dxgiFactory->CreateSwapChainForHwnd(commandQueue.getQueue(), windowHandle, &scDesc, nullptr, 0, &m_swapChain)))
 		throw;
 
-	std::vector<DescriptorHandle> bbHandles = descriptorManager.GetRTVDescriptor(m_numBackBuffers);
+	std::vector<DescriptorHandle> bbHandles = descriptorManager.getRTVDescriptor(m_numBackBuffers);
 	for (int i = 0; i < m_numBackBuffers; i++)
 	{
 		m_backBuffers[i] = std::make_unique<Texture>();
-		m_backBuffers[i]->trashcan = &trashCan;
+		m_backBuffers[i]->m_trashcan = &trashCan;
+		m_backBuffers[i]->m_descriptorManager = &descriptorManager;
 
-		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i]->gpuOnlyResource));
+		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i]->m_gpuOnlyResource));
 
-		m_backBuffers[i]->handleRTVDSV = bbHandles[i];
-		device->CreateRenderTargetView(m_backBuffers[i]->gpuOnlyResource.Get(), NULL, m_backBuffers[i]->handleRTVDSV.GetCPUHandle());
+		m_backBuffers[i]->m_handleRTVDSV = bbHandles[i];
+		m_backBuffers[i]->setResourceState(D3D12_RESOURCE_STATE_COMMON);
+		device->CreateRenderTargetView(m_backBuffers[i]->m_gpuOnlyResource.Get(), NULL, m_backBuffers[i]->m_handleRTVDSV.getCPUHandle());
 
 #ifdef _DEBUG
 		const std::string name("Back Buffer " + std::to_string(i));
 		const std::wstring wName(name.begin(), name.end());
-		m_backBuffers[i]->gpuOnlyResource->SetName(wName.c_str());
+		m_backBuffers[i]->m_gpuOnlyResource->SetName(wName.c_str());
 #endif // DEBUG
 	}
 

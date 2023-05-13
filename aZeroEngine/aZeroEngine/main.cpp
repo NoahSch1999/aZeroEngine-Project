@@ -1,7 +1,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "pch.h"
-#pragma comment(lib, "dinput8.lib")
+//#define NOMINMAX
 #include <iostream>
+#include "reactphysics3d/reactphysics3d.h"
 #include "LevelEditor.h"
 
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 608; }
@@ -25,49 +25,26 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int s
 	DXGIGetDebugInterface1(0, IID_PPV_ARGS(&idxgiDebug));
 #endif // DEBUG
 
+	reactphysics3d::PhysicsCommon common;
+	reactphysics3d::PhysicsWorld* world = common.createPhysicsWorld();
 	{
 		/*
-		* Go through files and:
-		*	this-> for memb funcs
-		*	m_ for memb vars
-		*	no c-style casts
-		*	For linear alloc, resource caches, material, tree hierch, command stuff:
-		*		-> document it
-		* Fix crash at light update
-		* Separate readback from texture
+		* Check issue with crash when loading scene
+		* Update compute and graphics contexts with compute methods
+		* Improve commandmanager waiting stuff
+		* Copy less with picking
 		* 
 		Coding style:
 			m_ for member vars
-			this-> for member funcs called within member funcs
+			this-> for methods called within methods
 			no c-style casts
-
-		Go through and change:
-			m_ for member vars
-
-			no _ for params
-
-			this-> for member funcs within member funcs
-
-			const correctness
-
-			no c-style casts
-
-		Implementation:
-
-			Make so that materials are loaded per scene so scenes dont share materials
-
-			Make paths relative so it works for both exe and vs launch
-
-			Automate ecs reset/deletion/component-addition
+			functions and methods should be camelCase
 
 		Testing:
 			Check for data races etc (look at readback...)
 
 			Check if its a problem that descriptor is reset instantly on RemoveResource? maybe defer it until the resource is released...
-
-			Test so create and remove with descriptors works with all resources
-
-			Check for problems with move operators/constructors and slottedmap
+				Some other resource might take the descriptor and use it. Is that a problem?
 
 			Test Execute() multiple handles commandmanager
 

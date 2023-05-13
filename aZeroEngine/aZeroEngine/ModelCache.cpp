@@ -55,5 +55,5 @@ void ModelCache::LoadFromFBX(ID3D12Device* device, GraphicsContextHandle& contex
 	geoData.m_meshName = _name;
 	geoData.m_numIndices = fileData.indexData.size();
 
-	_vBuffer = std::move(ModelAsset(device, context.GetList(), frameIndex, m_trashcan, geoData, fileData));
+	_vBuffer = std::move(ModelAsset(device, context.getList(), frameIndex, m_trashcan, geoData, fileData));
 }

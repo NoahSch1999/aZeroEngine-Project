@@ -29,11 +29,11 @@ public:
 	/** @brief Returns the D3D12_RASTERIZER_DESC for the RasterState.
 	@return D3D12_RASTERIZER_DESC.
 	*/
-	D3D12_RASTERIZER_DESC GetDesc() const { return m_rasterDescription; }
+	D3D12_RASTERIZER_DESC getDesc() const { return m_rasterDescription; }
 
 	/** @brief Sets the D3D12_RASTERIZER_DESC for the RasterState.
 	@param desc D3D12_RASTERIZER_DESC object.
 	*/
-	void SetDesc(const D3D12_RASTERIZER_DESC& newDescription) { m_rasterDescription = newDescription; }
+	void setDesc(const D3D12_RASTERIZER_DESC& newDescription) { m_rasterDescription = newDescription; }
 
 };

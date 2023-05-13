@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "HelperFunctions.h"
 #include <fstream>
 #include "..\assimp\include\assimp\scene.h"
@@ -88,7 +87,7 @@ void Helper::GetWindowDimensions(UINT* _width, UINT* _height)
 	*_height = desktop.bottom;
 }
 
-void Helper::Print(Vector3 _vec)
+void Helper::Print(DXM::Vector3 _vec)
 {
 	printf("[%f] : [%f] : [%f]", _vec.x, _vec.y, _vec.z);
 }
@@ -174,13 +173,9 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateReadbackBuffer(ID3D12Device
 	D3D12_RESOURCE_DESC readbackBufferDesc{ CD3DX12_RESOURCE_DESC::Buffer(totalSize) };
 	Microsoft::WRL::ComPtr<ID3D12Resource> readbackBuffer;
 
-	_device->CreateCommittedResource(
-		&readbackHeapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&readbackBufferDesc,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(readbackBuffer.GetAddressOf()));
+	if (FAILED(_device->CreateCommittedResource(&readbackHeapProperties, D3D12_HEAP_FLAG_NONE, &readbackBufferDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(readbackBuffer.GetAddressOf()))))
+		throw;
 
 	return readbackBuffer;
 }
@@ -245,6 +240,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Devic
 
 	D3D12_HEAP_PROPERTIES properties = {};
 	properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	
 	if (_heapType == D3D12_HEAP_TYPE_UPLOAD)
 		properties.Type = D3D12_HEAP_TYPE_UPLOAD;
 
@@ -338,6 +334,15 @@ void Helper::CreateSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D1
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	_device->CreateShaderResourceView(_resource.Get(), &srvDesc, _cpuHandle);
+}
+
+void Helper::createUAVHandle(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format)
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = format;
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.Texture2D.MipSlice = 0;
+	device->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpuHandle);
 }
 
 Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Device* _device, UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState, D3D12_CLEAR_VALUE* _clearValue)

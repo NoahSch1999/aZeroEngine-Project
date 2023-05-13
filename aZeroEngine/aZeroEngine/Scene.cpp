@@ -2,7 +2,8 @@
 
 Scene::Scene(Scene&& _other) noexcept
 {
-	ecs = _other.ecs;
+	m_componentManager = _other.m_componentManager;
+	m_entityManager = _other.m_entityManager;
 	modelCache = _other.modelCache;
 	mManager = _other.mManager;
 	name = _other.name;
@@ -26,7 +27,7 @@ void Scene::ShutDown()
 		{
 			lSystem->RemoveLight(ent);
 
-			ecs->ObliterateEntity(ent);
+			m_entityManager->RemoveEntity(ent);
 		}
 	}
 
@@ -47,12 +48,12 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 	file.write((char*)&size, sizeof(int));
 	for (auto& entity : entities.GetObjects())
 	{
-		const std::string name = entityIdToName.at(entity.id);
+		const std::string name = entityIdToName.at(entity.m_id);
 		Helper::WriteToFile(file, name);
 
-		for (int i = 0; i < MAXCOMPONENTS; i++)
+		for (int i = 0; i < aZeroECS::MAXCOMPONENTS; i++)
 		{
-			if (entity.componentMask.test(i))
+			if (entity.m_componentMask.test(i))
 			{
 				file.write((char*)&yes, sizeof(bool));
 			}
@@ -62,23 +63,23 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 			}
 		}
 
-		Transform* tf = ecs->GetComponentManager().GetComponent<Transform>(entity);
-		file.write((char*)&tf->GetTranslation(), sizeof(Vector3));
-		file.write((char*)&tf->GetRotation(), sizeof(Vector3));
-		file.write((char*)&tf->GetScale(), sizeof(Vector3));
+		Transform* tf = m_componentManager->GetComponent<Transform>(entity);
+		file.write((char*)&tf->GetTranslation(), sizeof(DXM::Vector3));
+		file.write((char*)&tf->GetRotation(), sizeof(DXM::Vector3));
+		file.write((char*)&tf->GetScale(), sizeof(DXM::Vector3));
 
-		if (entity.componentMask.test(COMPONENTENUM::MESH))
+		if (m_componentManager->HasComponent<Mesh>(entity))
 		{
-			Mesh* mesh = ecs->GetComponentManager().GetComponent<Mesh>(entity);
-			std::string fileName = modelCache->GetResource(mesh->GetID())->GetMeshName();
+			Mesh* mesh = m_componentManager->GetComponent<Mesh>(entity);
+			std::string fileName = modelCache->GetResource(mesh->GetID())->getMeshName();
 			Helper::WriteToFile(file, fileName);
 			file.write((char*)&mesh->castShadows, sizeof(bool));
 			file.write((char*)&mesh->receiveShadows, sizeof(float));
 		}
 
-		if (entity.componentMask.test(COMPONENTENUM::MATERIAL))
+		if (m_componentManager->HasComponent<MaterialComponent>(entity))
 		{
-			MaterialComponent* matComp = ecs->GetComponentManager().GetComponent<MaterialComponent>(entity);
+			MaterialComponent* matComp = m_componentManager->GetComponent<MaterialComponent>(entity);
 
 			if (matComp->type == MATERIALTYPE::PBR)
 			{
@@ -99,15 +100,15 @@ void Scene::Save(const std::string& _fileDirectory, const std::string& _fileName
 			}
 		}
 
-		if (entity.componentMask.test(COMPONENTENUM::PLIGHT))
+		if (m_componentManager->HasComponent<PointLightComponent>(entity))
 		{
-			PointLight* light = lSystem->GetLightManager()->GetLight<PointLight>(ecs->GetComponentManager().GetComponent<PointLightComponent>(entity)->id);
+			PointLight* light = lSystem->GetLightManager()->GetLight<PointLight>(m_componentManager->GetComponent<PointLightComponent>(entity)->id);
 			file.write((char*)light, sizeof(PointLight));
 		}
 
-		if (entity.componentMask.test(COMPONENTENUM::DLIGHT))
+		if (m_componentManager->HasComponent<DirectionalLightComponent>(entity))
 		{
-			DirectionalLight* light = lSystem->GetLightManager()->GetLight<DirectionalLight>(ecs->GetComponentManager().GetComponent<DirectionalLightComponent>(entity)->id);
+			DirectionalLight* light = lSystem->GetLightManager()->GetLight<DirectionalLight>(m_componentManager->GetComponent<DirectionalLightComponent>(entity)->id);
 			file.write((char*)light, sizeof(DirectionalLight));
 		}
 	}
@@ -140,24 +141,24 @@ bool Scene::Load(ID3D12Device* device, GraphicsContextHandle& context, UINT fram
 		std::string entityName;
 		Helper::ReadFromFile(file, entityName);
 
-		std::bitset<MAXCOMPONENTS>tempSet;
-		for (int i = 0; i < MAXCOMPONENTS; i++)
+		std::bitset<aZeroECS::MAXCOMPONENTS>tempSet;
+		for (int i = 0; i < aZeroECS::MAXCOMPONENTS; i++)
 		{
 			bool tempBo = false;
 			file.read((char*)&tempBo, sizeof(bool));
 			tempSet.set(i, tempBo);
 		}
 
-		Entity& tempEnt = CreateEntity(entityName);
+		aZeroECS::Entity& tempEnt = CreateEntity(entityName);
 
-		Transform* tf = ecs->GetComponent<Transform>(tempEnt);
-		file.read((char*)&tf->GetTranslation(), sizeof(Vector3));
-		file.read((char*)&tf->GetRotation(), sizeof(Vector3));
-		file.read((char*)&tf->GetScale(), sizeof(Vector3));
+		Transform* tf = m_componentManager->GetComponent<Transform>(tempEnt);
+		file.read((char*)&tf->GetTranslation(), sizeof(DXM::Vector3));
+		file.read((char*)&tf->GetRotation(), sizeof(DXM::Vector3));
+		file.read((char*)&tf->GetScale(), sizeof(DXM::Vector3));
 
 		tf->SetWorldMatrix(tf->GetLocalMatrix());
 
-		if (tempSet.test(COMPONENTENUM::MESH))
+		if (tempSet.test(m_componentManager->GetComponentBit<Mesh>()))
 		{
 			std::string name;
 			Helper::ReadFromFile(file, name);
@@ -177,11 +178,10 @@ bool Scene::Load(ID3D12Device* device, GraphicsContextHandle& context, UINT fram
 			file.read((char*)&tempMesh.castShadows, sizeof(bool));
 			file.read((char*)&tempMesh.receiveShadows, sizeof(float));
 
-			ecs->RegisterComponent<Mesh>(tempEnt);
-			ecs->UpdateComponent<Mesh>(tempEnt, tempMesh);
+			m_componentManager->AddComponent<Mesh>(tempEnt, std::move(tempMesh));
 		}
 
-		if (tempSet.test(COMPONENTENUM::MATERIAL))
+		if (tempSet.test(m_componentManager->GetComponentBit<MaterialComponent>()))
 		{
 			MaterialComponent matComp;
 
@@ -203,99 +203,100 @@ bool Scene::Load(ID3D12Device* device, GraphicsContextHandle& context, UINT fram
 				}
 			}
 
-			ecs->RegisterComponent<MaterialComponent>(tempEnt);
-			ecs->UpdateComponent<MaterialComponent>(tempEnt, matComp);
+			m_componentManager->AddComponent<MaterialComponent>(tempEnt, std::move(matComp));
 		}
 
-		if (tempSet.test(COMPONENTENUM::PLIGHT))
+		if (tempSet.test(m_componentManager->GetComponentBit<PointLightComponent>()))
 		{
 			PointLight pLight;
 			file.read((char*)&pLight, sizeof(PointLight));
 
-			ecs->RegisterComponent<PointLightComponent>(tempEnt);
-			PointLightComponent* pComp = ecs->GetComponent<PointLightComponent>(tempEnt);
+			m_componentManager->AddComponent<PointLightComponent>(tempEnt);
+			PointLightComponent* pComp = m_componentManager->GetComponent<PointLightComponent>(tempEnt);
 			lSystem->GetLightManager()->UpdateLight(*pComp, pLight, frameIndex);
 		}
 
 		// TO REMOVE
-		if (tempSet.test(COMPONENTENUM::DLIGHT))
+		if (tempSet.test(m_componentManager->GetComponentBit<DirectionalLightComponent>()))
 		{
 			DirectionalLight dLight;
 			file.read((char*)&dLight, sizeof(DirectionalLight));
 		}
 
-		ecs->ForceUpdate(tempEnt); // Change so that the entities arent tried to get bound for each AddComponent and instead is only bound here.
+		//ecs->ForceUpdate(tempEnt); // Change so that the entities arent tried to get bound for each AddComponent and instead is only bound here.
 	}
-
+	aZeroECS::ComponentArray<MaterialComponent>& arr = m_componentManager->GetComponentArray<MaterialComponent>();
 	file.close();
 
 	return true;
 }
 
-std::optional<std::string> Scene::GetEntityName(Entity _entity) const
+std::optional<std::string> Scene::GetEntityName(aZeroECS::Entity _entity) const
 {
-	if (entityIdToName.count(_entity.id) > 0)
-		return entityIdToName.at(_entity.id);
+	if (entityIdToName.count(_entity.m_id) > 0)
+		return entityIdToName.at(_entity.m_id);
 	return {};
 }
 
-Entity& Scene::CreateEntity(const std::string& _name)
+aZeroECS::Entity& Scene::CreateEntity(const std::string& _name)
 {
-	Entity tempEnt = ecs->CreateEntity();
+	aZeroECS::Entity tempEnt = m_entityManager->CreateEntity();
 	const std::string name = CheckName(_name);
 
-	entities.Add(tempEnt.id, std::move(tempEnt));
-	entityIdToName.emplace(tempEnt.id, name);
-	entityNameToId.emplace(name, tempEnt.id);
+	entities.Add(tempEnt.m_id, std::move(tempEnt));
+	entityIdToName.emplace(tempEnt.m_id, name);
+	entityNameToId.emplace(name, tempEnt.m_id);
 
-	Entity* entity = entities.GetObjectByID(tempEnt.id);
+	aZeroECS::Entity* entity = entities.GetByID(tempEnt.m_id);
 	Transform tf;
 	AddComponentToEntity<Transform>(*entity, std::move(tf));
 
-	return *entities.GetObjectByID(tempEnt.id);
+	return *entities.GetByID(tempEnt.m_id);
 }
 
 void Scene::DeleteEntity(int _ID)
 {
-	if (!entities.Exists(_ID))
+	if (!entities.Contains(_ID))
 		return;
 
-	Entity& ent = GetEntity(_ID);
+	aZeroECS::Entity& ent = GetEntity(_ID);
 
-	PointLightComponent* pComp = ecs->GetComponentManager().GetComponent<PointLightComponent>(ent);
+	PointLightComponent* pComp = m_componentManager->GetComponent<PointLightComponent>(ent);
 	if (pComp)
 	{
 		lSystem->RemoveLight(ent);
 	}
 
-	entityNameToId.erase(entityIdToName.at(ent.id));
-	entityIdToName.erase(ent.id);
+	entityNameToId.erase(entityIdToName.at(ent.m_id));
+	entityIdToName.erase(ent.m_id);
 
-	ecs->ObliterateEntity(ent);
-	entities.Remove(_ID);
+	int id = ent.m_id;
+	m_entityManager->RemoveEntity(ent);
+	entities.Remove(id);
 }
 
 void Scene::DeleteEntity(const std::string& _name)
 {
-	if (entities.Exists(entityNameToId.count(_name) == 0))
+	if (entities.Contains(entityNameToId.count(_name) == 0))
 		return;
 
-	Entity& ent = GetEntity(_name);
+	aZeroECS::Entity& ent = GetEntity(_name);
 
-	PointLightComponent* pComp = ecs->GetComponentManager().GetComponent<PointLightComponent>(ent);
+	PointLightComponent* pComp = m_componentManager->GetComponent<PointLightComponent>(ent);
 	if (pComp)
 	{
 		lSystem->RemoveLight(ent);
 	}
 
 	entityNameToId.erase(_name);
-	entityIdToName.erase(ent.id);
+	entityIdToName.erase(ent.m_id);
 
-	ecs->ObliterateEntity(ent);
-	entities.Remove(ent.id);
+	int id = ent.m_id;
+	m_entityManager->RemoveEntity(ent);
+	entities.Remove(id);
 }
 
-void Scene::RenameEntity(const Entity& _entity, const std::string& _newName)
+void Scene::RenameEntity(const aZeroECS::Entity& _entity, const std::string& _newName)
 {
 	if (entityNameToId.count(_newName) > 0)
 		return;

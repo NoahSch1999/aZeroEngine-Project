@@ -20,11 +20,11 @@ private:
 	UploadBuffer<UINT> m_indexBuffer;
 
 public:
-	UINT GetNumVertices() const { return m_geometryData.m_numVertices; }
-	UINT GetNumIndices() const { return m_geometryData.m_numIndices; }
-	std::string GetMeshName() const { return m_geometryData.m_meshName; }
-	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView() const { return m_vertexBufferView; }
-	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView() const { return m_indexBufferView; }
+	UINT getNumVertices() const { return m_geometryData.m_numVertices; }
+	UINT getNumIndices() const { return m_geometryData.m_numIndices; }
+	std::string getMeshName() const { return m_geometryData.m_meshName; }
+	D3D12_VERTEX_BUFFER_VIEW getVertexBufferView() const { return m_vertexBufferView; }
+	D3D12_INDEX_BUFFER_VIEW getIndexBufferView() const { return m_indexBufferView; }
 
 public:
 	ModelAsset() = default;

@@ -25,6 +25,65 @@ void LevelEditorUI::ShowPerformanceData()
 	ImGui::End();
 }
 
+void LevelEditorUI::showApplicationInfo()
+{
+	ImGui::Begin("Application Info");
+
+	/*
+	num descriptors
+
+	*/
+	if (currentScene)
+	{
+		const std::string numEntities("Entity Count: " + std::to_string(currentScene->GetEntityVector().size()));
+		ImGui::Text(numEntities.c_str());
+	}
+
+	const std::string numTransformComponents("Transform Component Count: " + std::to_string(engine->GetComponentManager().GetComponentArray<Transform>().numComponents()));
+	ImGui::Text(numTransformComponents.c_str());
+
+	const std::string numMeshComponents("Mesh Component Count: " + std::to_string(engine->GetComponentManager().GetComponentArray<Mesh>().numComponents()));
+	ImGui::Text(numMeshComponents.c_str());
+
+	const std::string numMaterialComponents("Material Component Count: " + std::to_string(engine->GetComponentManager().GetComponentArray<MaterialComponent>().numComponents()));
+	ImGui::Text(numMaterialComponents.c_str());
+
+	const std::string numPointLightComponents("Point Light Component Count: " + std::to_string(engine->GetComponentManager().GetComponentArray<PointLightComponent>().numComponents()));
+	ImGui::Text(numPointLightComponents.c_str());
+	
+	const std::string numBoundToLight("Light System Entity Count: " + std::to_string(engine->GetLightSystem().lock()->numEntitiesBound()));
+	ImGui::Text(numBoundToLight.c_str());
+
+	std::shared_ptr<LightManager> lManager = engine->GetLightSystem().lock()->GetLightManager();
+	const std::string numInLightManager("Light Manager Num Lights: " + std::to_string(lManager->numLightsData.numPointLights) + " / " + std::to_string(lManager->pLightList.maxElements));
+	ImGui::Text(numInLightManager.c_str());
+
+	const std::string numTextures("Texture Count: " + std::to_string(engine->GetTexture2DCache().GetAllResources().size()));
+	ImGui::Text(numTextures.c_str());
+
+	const std::string numModels("Model Count: " + std::to_string(engine->GetModelCache().GetAllResources().size()));
+	ImGui::Text(numModels.c_str());
+
+	DescriptorManager& dManager = engine->GetDescriptorManager();
+	const std::string numResourceDescriptors("Resource Descriptors Used: " + std::to_string(dManager.getResourceShaderDescriptorHeap().getNumberOfUsedDescriptors()) + " / " + std::to_string(dManager.getResourceShaderDescriptorHeap().getMaxDescriptors()));
+	ImGui::Text(numResourceDescriptors.c_str());
+
+	const std::string numSamplerDescriptors("Sampler Descriptors Used: " + std::to_string(dManager.getSamplerShaderDescriptorHeap().getNumberOfUsedDescriptors()) + " / " + std::to_string(dManager.getSamplerShaderDescriptorHeap().getMaxDescriptors()));
+	ImGui::Text(numSamplerDescriptors.c_str());
+
+	const std::string numRTVDescriptors("RTV Descriptors Used: " + std::to_string(dManager.getRTVDescriptorHeap().getNumberOfUsedDescriptors()) + " / " + std::to_string(dManager.getRTVDescriptorHeap().getMaxDescriptors()));
+	ImGui::Text(numRTVDescriptors.c_str());
+
+	const std::string numDSVDescriptors("DSV Descriptors Used: " + std::to_string(dManager.getDSVDescriptorHeap().getNumberOfUsedDescriptors()) + " / " + std::to_string(dManager.getDSVDescriptorHeap().getMaxDescriptors()));
+	ImGui::Text(numDSVDescriptors.c_str());
+
+	MaterialManager& mManager = engine->GetMaterialManager();
+	const std::string numMaterials("Material Count: " + std::to_string(mManager.GetPBRMaterials().size()));
+	ImGui::Text(numMaterials.c_str());
+
+	ImGui::End();
+}
+
 void LevelEditorUI::SetupVisuals()
 {
 	ImVec4* colors = ImGui::GetStyle().Colors;
@@ -99,12 +158,12 @@ std::optional<std::string> LevelEditorUI::LoadMeshFromDirectory()
 		std::string::size_type const p(fbxNameWithExt.find_last_of('.'));
 		std::string fileNameWithoutExt = fbxNameWithExt.substr(0, p);
 
-		GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+		GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 
 		engine->GetModelCache().LoadResource(engine->GetDevice(), context, 
 			engine->GetFrameIndex(), fileNameWithoutExt, "..\\meshes\\");
 
-		engine->GetCommandManager().ExecuteContext(context);
+		engine->GetCommandManager().executeContext(context);
 		return fileNameWithoutExt;
 	}
 	return {};
@@ -119,12 +178,12 @@ std::optional<std::string> LevelEditorUI::LoadPBRMaterialFromDirectory()
 		std::string::size_type const p(matNameWithExt.find_last_of('.'));
 		std::string fileNameWithoutExt = matNameWithExt.substr(0, p);
 
-		GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+		GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 
 		engine->GetMaterialManager().LoadMaterial<PBRMaterial>(engine->GetDevice(), context,
 			engine->GetFrameIndex(), fileNameWithoutExt);
 
-		engine->GetCommandManager().ExecuteContext(context);
+		engine->GetCommandManager().executeContext(context);
 
 		return fileNameWithoutExt;
 	}
@@ -134,6 +193,9 @@ std::optional<std::string> LevelEditorUI::LoadPBRMaterialFromDirectory()
 void LevelEditorUI::Update()
 {
 	ShowPerformanceData();
+	showApplicationInfo();
+	//ImGui::ShowDemoWindow();
+
 	if (editorMode)
 	{
 		ShowSceneWindow();
@@ -144,7 +206,7 @@ void LevelEditorUI::Update()
 			{
 				if (!ImGuizmo::IsOver())
 				{
-					std::optional<Vector2> mousePos = engine->GetMouseWindowPosition();
+					std::optional<DXM::Vector2> mousePos = engine->GetMouseWindowPosition();
 					if (mousePos)
 					{
 						int pickingID = engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y);
@@ -181,14 +243,14 @@ void LevelEditorUI::Update()
 	}
 }
 
-void LevelEditorUI::DrawEntityComponents(Entity& _entity)
+void LevelEditorUI::DrawEntityComponents(aZeroECS::Entity& _entity)
 {
 	ImGui::ShowDemoWindow();
 
 	std::shared_ptr<Camera> cam = camera.lock();
 	Transform* tf = currentScene->GetComponentForEntity<Transform>(_entity);
 
-	Entity& rootEntity = currentScene->GetEntity(selectionList.GetRoot());
+	aZeroECS::Entity& rootEntity = currentScene->GetEntity(selectionList.GetRoot());
 	if (!editingPLight)
 	{
 		if (tf)
@@ -213,7 +275,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 				mCurrentGizmoOperation = ImGuizmo::SCALE;
 
 			ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
-			Matrix matrix = tf->GetWorldMatrix();
+			DXM::Matrix matrix = tf->GetWorldMatrix();
 
 			if (ImGuizmo::Manipulate(&cam->GetView()._11, &cam->GetProj()._11, mCurrentGizmoOperation, mCurrentGizmoMode, &matrix._11, NULL, 0))
 			{
@@ -221,21 +283,21 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 				if (parentID != -1)
 				{
-					Entity& parentEnt = currentScene->GetEntity(parentID);
+					aZeroECS::Entity& parentEnt = currentScene->GetEntity(parentID);
 
 					Transform* parentTF = currentScene->GetComponentForEntity<Transform>(parentEnt);
 					if (parentTF)
 					{
-						Matrix wParent = parentTF->GetWorldMatrix();
-						Matrix local = matrix * wParent.Invert();
-						Quaternion rotationDegQuat;
+						DXM::Matrix wParent = parentTF->GetWorldMatrix();
+						DXM::Matrix local = matrix * wParent.Invert();
+						DXM::Quaternion rotationDegQuat;
 						local.Decompose(tf->GetScale(), rotationDegQuat, tf->GetTranslation());
 						tf->GetRotation() = rotationDegQuat.ToEuler();
 					}
 				}
 				else
 				{
-					Quaternion rotationDegQuat;
+					DXM::Quaternion rotationDegQuat;
 					matrix.Decompose(tf->GetScale(), rotationDegQuat, tf->GetTranslation());
 					tf->GetRotation() = rotationDegQuat.ToEuler();
 				}
@@ -248,37 +310,46 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 	if (ImGui::Button("Add Component"))
 		ImGui::OpenPopup("CompPopup");
 
+	aZeroECS::ComponentManager& cManager = engine->GetComponentManager();
 	if (ImGui::BeginPopup("CompPopup"))
 	{
-		for (int i = 0; i < COMPONENTENUM::MAX - 1; i++)
+		for (auto [first, second] : cManager.GetBitFlagMap())
 		{
-			if (!_entity.componentMask[i])
+			if (!_entity.m_componentMask[second])
 			{
-				if (ImGui::Selectable(COMPONENTENUM::COMPONENTNAMES[i].c_str()))
+				const std::string componentNameType(first.name());
+				size_t lastSpaceIndex = componentNameType.find_last_of(" ");
+				const std::string componentName(componentNameType.substr(lastSpaceIndex + 1, componentNameType.length() - lastSpaceIndex));
+
+				if (ImGui::Selectable(componentName.c_str()))
 				{
-					std::cout << COMPONENTENUM::COMPONENTNAMES[i] << "\n";
-					COMPONENTENUM::COMPONENTBITID enumBit = (COMPONENTENUM::COMPONENTBITID)i;
-					switch (enumBit)
+					switch (second)
 					{
-					case COMPONENTENUM::TRANSFORM:
+					case 0:
 					{
 						Transform comp;
 						currentScene->AddComponentToEntity<Transform>(_entity, std::move(comp));
 						break;
 					}
-					case COMPONENTENUM::MESH:
+					case 1:
 					{
 						Mesh comp;
 						comp.SetID(engine->GetModelCache().GetID("defaultCube"));
 						currentScene->AddComponentToEntity<Mesh>(_entity, std::move(comp));
 
-						MaterialComponent compMat;
-						compMat.materialID = engine->GetMaterialManager().GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
-						compMat.type = MATERIALTYPE::PBR;
-						currentScene->AddComponentToEntity<MaterialComponent>(_entity, std::move(compMat));
+						aZeroECS::ComponentArray<MaterialComponent>& arr = engine->GetComponentManager().GetComponentArray<MaterialComponent>();
+
+						if (!engine->GetComponentManager().HasComponent<MaterialComponent>(_entity))
+						{
+							MaterialComponent compMat;
+							compMat.materialID = engine->GetMaterialManager().GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
+							compMat.type = MATERIALTYPE::PBR;
+							currentScene->AddComponentToEntity<MaterialComponent>(_entity, std::move(compMat));
+						}
+						
 						break;
 					}
-					case COMPONENTENUM::MATERIAL:
+					case 2:
 					{
 						MaterialComponent comp;
 						comp.materialID = engine->GetMaterialManager().GetReferenceID<PBRMaterial>("DefaultPBRMaterial");
@@ -286,7 +357,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 						currentScene->AddComponentToEntity<MaterialComponent>(_entity, std::move(comp));
 						break;
 					}
-					case COMPONENTENUM::PLIGHT:
+					case 3:
 					{
 						PointLightComponent comp;
 						currentScene->AddComponentToEntity<PointLightComponent>(_entity, std::move(comp));
@@ -302,30 +373,32 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 	if (ImGui::TreeNode("Components"))
 	{
-		for (int i = 0; i < COMPONENTENUM::MAX - 1; i++)
+		for (auto [first, second] : cManager.GetBitFlagMap())
 		{
-			if (_entity.componentMask[i])
+			if (_entity.m_componentMask[second])
 			{
-				if (ImGui::TreeNode((void*)(intptr_t)i, COMPONENTENUM::COMPONENTNAMES[i].c_str()))
-				{
-					COMPONENTENUM::COMPONENTBITID enumBit = (COMPONENTENUM::COMPONENTBITID)i;
+				const std::string componentNameType(first.name());
+				size_t lastSpaceIndex = componentNameType.find_last_of(" ");
+				const std::string componentName(componentNameType.substr(lastSpaceIndex + 1, componentNameType.length() - lastSpaceIndex));
 
-					switch (enumBit)
+				if (ImGui::TreeNode((void*)(intptr_t)second, componentName.c_str()))
+				{
+					switch (second)
 					{
-					case COMPONENTENUM::TRANSFORM:
+					case 0:
 					{
 						if (tf)
 						{
 							ImGui::InputFloat3("Translation", &tf->GetTranslation().x);
 
-							Quaternion rotInDegrees(tf->GetRotation());
-							Vector3 rotInDeg = tf->GetRotation();
+							DXM::Quaternion rotInDegrees(tf->GetRotation());
+							DXM::Vector3 rotInDeg = tf->GetRotation();
 							rotInDeg.x = rotInDeg.x * (180 / 3.14f);
 							rotInDeg.y = rotInDeg.y * (180 / 3.14f);
 							rotInDeg.z = rotInDeg.z * (180 / 3.14f);
 							if (ImGui::InputFloat3("Rotation", &rotInDeg.x))
 							{
-								Vector3 rotInRad = Vector3(rotInDeg.x / (180 / 3.14f), rotInDeg.y / (180 / 3.14f), rotInDeg.z / (180 / 3.14f));
+								DXM::Vector3 rotInRad = DXM::Vector3(rotInDeg.x / (180 / 3.14f), rotInDeg.y / (180 / 3.14f), rotInDeg.z / (180 / 3.14f));
 								tf->GetRotation() = rotInRad;
 							}
 
@@ -341,7 +414,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 						}
 						break;
 					}
-					case COMPONENTENUM::MESH:
+					case 1:
 					{
 						Mesh* meshComp = currentScene->GetComponentForEntity<Mesh>(rootEntity);
 						if (meshComp)
@@ -372,9 +445,9 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 								{
 									for (ModelAsset& vb : vbVec)
 									{
-										if (ImGui::Selectable(vb.GetMeshName().c_str()))
+										if (ImGui::Selectable(vb.getMeshName().c_str()))
 										{
-											meshComp->SetID(modelCache.GetID(vb.GetMeshName()));
+											meshComp->SetID(modelCache.GetID(vb.getMeshName()));
 											break;
 										}
 									}
@@ -406,7 +479,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 						break;
 					}
-					case COMPONENTENUM::MATERIAL:
+					case 2:
 					{
 						MaterialComponent* matComp = currentScene->GetComponentForEntity<MaterialComponent>(_entity);
 						if (matComp)
@@ -465,7 +538,7 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 						}
 						break;
 					}
-					case COMPONENTENUM::PLIGHT:
+					case 3:
 					{
 						PointLightComponent* plComp = currentScene->GetComponentForEntity<PointLightComponent>(_entity);
 						if (plComp)
@@ -485,16 +558,16 @@ void LevelEditorUI::DrawEntityComponents(Entity& _entity)
 
 									ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 
-									Matrix lightMat = Matrix::CreateTranslation(pLight->position.x, pLight->position.y, pLight->position.z);
+									DXM::Matrix lightMat = DXM::Matrix::CreateTranslation(pLight->position.x, pLight->position.y, pLight->position.z);
 
 									if (ImGuizmo::Manipulate(&cam->GetView()._11, &cam->GetProj()._11,
 										imGuizmoOpPLight, mCurrentGizmoMode, &lightMat._11, NULL, 0))
 									{
-										Quaternion emptyRot;
-										Vector3 emptyScale;
-										Vector3 tempTransLight;
+										DXM::Quaternion emptyRot;
+										DXM::Vector3 emptyScale;
+										DXM::Vector3 tempTransLight;
 										lightMat.Decompose(emptyScale, emptyRot, tempTransLight);
-										pLight->position = Vector3(tempTransLight.x, tempTransLight.y, tempTransLight.z);
+										pLight->position = DXM::Vector3(tempTransLight.x, tempTransLight.y, tempTransLight.z);
 
 										lightSystem->UpdateLight(*plComp, *pLight);
 									}
@@ -578,9 +651,9 @@ void LevelEditorUI::ShowSceneWindow()
 				if (currentScene)
 					currentScene.reset();
 
-				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 				currentScene = engine->LoadScene(context, "..\\scenes\\", sceneNameWithoutExt);
-				engine->GetCommandManager().ExecuteContext(context);
+				engine->GetCommandManager().executeContext(context);
 
 				editingPLight = false;
 				selectionList.Clear();
@@ -697,7 +770,7 @@ void LevelEditorUI::ShowEntityWindow()
 {
 	if (ImGui::Begin("Entity Editor"))
 	{
-		std::vector<Entity>& entityVec = currentScene->GetEntityVector();
+		std::vector<aZeroECS::Entity>& entityVec = currentScene->GetEntityVector();
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Scene Hierarchy##1"))
@@ -717,13 +790,13 @@ void LevelEditorUI::ShowEntityWindow()
 
 		if (ImGui::Button("Create Entity"))
 		{
-			Entity& ent = currentScene->CreateEntity("Entity_");
+			aZeroECS::Entity& ent = currentScene->CreateEntity("Entity_");
 		}
 
 		int rootEntity = selectionList.GetRoot();
 		if (rootEntity != -1)
 		{
-			Entity& currentEnt = currentScene->GetEntity(rootEntity);
+			aZeroECS::Entity& currentEnt = currentScene->GetEntity(rootEntity);
 
 			if (ImGui::Button("Add Child"))
 				ImGui::OpenPopup("AddChildPopup");
@@ -733,34 +806,34 @@ void LevelEditorUI::ShowEntityWindow()
 				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
 				std::vector<int> childrenIDs = pSys->GetChildrenEntityID(currentEnt);
 
-				for (Entity& ent : entityVec)
+				for (aZeroECS::Entity& ent : entityVec)
 				{
 					bool isChild = false;
 					for (auto id : childrenIDs)
 					{
-						if (id == ent.id)
+						if (id == ent.m_id)
 						{
 							isChild = true;
 							break;
 						}
 					}
 
-					if (pSys->IsChildInBranch(ent, currentEnt.id))
+					if (pSys->IsChildInBranch(ent, currentEnt.m_id))
 						continue;
 
 					if (!isChild)
 					{
-						if (ent.id != rootEntity)
+						if (ent.m_id != rootEntity)
 						{
 							int parId = pSys->GetParentEntityID(currentEnt);
-							if (parId != ent.id)
+							if (parId != ent.m_id)
 							{
 								std::optional<std::string> entIDStr = currentScene->GetEntityName(ent);
 								if (entIDStr.has_value())
 								{
 									if (ImGui::Selectable(entIDStr.value().c_str()))
 									{
-										if (ent.id != rootEntity)
+										if (ent.m_id != rootEntity)
 										{
 											pSys->Parent(currentEnt, ent);
 										}
@@ -776,12 +849,11 @@ void LevelEditorUI::ShowEntityWindow()
 			if (ImGui::Button("Remove As Child"))
 			{
 				std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
-				Entity& currentEnt = currentScene->GetEntity(rootEntity);
+				aZeroECS::Entity& currentEnt = currentScene->GetEntity(rootEntity);
 				int parentID = pSys->GetParentEntityID(currentEnt);
 				if (parentID != -1)
 				{
-					Entity tempParent;
-					tempParent.id = parentID;
+					aZeroECS::Entity tempParent(parentID);
 					pSys->UnParent(tempParent, currentEnt);
 				}
 			}
@@ -818,7 +890,7 @@ void LevelEditorUI::ShowEntityWindow()
 	ImGui::End();
 }
 
-void LevelEditorUI::ShowEntityHierarchy(const Entity& _current)
+void LevelEditorUI::ShowEntityHierarchy(const aZeroECS::Entity& _current)
 {
 	std::optional<std::string> name = currentScene->GetEntityName(_current);
 
@@ -826,7 +898,7 @@ void LevelEditorUI::ShowEntityHierarchy(const Entity& _current)
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-	if(selectionList.Selected(_current.id))
+	if(selectionList.Selected(_current.m_id))
 		flags |= ImGuiTreeNodeFlags_Selected;
 
 	std::shared_ptr<ParentSystem> pSys = engine->GetParentSystem().lock();
@@ -835,28 +907,27 @@ void LevelEditorUI::ShowEntityHierarchy(const Entity& _current)
 	if (childrenIDs.size() == 0)
 		flags |= ImGuiTreeNodeFlags_Leaf;
 
-	if (ImGui::TreeNodeEx((void*)(intptr_t)_current.id, flags, name.value().c_str()))
+	if (ImGui::TreeNodeEx((void*)(intptr_t)_current.m_id, flags, name.value().c_str()))
 	{
 		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
 		{
 			if (InputManager::KeyHeld(VK_SHIFT))
 			{
-				if (selectionList.Selected(_current.id))
-					selectionList.Remove(_current.id);
+				if (selectionList.Selected(_current.m_id))
+					selectionList.Remove(_current.m_id);
 				else
-					selectionList.Add(_current.id);
+					selectionList.Add(_current.m_id);
 			}
 			else
 			{
 				selectionList.Clear();
-				selectionList.Add(_current.id);
+				selectionList.Add(_current.m_id);
 			}
 		}
 
 		for (int id : childrenIDs)
 		{
-			Entity ent;
-			ent.id = id;
+			aZeroECS::Entity ent(id);
 			ShowEntityHierarchy(ent);
 		}
 
@@ -911,9 +982,9 @@ void LevelEditorUI::ShowMaterialWindow()
 			const std::string newMatTempName(matNameBuffer);
 			if (!mManager.Exists<PBRMaterial>(newMatTempName))
 			{
-				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
-				mManager.CreateMaterial<PBRMaterial>(engine->GetDevice(), context, engine->GetFrameIndex(), newMatTempName);
-				engine->GetCommandManager().ExecuteContext(context);
+				GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
+				mManager.CreateMaterial<PBRMaterial>(newMatTempName);
+				engine->GetCommandManager().executeContext(context);
 				ZeroMemory(matNameBuffer, ARRAYSIZE(matNameBuffer));
 				alrExists = false;
 			}
@@ -949,10 +1020,10 @@ void LevelEditorUI::ShowMaterialWindow()
 				std::string::size_type const p(matNameWithExt.find_last_of('.'));
 				std::string matNameWithoutExt = matNameWithExt.substr(0, p);
 
-				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 				mManager.LoadMaterial<PBRMaterial>(engine->GetDevice(), context,
 					engine->GetFrameIndex(), matNameWithoutExt);
-				engine->GetCommandManager().ExecuteContext(context);
+				engine->GetCommandManager().executeContext(context);
 
 				PBRMaterial* mat = mManager.GetMaterial<PBRMaterial>(matNameWithoutExt);
 				if (mat)
@@ -1004,7 +1075,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Albedo Texture");
 				Texture* t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.albedoMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->getSRVHandle().getGPUHandle().ptr, ImVec2(70, 70));
 
 				ImGui::SameLine();
 				if (ImGui::Button("Apply Selected Texture##0"))
@@ -1012,7 +1083,7 @@ void LevelEditorUI::ShowMaterialWindow()
 					t = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (t)
 					{
-						info.albedoMapIndex = t->GetSRVHandle().GetHeapIndex();
+						info.albedoMapIndex = t->getSRVHandle().getHeapIndex();
 					}
 				}
 
@@ -1020,7 +1091,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Roughness Texture");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.roughnessMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->getSRVHandle().getGPUHandle().ptr, ImVec2(70, 70));
 				else
 					ImGui::Text("NULL");
 
@@ -1029,7 +1100,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					t = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (t)
-						info.roughnessMapIndex = t->GetSRVHandle().GetHeapIndex();
+						info.roughnessMapIndex = t->getSRVHandle().getHeapIndex();
 				}
 
 				if (info.roughnessMapIndex != -1)
@@ -1045,7 +1116,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Metallic Texture");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.metallicMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->getSRVHandle().getGPUHandle().ptr, ImVec2(70, 70));
 				else
 					ImGui::Text("NULL");
 
@@ -1054,7 +1125,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					Texture* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (tt)
-						info.metallicMapIndex = tt->GetSRVHandle().GetHeapIndex();
+						info.metallicMapIndex = tt->getSRVHandle().getHeapIndex();
 				}
 
 				if (info.metallicMapIndex != -1)
@@ -1070,7 +1141,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				ImGui::Text("Normal Map");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.normalMapIndex));
 				if (t)
-					ImGui::Image((ImTextureID)t->GetSRVHandle().GetGPUHandle().ptr, ImVec2(70, 70));
+					ImGui::Image((ImTextureID)t->getSRVHandle().getGPUHandle().ptr, ImVec2(70, 70));
 				else
 					ImGui::Text("NULL");
 
@@ -1079,7 +1150,7 @@ void LevelEditorUI::ShowMaterialWindow()
 				{
 					Texture* tt = engine->GetTexture2DCache().GetResource(selTexture2DID);
 					if (tt)
-						info.normalMapIndex = tt->GetSRVHandle().GetHeapIndex();
+						info.normalMapIndex = tt->getSRVHandle().getHeapIndex();
 				}
 
 				if (info.normalMapIndex != -1)
@@ -1101,13 +1172,13 @@ void LevelEditorUI::ShowResourceWindow()
 		Texture2DCache& tCache = engine->GetTexture2DCache();
 		auto& modelCache = engine->GetModelCache();
 		MaterialManager& mManager = engine->GetMaterialManager();
-		std::vector<Entity>& entityVec = currentScene->GetEntityVector();
+		std::vector<aZeroECS::Entity>& entityVec = currentScene->GetEntityVector();
 
 		if (ImGui::BeginListBox("Meshes"))
 		{
 			for (auto& vb : modelCache.GetAllResources())
 			{
-				const std::string name = vb.GetMeshName();
+				const std::string name = vb.getMeshName();
 				if (ImGui::Selectable(name.c_str()))
 				{
 					selMeshName = name;
@@ -1124,7 +1195,7 @@ void LevelEditorUI::ShowResourceWindow()
 			ImGui::Text(t.c_str());
 
 			ModelAsset* selVB = modelCache.GetResource(selMeshID);
-			const std::string tx = "Number of Vertices: " + std::to_string(selVB->GetNumVertices());
+			const std::string tx = "Number of Vertices: " + std::to_string(selVB->getNumVertices());
 			ImGui::Text(tx.c_str());
 		}
 
@@ -1133,10 +1204,10 @@ void LevelEditorUI::ShowResourceWindow()
 			std::optional<std::string> loadedName = LoadMeshFromDirectory();
 			if (loadedName.has_value())
 			{
-				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 				modelCache.LoadResource(engine->GetDevice(), context,
 					engine->GetFrameIndex(), loadedName.value(), "..\\meshes\\");
-				engine->GetCommandManager().ExecuteContext(context);
+				engine->GetCommandManager().executeContext(context);
 			}
 		}
 
@@ -1172,7 +1243,7 @@ void LevelEditorUI::ShowResourceWindow()
 		{
 			for (auto& texture : tCache.GetAllResources())
 			{
-				const std::string name = tCache.GetFileNameByHeapIndex(texture.GetSRVHandle().GetHeapIndex());
+				const std::string name = tCache.GetFileNameByHeapIndex(texture.getSRVHandle().getHeapIndex());
 				const std::string selName = name + "##1";
 				if (ImGui::Selectable(selName.c_str()))
 				{
@@ -1190,10 +1261,10 @@ void LevelEditorUI::ShowResourceWindow()
 			if (Helper::OpenFileDialogForExtension(".png", fileName))
 			{
 
-				GraphicsContextHandle context = engine->GetCommandManager().GetGraphicsContext();
+				GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 				tCache.LoadResource(engine->GetDevice(), context,
 					engine->GetFrameIndex(), fileName, "..\\textures\\");
-				engine->GetCommandManager().ExecuteContext(context);
+				engine->GetCommandManager().executeContext(context);
 			}
 		}
 
@@ -1204,23 +1275,23 @@ void LevelEditorUI::ShowResourceWindow()
 			const std::string t = "Selected Texture: " + selTexture2DName;
 			ImGui::Text(t.c_str());
 
-			const std::string tx = "Dimensions: " + std::to_string(selText->GetDimensions().x) + " : " + std::to_string(selText->GetDimensions().y);
+			const std::string tx = "Dimensions: " + std::to_string(selText->getDimensions().x) + " : " + std::to_string(selText->getDimensions().y);
 			ImGui::Text(tx.c_str());
 
 			if (selText)
-				ImGui::Image((ImTextureID)selText->GetSRVHandle().GetGPUHandle().ptr, ImVec2(100, 100));
+				ImGui::Image((ImTextureID)selText->getSRVHandle().getGPUHandle().ptr, ImVec2(100, 100));
 
 			if (selTexture2DName != "defaultDiffuse.png")
 			{
 				// Move deleting to the scene
 				if (ImGui::Button("Delete Texture"))
 				{
-					int heapIndexToDelete = tCache.GetResource(selTexture2DID)->GetSRVHandle().GetHeapIndex();
+					int heapIndexToDelete = tCache.GetResource(selTexture2DID)->getSRVHandle().getHeapIndex();
 					for (auto& mat : mManager.GetPBRMaterials())
 					{
 						if (mat.GetInfo().albedoMapIndex == heapIndexToDelete)
 						{
-							mat.GetInfo().albedoMapIndex = tCache.GetResource("defaultDiffuse.png")->GetSRVHandle().GetHeapIndex();
+							mat.GetInfo().albedoMapIndex = tCache.GetResource("defaultDiffuse.png")->getSRVHandle().getHeapIndex();
 						}
 						else if (mat.GetInfo().normalMapIndex == heapIndexToDelete)
 						{

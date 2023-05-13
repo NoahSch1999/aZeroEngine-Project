@@ -13,7 +13,7 @@ enum MOUSEBTN { LEFT, RIGHT, MIDDLE, MAX };
 class InputManager
 {
 private:
-	static Vector2 clickedPosition;
+	static DXM::Vector2 clickedPosition;
 
 	struct MouseBtnState
 	{
@@ -33,9 +33,9 @@ private:
 
 	static std::bitset<256>keyupThisFrameSet;
 
-	static void OnMouseBtnPressed(Vector2 _pos, MOUSEBTN _btn);
+	static void OnMouseBtnPressed(DXM::Vector2 _pos, MOUSEBTN _btn);
 
-	static void OnMouseBtnReleased(Vector2 _pos, MOUSEBTN _btn);
+	static void OnMouseBtnReleased(DXM::Vector2 _pos, MOUSEBTN _btn);
 
 	static void OnKeyPressed(unsigned char _keycode);
 
@@ -43,10 +43,10 @@ private:
 
 	friend LRESULT CALLBACK WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam);
 
-	static Vector2 lastCursorPosition;
-	static Vector2 cursorDirectionFrame;
+	static DXM::Vector2 lastCursorPosition;
+	static DXM::Vector2 cursorDirectionFrame;
 	static void OnMouseMove(LONG _xPos, LONG _yPos);
-	static void OnMouseMove(Vector2 _pos);
+	static void OnMouseMove(DXM::Vector2 _pos);
 
 public:
 
@@ -62,7 +62,7 @@ public:
 	* y < 0 means it moved up
 	@return Vector2 The direction in screen pixels that the mouse moved this frame.
 	*/
-	static Vector2 GetMouseFrameDirection() { return cursorDirectionFrame; }
+	static DXM::Vector2 GetMouseFrameDirection() { return cursorDirectionFrame; }
 
 	/** Checks whether or not the specified mouse button is currently down.
 	@param _btn MOUSEBTN enumeration for the mouse button to check.
@@ -103,7 +103,7 @@ public:
 	/** Returns the cursor screen position when last pressed down this frame.
 	@return Vector2 The X and Y positions in screen coordinates.
 	*/
-	static Vector2 GetClickedPosition() { return clickedPosition; }
+	static DXM::Vector2 GetClickedPosition() { return clickedPosition; }
 
 	/** Specifies that the current frame has ended.
 	* Should only be called ONCE right before the frame will end.

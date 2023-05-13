@@ -12,7 +12,7 @@ class ComputeContextHandle
 private:
 	CommandManager* m_manager = nullptr;
 	std::shared_ptr<CommandContext> m_context = nullptr;
-	void SetLastFence(UINT64 lastFence) { m_context->m_lastSignal = lastFence; }
+	void setLastFence(UINT64 lastFence) { m_context->m_lastSignal = lastFence; }
 
 public:
 	ComputeContextHandle() = delete;
@@ -29,7 +29,7 @@ public:
 	/**Returns the internal CommandList object.
 	@return CommandList&
 	*/
-	ID3D12GraphicsCommandList* GetList() { return static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()); }
+	ID3D12GraphicsCommandList* getList() { return static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()); }
 
 	// -------------------------------------------------------------------------------------------------------------------
 	// WRAPPER METHODS
@@ -40,8 +40,38 @@ public:
 	@param heaps A pointer to an array of DescriptorHeap objects
 	@return void
 	*/
-	void SetDescriptorHeaps(UINT numHeaps, ID3D12DescriptorHeap* const* heaps)
+	void setDescriptorHeaps(UINT numHeaps, ID3D12DescriptorHeap* const* heaps)
 	{
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetDescriptorHeaps(numHeaps, heaps);
+	}
+
+	void setPipelineState(ID3D12PipelineState* const pipelineState)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetPipelineState(pipelineState);
+	}
+
+	void setComputeRootSignature(ID3D12RootSignature* const rootSignature)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRootSignature(rootSignature);
+	}
+
+	void setCompute32BitRootConstant(UINT index, UINT data, UINT offsetIn32BitValues)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRoot32BitConstant(index, data, offsetIn32BitValues);
+	}
+
+	void setCompute32BitRootConstants(UINT index, UINT numValues, const void* data, UINT offsetIn32BitValues)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRoot32BitConstants(index, numValues, data, offsetIn32BitValues);
+	}
+
+	void dispatch(UINT tGroupX, UINT tGroupY, UINT tGroupZ)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->Dispatch(tGroupX, tGroupY, tGroupZ);
+	}
+
+	void transitionTexture(Texture& texture, D3D12_RESOURCE_STATES newState)
+	{
+		texture.transition(static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()), newState);
 	}
 };

@@ -2,7 +2,7 @@
 #include "HelperFunctions.h"
 
 // Only works for backbuffer as render target...
-void PipelineState::Init(ID3D12Device* device, RootSignature* rootSignature, const InputLayout& inputLayout, const RasterState& rasterState,
+void PipelineState::init(ID3D12Device* device, RootSignature* rootSignature, const InputLayout& inputLayout, const RasterState& rasterState,
 	UINT numRenderTargets, DXGI_FORMAT* const rtvFormats, DXGI_FORMAT dsvFormat, const std::wstring& vsPath, const std::wstring& psPath,
 	const std::wstring& dsPath, const std::wstring& hsPath, const std::wstring& gsPath, bool enableBlending,
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveType)
@@ -38,10 +38,10 @@ void PipelineState::Init(ID3D12Device* device, RootSignature* rootSignature, con
 	}
 
 
-	desc.InputLayout = { &inputLayout.descs[0], 4 };
-	desc.pRootSignature = rootSignature->GetSignature();
+	desc.InputLayout = { &inputLayout.m_descs[0], 4 };
+	desc.pRootSignature = rootSignature->getSignature();
 	desc.VS = { reinterpret_cast<BYTE*>(vShader->GetBufferPointer()), vShader->GetBufferSize() };
-	desc.RasterizerState = rasterState.GetDesc();
+	desc.RasterizerState = rasterState.getDesc();
 
 	//D3D12_RENDER_TARGET_BLEND_DESC rtvBlend;
 	//ZeroMemory(&rtvBlend, sizeof(D3D12_RENDER_TARGET_BLEND_DESC));
