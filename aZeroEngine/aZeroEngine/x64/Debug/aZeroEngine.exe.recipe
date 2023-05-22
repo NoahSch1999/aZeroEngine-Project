@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\aZeroEngine.exe</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_FXOutline.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_ProcessGlow.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_Basic.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_MaterialPrev.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_Outline.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_PBR.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_PBRTransparency.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_Picking.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_Basic.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_MaterialPrev.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_Outline.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_PBR.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_Picking.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_ShadowPass.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\VS_ZPrePass.cso</FullPath>
+    </ContentFile>
+  </ContentFiles>
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
+</Project>
