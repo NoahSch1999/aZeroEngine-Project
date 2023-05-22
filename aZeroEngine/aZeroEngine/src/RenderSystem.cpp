@@ -49,9 +49,9 @@ void RendererSystem::Init(ID3D12Device* _device, CommandManager& commandManager,
 		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
-	std::wstring csName = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/CS_FXOutline.cso";
+	std::wstring csName = L"../x64/Release/CS_FXOutline.cso";
 #ifdef _DEBUG
-	csName = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/CS_FXOutline.cso";
+	csName = L"../x64/Debug/CS_FXOutline.cso";
 #endif // DEBUG
 
 	m_csPipeState = new ComputePipelineState(_device, m_csRootSig.getSignature(), csName);
@@ -249,11 +249,12 @@ void RendererSystem::initGeometryPass(ID3D12Device* _device)
 		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
-	std::wstring vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_PBR.cso";
-	std::wstring psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/PS_PBR.cso";
+	//std::wstring vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_PBR.cso";
+	std::wstring vsPath = L"../x64/Release/VS_PBR.cso";
+	std::wstring psPath = L"../x64/Release/PS_PBR.cso";
 #ifdef _DEBUG
-	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_PBR.cso";
-	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_PBR.cso";
+	vsPath = L"../x64/Debug/VS_PBR.cso";
+	psPath = L"../x64/Debug/PS_PBR.cso";
 #endif // _DEBUG
 
 	CD3DX12_DEPTH_STENCIL_DESC dsvDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -290,9 +291,9 @@ void RendererSystem::initGeometryPass(ID3D12Device* _device)
 		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
-	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/PS_PBRTransparency.cso";
+	psPath = L"../x64/Release/PS_PBRTransparency.cso";
 #ifdef _DEBUG
-	psPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/PS_PBRTransparency.cso";
+	psPath = L"../x64/Debug/PS_PBRTransparency.cso";
 #endif // _DEBUG
 	pbrPsoDesc.m_pShaderPath = &psPath;
 
@@ -634,9 +635,9 @@ void RendererSystem::initZPrePass(ID3D12Device* _device)
 		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
 	// Create pipeline state
-	std::wstring vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/VS_ZPrePass.cso";
+	std::wstring vsPath = L"../x64/Release/VS_ZPrePass.cso";
 #ifdef _DEBUG
-	vsPath = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/VS_ZPrePass.cso";
+	vsPath = L"../x64/Debug/VS_ZPrePass.cso";
 #endif // _DEBUG
 
 	InputLayout layout;
@@ -661,9 +662,9 @@ void RendererSystem::initFXProcessGlow()
 		| D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
 		| D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED, 0, nullptr);
 
-	std::wstring csName = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Release/CS_ProcessGlow.cso";
+	std::wstring csName = L"../x64/Release/CS_ProcessGlow.cso";
 #ifdef _DEBUG
-	csName = L"C:/Projects/aZeroEngine/aZeroEngine/x64/Debug/CS_ProcessGlow.cso";
+	csName = L"../x64/Debug/CS_ProcessGlow.cso";
 #endif // DEBUG
 
 	m_processGlowPipeState = new ComputePipelineState(m_device, m_processGlowRootSig.getSignature(), csName);
