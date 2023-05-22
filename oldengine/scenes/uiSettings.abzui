@@ -1,0 +1,96 @@
+[Window][Debug##Default]
+Pos=60,60
+Size=400,400
+Collapsed=0
+
+[Window][Performance Data]
+Pos=355,4
+Size=358,110
+Collapsed=1
+
+[Window][Dear ImGui Demo]
+Pos=725,2
+Size=702,433
+Collapsed=1
+
+[Window][Application Info]
+Pos=3,2
+Size=355,280
+Collapsed=0
+DockId=0x00000002,0
+
+[Window][Test]
+Pos=1493,739
+Size=403,266
+Collapsed=0
+DockId=0x0000000C,0
+
+[Window][Scene Manager]
+Pos=3,497
+Size=355,510
+Collapsed=0
+DockId=0x00000005,0
+
+[Window][Settings]
+Pos=3,284
+Size=355,211
+Collapsed=0
+DockId=0x00000003,0
+
+[Window][Entity Editor]
+Pos=1488,531
+Size=415,475
+Collapsed=0
+DockId=0x0000000E,0
+
+[Window][Material Editor]
+Pos=1488,-2
+Size=415,531
+Collapsed=0
+DockId=0x0000000D,0
+
+[Window][Resources]
+Pos=355,740
+Size=1135,267
+Collapsed=0
+
+[Window][End Frame]
+Pos=955,4
+Size=538,336
+Collapsed=0
+
+[Window][OverwriteScenePopup]
+Pos=751,473
+Size=402,94
+Collapsed=0
+
+[Window][File Textures]
+Pos=352,653
+Size=1136,355
+Collapsed=0
+DockId=0x00000006,0
+
+[Window][Meshes]
+Pos=352,653
+Size=1136,355
+Collapsed=0
+DockId=0x00000006,1
+
+[Window][##1333333337]
+Pos=60,60
+Size=82,187
+Collapsed=0
+
+[Docking][Data]
+DockNode      ID=0x00000001 Pos=3,2 Size=355,1005 Split=Y
+  DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=276,475 Split=Y
+    DockNode  ID=0x00000002 Parent=0x00000004 SizeRef=276,270 HiddenTabBar=1 Selected=0x6FE96694
+    DockNode  ID=0x00000003 Parent=0x00000004 SizeRef=276,203 HiddenTabBar=1 Selected=0x54723243
+  DockNode    ID=0x00000005 Parent=0x00000001 SizeRef=276,492 HiddenTabBar=1 Selected=0x6B58BA6D
+DockNode      ID=0x00000006 Pos=352,653 Size=1136,355 Selected=0x4A7568CE
+DockNode      ID=0x0000000A Pos=1488,-2 Size=415,1008 Split=Y Selected=0xEEF06B6F
+  DockNode    ID=0x0000000B Parent=0x0000000A SizeRef=366,729 Split=Y Selected=0xEEF06B6F
+    DockNode  ID=0x0000000D Parent=0x0000000B SizeRef=403,539 Selected=0x744B41B5
+    DockNode  ID=0x0000000E Parent=0x0000000B SizeRef=403,482 Selected=0xEEF06B6F
+  DockNode    ID=0x0000000C Parent=0x0000000A SizeRef=366,266 Selected=0x44A6A033
+
