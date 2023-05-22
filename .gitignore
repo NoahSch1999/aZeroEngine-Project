@@ -104,7 +104,6 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.iobj
-*.pdb
 *.ipdb
 *.pgc
 *.pgd
