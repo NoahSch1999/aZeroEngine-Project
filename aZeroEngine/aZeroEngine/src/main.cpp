@@ -26,8 +26,9 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int s
 	{
 		/*
 		* Why isn't copy and compute running parallell? (test in PostEffectOutlinePass)
-		* Draw/drop material on model in viewport
-		* Cleana command manager
+		* Fix so transform is kept when adding rb
+		* Fix so transform is kept when parenting/childing
+		* 
 		* 
 		Coding style:
 			m_ for member vars

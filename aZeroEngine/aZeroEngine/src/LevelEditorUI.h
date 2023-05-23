@@ -80,13 +80,44 @@ public:
 	void ToggleEditorMode() { editorMode = !editorMode; }
 	void SetCamera(std::shared_ptr<Camera> _camera) { camera = _camera; }
 
+	void materialDragDropViewport()
+	{
+		const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+
+		if (payload)
+		{
+			if (InputManager::MouseBtnUp(LEFT))
+			{
+				if (payload->IsDataType("MatDragDrop"))
+				{
+					int matId = *static_cast<int*>(payload->Data);
+
+					std::optional<DXM::Vector2> mousePos = engine->GetMouseWindowPosition();
+					if (mousePos)
+					{
+						int pickingID = engine->GetPickingEntityID(mousePos.value().x, mousePos.value().y);
+						if (pickingID != -1)
+						{
+							MaterialComponent* matComponent = currentScene->GetComponentForEntity<MaterialComponent>(currentScene->GetEntity(pickingID));
+							if (matComponent)
+							{
+								matComponent->materialID = matId;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+	}
+
 	void EntitySelection()
 	{
 		if (InputManager::MouseBtnDown(LEFT))
 		{
 			if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
 			{
-				if (!ImGuizmo::IsOver())
+				if (!ImGuizmo::IsOver() || selectionList.Empty())
 				{
 					std::optional<DXM::Vector2> mousePos = engine->GetMouseWindowPosition();
 					if (mousePos)

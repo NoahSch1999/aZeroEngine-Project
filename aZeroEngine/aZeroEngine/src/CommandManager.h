@@ -62,11 +62,6 @@ public:
 	*/
 	CommandQueue& getComputeQueue() { return m_computeQueue; }
 
-
-	// ----
-	// TO DO!
-	// REMOVE and replace with Context to Context wait
-	// 
 	// Adds GPU-side wait for the graphics queue
 	void flushGPUGraphics() { m_directQueue.waitForFence(m_directQueue.getLastSignalValue()); }
 	void flushCPUGraphics() { m_directQueue.stallCPU(m_directQueue.getLastSignalValue()); }
@@ -94,14 +89,8 @@ public:
 		m_computeQueue.waitForOther(queue, fenceValue);
 	}
 
-	/*void waitForCopy() { m_directQueue.waitForOther(m_copyQueue, m_copyQueue.getLastSignalValue()); }
-
-	void graphicsWaitCompute(UINT64 fenceValue) { m_directQueue.waitForOther(m_computeQueue, fenceValue); }
-
-	void computeWaitGraphics(UINT64 fenceValue) { m_computeQueue.waitForOther(m_directQueue, fenceValue); }*/
-	// ----
-
 	/**Flushes the CPU and forces it to wait for all CommandQueue work.
+	* It then resets the CommandContexts.
 	@return void
 	*/
 	void flushCPU();

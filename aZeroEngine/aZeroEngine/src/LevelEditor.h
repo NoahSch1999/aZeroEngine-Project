@@ -100,46 +100,11 @@ public:
 				}
 			}
 
-			// Testing rb
-			if (/*!ui->selectionList.Empty()*/false)
-			{
-				int rootid = ui->selectionList.GetRoot();
-				aZeroECS::Entity& rootEnt = ui->currentScene->GetEntity(rootid);
-
-				RigidBody* rbComp = ui->currentScene->GetComponentForEntity<RigidBody>(rootEnt);
-
-				if (!rbComp)
-				{
-					ui->currentScene->AddComponentToEntity<RigidBody>(rootEnt);
-					rbComp = ui->currentScene->GetComponentForEntity<RigidBody>(rootEnt);
-					rbComp->m_body->setMass(0.001f);
-				}
-				//float force = 100.f;
-				//if (rbComp)
-				//{
-				//	if (InputManager::KeyHeld(VK_UP)) // Forw
-				//	{
-				//		rbComp->m_body->applyWorldForceAtCenterOfMass(reactphysics3d::Vector3(0, 0, force));
-				//	}
-				//	else if (InputManager::KeyHeld(VK_DOWN)) // Back
-				//	{
-				//		rbComp->m_body->applyWorldForceAtCenterOfMass(reactphysics3d::Vector3(0, 0, -force));
-				//	}
-				//	else if (InputManager::KeyHeld(VK_LEFT)) // Left
-				//	{
-				//		rbComp->m_body->applyWorldForceAtCenterOfMass(reactphysics3d::Vector3(force, 0, 0));
-				//	}
-				//	else if (InputManager::KeyHeld(VK_RIGHT)) // Right
-				//	{
-				//		rbComp->m_body->applyWorldForceAtCenterOfMass(reactphysics3d::Vector3(-force, 0, 0));
-				//	}
-				//}
-			}
-
 			engine->GetRenderSystem().lock()->currentScene = ui->currentScene.get();
 			engine->Render();
 
 			ui->EntitySelection();
+			ui->materialDragDropViewport();
 
 			engine->EndFrame();
 

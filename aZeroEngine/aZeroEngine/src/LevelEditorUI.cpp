@@ -87,8 +87,6 @@ void LevelEditorUI::showApplicationInfo()
 
 void LevelEditorUI::showApplicationSettings()
 {
-	//ImGui::SliderAngle()
-
 	// Add to setting window
 	if(ImGui::Begin("Settings"))
 	{
@@ -335,7 +333,7 @@ void LevelEditorUI::DrawEntityComponents(aZeroECS::Entity& _entity)
 
 			ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 			DXM::Matrix matrix = tf->GetWorldMatrix();
-
+			
 			if (ImGuizmo::Manipulate(&cam->GetView()._11, &cam->GetProj()._11, mCurrentGizmoOperation, mCurrentGizmoMode, &matrix._11, NULL, 0))
 			{
 				int parentID = engine->GetParentSystem().lock()->GetParentEntityID(rootEntity);
@@ -456,11 +454,11 @@ void LevelEditorUI::DrawEntityComponents(aZeroECS::Entity& _entity)
 							ImGui::InputFloat3("Translation", &tf->GetTranslation().x);
 							DXM::Quaternion qRotInRadians(tf->GetRotation());
 							DXM::Vector3 vRotInRadians = tf->GetRotation();
-							DXM::Vector3 vRotInDegrees = tf->GetRotation();
+							DXM::Vector3 vRotInDegrees;
 							bool inputAngleChanged = false;
-							vRotInDegrees.x = vRotInDegrees.x * (180 / 3.14f);
-							vRotInDegrees.y = vRotInDegrees.y * (180 / 3.14f);
-							vRotInDegrees.z = vRotInDegrees.z * (180 / 3.14f);
+							vRotInDegrees.x = vRotInRadians.x * (180 / 3.14f);
+							vRotInDegrees.y = vRotInRadians.y * (180 / 3.14f);
+							vRotInDegrees.z = vRotInRadians.z * (180 / 3.14f);
 
 							if (ImGui::SliderAngle("##angleX", (float*)&vRotInRadians.x))
 							{
@@ -492,11 +490,6 @@ void LevelEditorUI::DrawEntityComponents(aZeroECS::Entity& _entity)
 								DXM::Vector3 rotInRad = DXM::Vector3(vRotInDegrees.x / (180 / 3.14f), vRotInDegrees.y / (180 / 3.14f), vRotInDegrees.z / (180 / 3.14f));
 								tf->GetRotation() = rotInRad;
 							}
-							/*if (ImGui::InputFloat3("Rotation", &rotInDeg.x))
-							{
-								DXM::Vector3 rotInRad = DXM::Vector3(rotInDeg.x / (180 / 3.14f), rotInDeg.y / (180 / 3.14f), rotInDeg.z / (180 / 3.14f));
-								tf->GetRotation() = rotInRad;
-							}*/
 
 							ImGui::InputFloat3("Scale", &tf->GetScale().x);
 
@@ -1102,6 +1095,14 @@ void LevelEditorUI::ShowMaterialWindow()
 					selPBRMatName = matName;
 					selPBRMatID = mManager.GetReferenceID<PBRMaterial>(matName);
 					break;
+				}
+
+				if (ImGui::BeginDragDropSource())
+				{
+					int matID = mManager.GetReferenceID<PBRMaterial>(matName);
+					ImGui::SetDragDropPayload("MatDragDrop", (void*)&matID, sizeof(int));
+					ImGui::Text(matName.c_str());
+					ImGui::EndDragDropSource();
 				}
 			}
 			ImGui::EndListBox();
