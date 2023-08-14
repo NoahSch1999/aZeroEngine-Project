@@ -1,7 +1,7 @@
 #include "SwapChain.h"
 #include "HelperFunctions.h"
 
-SwapChain::SwapChain(ID3D12Device* device, CommandQueue& commandQueue, DescriptorManager& descriptorManager, ResourceTrashcan& trashCan,
+SwapChain::SwapChain(ID3D12Device* device, CommandQueue& commandQueue, DescriptorManager& descriptorManager, ResourceRecycler& trashCan,
 	HWND windowHandle, int width, int height, DXGI_FORMAT bbFormat, DXGI_SWAP_CHAIN_FLAG flags, DXGI_SCALING scaling)
 	:m_numBackBuffers(3), m_bbFormat(bbFormat), m_dsvFormat(DXGI_FORMAT_D24_UNORM_S8_UINT), m_width(width), m_height(height)
 {
@@ -41,23 +41,24 @@ SwapChain::SwapChain(ID3D12Device* device, CommandQueue& commandQueue, Descripto
 	for (int i = 0; i < m_numBackBuffers; i++)
 	{
 		m_backBuffers[i] = std::make_unique<Texture>();
-		m_backBuffers[i]->m_trashcan = &trashCan;
+
+		m_backBuffers[i]->m_recycler = &trashCan;
 		m_backBuffers[i]->m_descriptorManager = &descriptorManager;
-		m_backBuffers[i]->m_settings.m_clearValue.Color[0] = 0.3;
-		m_backBuffers[i]->m_settings.m_clearValue.Color[1] = 0.3;
-		m_backBuffers[i]->m_settings.m_clearValue.Color[2] = 0.3;
-		m_backBuffers[i]->m_settings.m_clearValue.Color[3] = 1;
+		m_backBuffers[i]->m_description.m_clearValue.Color[0] = 0.3f;
+		m_backBuffers[i]->m_description.m_clearValue.Color[1] = 0.3f;
+		m_backBuffers[i]->m_description.m_clearValue.Color[2] = 0.3f;
+		m_backBuffers[i]->m_description.m_clearValue.Color[3] = 1.f;
 
-		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i]->m_gpuOnlyResource));
+		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBuffers[i]->m_gpuResource));
 
-		m_backBuffers[i]->m_handleRTVDSV = bbHandles[i];
-		m_backBuffers[i]->setResourceState(D3D12_RESOURCE_STATE_COMMON);
-		device->CreateRenderTargetView(m_backBuffers[i]->m_gpuOnlyResource.Get(), NULL, m_backBuffers[i]->m_handleRTVDSV.getCPUHandle());
+		m_backBuffers[i]->m_rtvHandle = bbHandles[i];
+		m_backBuffers[i]->forceResourceState(D3D12_RESOURCE_STATE_COMMON);
+		device->CreateRenderTargetView(m_backBuffers[i]->m_gpuResource.Get(), NULL, m_backBuffers[i]->getRTVHandle().getCPUHandle());
 
 #ifdef _DEBUG
 		const std::string name("Back Buffer " + std::to_string(i));
 		const std::wstring wName(name.begin(), name.end());
-		m_backBuffers[i]->m_gpuOnlyResource->SetName(wName.c_str());
+		m_backBuffers[i]->m_gpuResource->SetName(wName.c_str());
 #endif // DEBUG
 	}
 
@@ -70,6 +71,44 @@ SwapChain::SwapChain(ID3D12Device* device, CommandQueue& commandQueue, Descripto
 
 	m_scissorRect.left = 0;
 	m_scissorRect.top = 0;
+	m_scissorRect.right = static_cast<LONG>(width);
+	m_scissorRect.bottom = static_cast<LONG>(height);
+}
+
+void SwapChain::resizeBackBuffers(ID3D12Device* device, UINT width, UINT height)
+{
+	// Remove old back buffer resources
+	for (auto& bb : m_backBuffers)
+	{
+		bb->getGPUResource()->Release();
+	}
+
+	// Recreate back buffers
+	if (FAILED(m_swapChain->ResizeBuffers(
+		m_numBackBuffers,
+		width,
+		height,
+		m_bbFormat,
+		(DXGI_SWAP_CHAIN_FLAG)(DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+	)))
+		throw;
+
+	// Populate back buffer resources and create descriptors
+	for (int i = 0; i < m_numBackBuffers; i++)
+	{
+		m_swapChain->GetBuffer(i, IID_PPV_ARGS(m_backBuffers[i]->m_gpuResource.GetAddressOf()));
+
+		Helper::CreateRTVHandle(
+			device,
+			m_backBuffers[i]->m_gpuResource,
+			m_backBuffers[i]->m_rtvHandle.getCPUHandle(),
+			m_bbFormat
+		);
+	}
+
+	m_viewport.Width = static_cast<FLOAT>(width);
+	m_viewport.Height = static_cast<FLOAT>(height);
+
 	m_scissorRect.right = static_cast<LONG>(width);
 	m_scissorRect.bottom = static_cast<LONG>(height);
 }

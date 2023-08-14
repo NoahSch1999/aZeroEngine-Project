@@ -62,6 +62,15 @@
     <Filter Include="aZero Dependencies">
       <UniqueIdentifier>{4906581f-41fc-40b2-98f4-7735a6fa4e70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Third Party Dependencies\DirectXTK12">
+      <UniqueIdentifier>{20d48239-6bce-4db6-aed7-58b4cb8e20c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Third Party Dependencies\DirectXTK12\Src">
+      <UniqueIdentifier>{dbf6ff40-a5db-46e7-b382-20e818dac456}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Third Party Dependencies\DirectXTK12\Inc">
+      <UniqueIdentifier>{62757491-850f-4415-83fe-11e8089eaf82}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -111,9 +120,6 @@
     </ClCompile>
     <ClCompile Include="src\HelperFunctions.cpp">
       <Filter>Random</Filter>
-    </ClCompile>
-    <ClCompile Include="src\PipelineState.cpp">
-      <Filter>D3D12 Core\Other Wrapping</Filter>
     </ClCompile>
     <ClCompile Include="src\RootSignature.cpp">
       <Filter>D3D12 Core\Other Wrapping</Filter>
@@ -169,6 +175,18 @@
     <ClCompile Include="..\aZeroDependencies\aZeroModelParsing\ModelParser.cpp">
       <Filter>aZero Dependencies</Filter>
     </ClCompile>
+    <ClCompile Include="..\ThirdPartyDependencies\DirectXTK12\Src\GeometricPrimitive.cpp">
+      <Filter>Third Party Dependencies\DirectXTK12\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdPartyDependencies\DirectXTK12\Src\PrimitiveBatch.cpp">
+      <Filter>Third Party Dependencies\DirectXTK12\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdPartyDependencies\DirectXTK12\Src\DebugDraw.cpp">
+      <Filter>Third Party Dependencies\DirectXTK12\Src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Shader.cpp">
+      <Filter>D3D12 Core\Other Wrapping</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\CommandQueue.h">
@@ -181,9 +199,6 @@
       <Filter>D3D12 Core\Command Management</Filter>
     </ClInclude>
     <ClInclude Include="src\ComputeContextHandle.h">
-      <Filter>D3D12 Core\Command Management</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ComputePipelineState.h">
       <Filter>D3D12 Core\Command Management</Filter>
     </ClInclude>
     <ClInclude Include="src\CopyContextHandle.h">
@@ -252,9 +267,6 @@
     <ClInclude Include="src\ModelAsset.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="src\ReadbackBuffer.h">
-      <Filter>D3D12 Core\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="src\Texture.h">
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
@@ -288,7 +300,7 @@
     <ClInclude Include="src\HelperFunctions.h">
       <Filter>Random</Filter>
     </ClInclude>
-    <ClInclude Include="src\ResourceTrashcan.h">
+    <ClInclude Include="src\ResourceRecycler.h">
       <Filter>Random</Filter>
     </ClInclude>
     <ClInclude Include="src\UniqueIntList.h">
@@ -307,9 +319,6 @@
       <Filter>D3D12 Core\Resources</Filter>
     </ClInclude>
     <ClInclude Include="src\InputLayout.h">
-      <Filter>D3D12 Core\Other Wrapping</Filter>
-    </ClInclude>
-    <ClInclude Include="src\PipelineState.h">
       <Filter>D3D12 Core\Other Wrapping</Filter>
     </ClInclude>
     <ClInclude Include="src\RasterState.h">
@@ -393,6 +402,102 @@
     <ClInclude Include="..\aZeroDependencies\aZeroModelParsing\ModelParser.h">
       <Filter>aZero Dependencies</Filter>
     </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Audio.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\BufferHelpers.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\CommonStates.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DDSTextureLoader.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DescriptorHeap.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DirectXHelpers.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\EffectPipelineStateDescription.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Effects.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\GamePad.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\GeometricPrimitive.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\GraphicsMemory.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Keyboard.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Model.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Mouse.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\PostProcess.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\PrimitiveBatch.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\RenderTargetState.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\ResourceUploadBatch.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\ScreenGrab.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SimpleMath.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SpriteBatch.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SpriteFont.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\VertexTypes.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\WICTextureLoader.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\XboxDDSTextureLoader.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DebugDraw.h">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RenderSurfaces.h">
+      <Filter>Random</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ShaderCache.h">
+      <Filter>Caches</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GraphicsPipeline.h">
+      <Filter>D3D12 Core\Other Wrapping</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Shader.h">
+      <Filter>D3D12 Core\Other Wrapping</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ComputePipeline.h">
+      <Filter>D3D12 Core\Other Wrapping</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Buffer.h">
+      <Filter>D3D12 Core\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\VS_Basic.hlsl">
@@ -434,14 +539,23 @@
     <FxCompile Include="src\PS_PBRTransparency.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="src\CS_ProcessGlow.hlsl">
+    <FxCompile Include="src\CS_GlowHorizontal.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="src\CS_FXOutline.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="CS_PickingReadback.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="src\CS_GlowVertical.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SimpleMath.inl">
+      <Filter>Third Party Dependencies\DirectXTK12\Inc</Filter>
+    </None>
   </ItemGroup>
 </Project>

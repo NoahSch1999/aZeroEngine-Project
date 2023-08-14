@@ -12,6 +12,33 @@ namespace Helper
 #define DEBUGLOG(x)
 #endif
 
+#pragma pack(1)
+	struct TextureReadbackOne
+	{
+		unsigned int r : 8;
+		unsigned int g : 8;
+		unsigned int b : 8;
+		unsigned int a : 8;
+	};
+
+	struct TextureReadbackTwo
+	{
+		unsigned int r : 10;
+		unsigned int g : 10;
+		unsigned int b : 10;
+		unsigned int a : 2;
+	};
+#pragma pack()
+
+	struct MSQueryLevelResult
+	{
+		UINT m_sampleCount = 0;
+		UINT m_sampleQuality = 0;
+	};
+
+	MSQueryLevelResult getMultisampleLevels(ID3D12Device* device, DXGI_FORMAT format,
+		UINT sampleCount = 8, UINT sampleQuality = 1);
+
 	struct STBIImageData
 	{
 		unsigned char* rawData = nullptr;
@@ -20,7 +47,14 @@ namespace Helper
 		int channels = -1;
 	};
 
-	Microsoft::WRL::ComPtr<ID3DBlob> LoadBlobFromFile(const std::wstring& _filePath);
+	struct LoadedTextureFileData
+	{
+		std::unique_ptr<uint8_t[]> m_data;
+		std::vector<D3D12_SUBRESOURCE_DATA> m_subresourceData;
+		Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
+	};
+
+	Microsoft::WRL::ComPtr<ID3DBlob> loadBlobFromFile(const std::wstring& filePath);
 
 	struct ModelFileData
 	{
@@ -83,17 +117,17 @@ namespace Helper
 
 	STBIImageData LoadSTBIImage(const std::string& _fileName);
 
-	/** @brief Opens the file dialog and returns true if the user selects a file that ends with the input .xxx extension. Otherwise it returns false.
+	bool LoadTextureFile(ID3D12Device* device, const std::string& fileName, LoadedTextureFileData& container);
+
+	/** @brief Opens the file dialog and returns true if the user selects a file that ends with one of the input .xxx extensions. Otherwise it returns false.
 	* If it returns true, it will also copy the filename.xxx to the input _storeFileStr argument.
 	@return TRUE: File with extension selected, FALSE: File with extension not selected
 	*/
-	bool OpenFileDialogForExtension(const std::string& _extension, std::string& _storeFileStr);
-
-	bool OpenFileDialogForExtension(const std::vector<std::string>& extensions, std::string& storeFileStr, std::string& storeExtension);
+	bool OpenFileDialogForExtension(const std::vector<std::string>& extensions, std::string& storeFileStr);
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> CreateReadbackBuffer(ID3D12Device* _device, int _rowPitch, int _numRows);
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* _device, UINT _width, D3D12_HEAP_TYPE _heapType);
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* device, UINT width, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 	void CreateBufferResource(ID3D12Device* _device, ID3D12GraphicsCommandList* _cmdList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource, int _gpuOnlyWidth, Microsoft::WRL::ComPtr<ID3D12Resource>& _mappedResource, int _mappedWidth, void* _data);
 
@@ -103,17 +137,31 @@ namespace Helper
 	void CreateTextureResource(ID3D12Device* _device, ID3D12GraphicsCommandList* _transitionList, ID3D12GraphicsCommandList* _copyList, Microsoft::WRL::ComPtr<ID3D12Resource>& _gpuOnlyResource,
 		Microsoft::WRL::ComPtr<ID3D12Resource>& _intermediateResource, void* _data, int _width, int _height, int _channels, DXGI_FORMAT _format, D3D12_RESOURCE_STATES _initState);
 
-	void CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+	void CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format, bool multiSampled = false, int mipSlice = 0);
 
-	void CreateDSVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+	void CreateDSVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format, bool multiSampled = false, int mipSlice = 0);
 
-	void CreateSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format);
+	void createSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, 
+		D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format, bool multiSampled = false, UINT mipLevels = 1);
 
-	void createUAVHandle(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format);
+	void createSRVHandleMIP(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12Resource> resource,
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format, UINT startMipLevel, UINT endMipLevel, bool multiSampled = false);
+
+	void createUAVHandle(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format, bool multiSampled = false, int mipSlice = 0);
+	
+	void createUAVHandleBuffer(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format);
+
+	void createSRVHandleBuffer(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format);
+
+	void createCBVHandleBuffer(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_VIRTUAL_ADDRESS virtualAddress, UINT sizeInBytes);
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* _device,
 		UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState,
 		D3D12_CLEAR_VALUE* _clearValue);
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* device,
+		UINT width, UINT height, UINT sampleCount, UINT sampleQuality, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initialState,
+		D3D12_CLEAR_VALUE* clearValue);
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> CreateUploadResource(ID3D12Device* _device,
 		UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState);

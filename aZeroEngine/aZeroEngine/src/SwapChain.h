@@ -29,7 +29,7 @@ public:
 	
 	SwapChain() = default;
 
-	SwapChain(ID3D12Device* device, CommandQueue& commandQueue, DescriptorManager& descriptorManager, ResourceTrashcan& trashCan, HWND windowHandle, int width, int height, DXGI_FORMAT bbFormat,
+	SwapChain(ID3D12Device* device, CommandQueue& commandQueue, DescriptorManager& descriptorManager, ResourceRecycler& trashCan, HWND windowHandle, int width, int height, DXGI_FORMAT bbFormat,
 		DXGI_SWAP_CHAIN_FLAG flags = (DXGI_SWAP_CHAIN_FLAG)(DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING),
 		DXGI_SCALING scaling = DXGI_SCALING_STRETCH);
 
@@ -47,4 +47,5 @@ public:
 	std::array<std::unique_ptr<Texture>, 3>& getBackBuffers() { return m_backBuffers; }
 	IDXGISwapChain1* getSwapChain() const { return m_swapChain.Get(); }
 
+	void resizeBackBuffers(ID3D12Device* device, UINT width, UINT height);
 };

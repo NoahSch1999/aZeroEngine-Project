@@ -1,6 +1,6 @@
 #include "Texture2DCache.h"
 
-Texture2DCache::Texture2DCache(DescriptorManager& descriptorManager, ResourceTrashcan& trashcan)
+Texture2DCache::Texture2DCache(DescriptorManager& descriptorManager, ResourceRecycler& trashcan)
 	:ResourceCache(trashcan), descriptorManager(descriptorManager) { }
 
 Texture2DCache::~Texture2DCache() { }
@@ -16,29 +16,27 @@ void Texture2DCache::LoadResource(ID3D12Device* device, GraphicsContextHandle& c
 	if (resources.Exists(name))
 		return;
 
-	Helper::STBIImageData loadedData = Helper::LoadSTBIImage("../textures/" + name);
+	Helper::LoadedTextureFileData loadedContainer;
 
-	int id = resources.Add(name, Texture());
-	Texture& tempResource = *resources.GetObjectByKey(id);
+	if (Helper::LoadTextureFile(device, "../textures/" + name, loadedContainer))
+	{
+		D3D12_RESOURCE_DESC rDesc = loadedContainer.m_resource->GetDesc();
+		Texture::Description desc;
+		desc.m_height = rDesc.Height;
+		desc.m_width = rDesc.Width;
+		desc.m_mainFormat = rDesc.Format;
+		desc.m_mipLevels = rDesc.MipLevels;
+		desc.m_bytesPerTexel = 4;
+		desc.m_srvFormat = rDesc.Format;
+		desc.m_uavFormat = rDesc.Format;
+		desc.m_usage = SRV | UAV;
 
-	TextureSettings settings;
-	/*settings.m_createReadback = false;*/
-	settings.m_flags = D3D12_RESOURCE_FLAG_NONE;
-	settings.m_bytesPerTexel = loadedData.channels;
-	settings.m_height = loadedData.height;
-	settings.m_width = loadedData.width;
-	settings.m_initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	settings.m_srvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	settings.m_clearValue.Color[0] = 0;
-	settings.m_clearValue.Color[1] = 0;
-	settings.m_clearValue.Color[2] = 0;
-	settings.m_clearValue.Color[3] = 0;
-	settings.m_uploadSettings.m_discardUpload = true;
-	settings.m_uploadSettings.m_initialData = loadedData.rawData;
-
-	tempResource = std::move(Texture(device, context.getList(), settings, descriptorManager, m_trashcan));
-
-	heapIndexToStr.emplace(tempResource.getSRVHandle().getHeapIndex(), name);
+		resources.Add(name, std::move(Texture(device, descriptorManager, m_trashcan, desc)));
+		//resources.Add(name, std::move(Texture(device, descriptorManager, m_trashcan, context.getList(), loadedContainer, {})));
+		Texture& tempResource = *resources.GetObjectByKey(name);
+		tempResource.upload(device, context.getList(), loadedContainer.m_subresourceData);
+		heapIndexToStr.emplace(tempResource.getSRVHandle().getHeapIndex(), name);
+	}
 }
 
 void Texture2DCache::RemoveResource(const std::string& _key)

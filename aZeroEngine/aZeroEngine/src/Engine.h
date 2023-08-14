@@ -12,8 +12,8 @@
 #include "InputHandler.h"
 #include "Timer.h"
 #include "VertexDefinitions.h"
-
 #include "ECS.h"
+#include "ShaderCache.h"
 
 namespace aZero
 {
@@ -23,7 +23,7 @@ namespace aZero
 		UINT m_frameIndex = 0;
 		UINT64 m_frameCount = 0;
 		DescriptorManager m_descriptorManager;
-		ResourceTrashcan m_resourceBin;
+		ResourceRecycler m_resourceBin;
 		std::unique_ptr<CommandManager> m_commandManager;
 
 		Microsoft::WRL::ComPtr<ID3D12Device> device = nullptr;
@@ -34,6 +34,7 @@ namespace aZero
 		MaterialManager materialManager;
 		ModelCache modelCache;
 		Texture2DCache textureCache;
+		ShaderCache m_shaderCache;
 
 		Texture* currentBackBuffer = nullptr;
 
@@ -58,12 +59,29 @@ namespace aZero
 			if (m_frameIndex % 3 == 0)
 			{
 				m_commandManager->flushCPU();
-
-				if (m_resourceBin.resources.size() > 0)
-				{
-					m_resourceBin.resources.clear();
-				}
+				m_resourceBin.recycleResources();
 			}
+		}
+
+		void OnResizeWindow()
+		{
+			// Get client window dimensions
+			RECT winRect;
+			GetClientRect(window->GetHandle(), &winRect);
+
+			// Wait for relevant resources to be available
+			m_commandManager->getGraphicsQueue().signal();
+			this->Flush();
+
+			// Recreate back buffers and rendersurfaces to fit the new window dimensions
+			swapchain->resizeBackBuffers(device.Get(), winRect.right, winRect.bottom);
+			//m_renderSurfaces.resizeTextures(device.Get(), winRect.right, winRect.bottom);
+			renderSystem->m_renderSettings.m_screenResolution.x = winRect.right;
+			renderSystem->m_renderSettings.m_screenResolution.y = winRect.bottom;
+			renderSystem->notifyRenderSettingsUpdate();
+
+			// Reset frame count so the first back buffer in the array becomes the current back buffer
+			m_frameCount = 0;
 		}
 
 	public:
@@ -109,7 +127,7 @@ namespace aZero
 
 			// Uses client size since it should be the same size as the entire window
 			swapchain = std::make_unique<SwapChain>(device.Get(), m_commandManager->getGraphicsQueue(), m_descriptorManager, m_resourceBin,
-				window->GetHandle(), window->GetClientSize().x, window->GetClientSize().y, DXGI_FORMAT_B8G8R8A8_UNORM);
+				window->GetHandle(), window->GetClientSize().x, window->GetClientSize().y, /*DXGI_FORMAT_R10G10B10A2_UNORM*/DXGI_FORMAT_R8G8B8A8_UNORM);
 
 			lightSystem = systemManager.RegisterSystem<LightSystem>(componentManager, device.Get(), m_resourceBin);
 			
@@ -117,7 +135,7 @@ namespace aZero
 				m_resourceBin, m_descriptorManager,
 				&modelCache,
 				lightSystem->GetLightManager(),
-				&materialManager,
+				&materialManager, &m_shaderCache,
 				swapchain.get(), _appInstance, window->GetHandle());
 
 			parentSystem = systemManager.RegisterSystem<ParentSystem>(componentManager);
@@ -141,8 +159,10 @@ namespace aZero
 
 			ImGui_ImplWin32_Init(window->GetHandle());
 			DescriptorHandle heapHandle = m_descriptorManager.getResourceDescriptor();
-			ImGui_ImplDX12_Init(device.Get(), 3, DXGI_FORMAT_B8G8R8A8_UNORM, m_descriptorManager.getResourceHeap(), heapHandle.getCPUHandle(), heapHandle.getGPUHandle());
+			ImGui_ImplDX12_Init(device.Get(), 3, swapchain->getBackBufferFormat(), m_descriptorManager.getResourceHeap(), heapHandle.getCPUHandle(), heapHandle.getGPUHandle());
 			ImGui::LoadIniSettingsFromDisk("uiSettings.abzui");
+
+			WINDOWRESIZE = false;
 		}
 
 		~Engine()
@@ -221,7 +241,7 @@ namespace aZero
 				context.transitionTexture(*currentBackBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 				ID3D12DescriptorHeap* heap[] = { m_descriptorManager.getResourceHeap(), m_descriptorManager.getSamplerHeap() };
 				context.setDescriptorHeaps(2, heap);
-				context.setOMRenderTargets(1, &currentBackBuffer->getRTVDSVHandle().getCPUHandleRef(), true, nullptr);
+				context.setOMRenderTargets(1, &currentBackBuffer->getRTVHandle().getCPUHandleRef(), true, nullptr);
 
 				ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), context.getList());
 
@@ -233,11 +253,25 @@ namespace aZero
 			m_frameCount++;
 
 			swapchain->getSwapChain()->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+			/*renderSystem->gMemory->Commit(m_commandManager.get()->getGraphicsQueue().getQueue());*/
 
 			/*GraphicsContextHandle context = m_commandManager->getGraphicsContext();
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault(nullptr, (void*)context.getList());
 			m_commandManager->executeContext(context);*/
+
+			if (WINDOWRESIZE)
+			{
+				this->OnResizeWindow();
+				WINDOWRESIZE = false;
+			}
+
+			renderSystem->endFrame();
+		}
+
+		void resizeWindow(UINT width, UINT height)
+		{
+			window->resize(width, height);
 		}
 
 		void AttachUI(std::shared_ptr<UserInterface> ui)
@@ -250,7 +284,7 @@ namespace aZero
 			if (_camera)
 			{
 				mainCamera = _camera;
-				renderSystem->SetMainCameraGeo(mainCamera);
+				renderSystem->mainCamera = _camera;
 			}
 		}
 
@@ -290,7 +324,7 @@ namespace aZero
 
 		// Getters :(
 		UINT GetFrameIndex() const { return m_frameIndex; }
-		ResourceTrashcan& GetResourceTrashcan() { return m_resourceBin; }
+		ResourceRecycler& GetResourceTrashcan() { return m_resourceBin; }
 		CommandManager& GetCommandManager() { return *m_commandManager.get(); }
 		ModelCache& GetModelCache() { return modelCache; }
 		Texture2DCache& GetTexture2DCache() { return textureCache; }
@@ -300,6 +334,7 @@ namespace aZero
 		std::weak_ptr<RendererSystem> GetRenderSystem() { return renderSystem; }
 		std::weak_ptr<ParentSystem> GetParentSystem() { return parentSystem; }
 		std::weak_ptr<PhysicSystem> GetPhysicSystem() { return m_physicSystem; }
+		SwapChain* getSwapChain() { return swapchain.get(); }
 
 		ID3D12Device* GetDevice() { return device.Get(); }
 		//

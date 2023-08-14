@@ -20,9 +20,9 @@ public:
 	/**Initiates the Texture2DCache object.
 	* It also creates a default texture using a texture within the texture-folder called DefaultTexture.png.
 	@param descriptorManager The DescriptorManager used for handing out DescriptorHandle objects to the Texture resources
-	@param trashcan The ResourceTrashcan object which the Texture resources will stash their resources in when they get destroyed
+	@param trashcan The ResourceRecycler object which the Texture resources will stash their resources in when they get destroyed
 	*/
-	Texture2DCache(DescriptorManager& descriptorManager, ResourceTrashcan& trashcan);
+	Texture2DCache(DescriptorManager& descriptorManager, ResourceRecycler& trashcan);
 
 	virtual ~Texture2DCache();
 

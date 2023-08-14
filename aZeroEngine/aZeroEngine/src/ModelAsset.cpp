@@ -1,7 +1,7 @@
 #include "ModelAsset.h"
 
 ModelAsset::ModelAsset(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, 
-	UINT frameIndex, ResourceTrashcan& trashcan, const GeometryData& geometryData, const Helper::ModelFileData& loadedModelFileData)
+	UINT frameIndex, ResourceRecycler& trashcan, const GeometryData& geometryData, const Helper::ModelFileData& loadedModelFileData)
 	:m_geometryData(geometryData)
 {
 	UploadBufferInitSettings vbInitSettings;
@@ -32,7 +32,7 @@ ModelAsset::ModelAsset(ID3D12Device* device, ID3D12GraphicsCommandList* commandL
 	m_indexBufferView.SizeInBytes = sizeof(UINT) * loadedModelFileData.indexData.size();
 }
 
-ModelAsset::ModelAsset(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, UINT frameIndex, ResourceTrashcan& trashcan, const GeometryData& geometryData, const void* const vertexPtr, const void* const indexPtr)
+ModelAsset::ModelAsset(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, UINT frameIndex, ResourceRecycler& trashcan, const GeometryData& geometryData, const void* const vertexPtr, const void* const indexPtr)
 	:m_geometryData(geometryData)
 {
 	UploadBufferInitSettings vbInitSettings;

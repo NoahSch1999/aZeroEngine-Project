@@ -21,6 +21,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\aZeroDependencies\aZeroModelParsing\ModelParser.cpp" />
+    <ClCompile Include="..\ThirdPartyDependencies\DirectXTK12\Src\DebugDraw.cpp" />
+    <ClCompile Include="..\ThirdPartyDependencies\DirectXTK12\Src\GeometricPrimitive.cpp" />
+    <ClCompile Include="..\ThirdPartyDependencies\DirectXTK12\Src\PrimitiveBatch.cpp" />
     <ClCompile Include="..\ThirdPartyDependencies\ImGui\backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="..\ThirdPartyDependencies\ImGui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="..\ThirdPartyDependencies\ImGui\imgui.cpp" />
@@ -44,11 +47,11 @@
     <ClCompile Include="src\ModelAsset.cpp" />
     <ClCompile Include="src\ModelCache.cpp" />
     <ClCompile Include="src\PBRMaterial.cpp" />
-    <ClCompile Include="src\PipelineState.cpp" />
     <ClCompile Include="src\RenderSystem.cpp" />
     <ClCompile Include="src\RootSignature.cpp" />
     <ClCompile Include="src\Sampler.cpp" />
     <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\ShaderDescriptorHeap.cpp" />
     <ClCompile Include="src\stbiHack.cpp" />
     <ClCompile Include="src\SwapChain.cpp" />
@@ -58,6 +61,32 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\aZeroDependencies\aZeroModelParsing\ModelParser.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Audio.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\BufferHelpers.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\CommonStates.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DDSTextureLoader.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DebugDraw.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DescriptorHeap.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\DirectXHelpers.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\EffectPipelineStateDescription.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Effects.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\GamePad.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\GeometricPrimitive.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\GraphicsMemory.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Keyboard.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Model.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\Mouse.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\PostProcess.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\PrimitiveBatch.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\RenderTargetState.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\ResourceUploadBatch.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\ScreenGrab.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SimpleMath.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SpriteBatch.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SpriteFont.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\VertexTypes.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\WICTextureLoader.h" />
+    <ClInclude Include="..\ThirdPartyDependencies\DirectXTK12\Inc\XboxDDSTextureLoader.h" />
     <ClInclude Include="..\ThirdPartyDependencies\ImGui\backends\imgui_impl_dx12.h" />
     <ClInclude Include="..\ThirdPartyDependencies\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\ThirdPartyDependencies\ImGui\imconfig.h" />
@@ -69,6 +98,7 @@
     <ClInclude Include="..\ThirdPartyDependencies\ImGui\imstb_truetype.h" />
     <ClInclude Include="src\AppWindow.h" />
     <ClInclude Include="src\aZeroECS.h" />
+    <ClInclude Include="src\Buffer.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\CommandContext.h" />
     <ClInclude Include="src\CommandManager.h" />
@@ -76,7 +106,7 @@
     <ClInclude Include="src\ComponentManager.h" />
     <ClInclude Include="src\Components.h" />
     <ClInclude Include="src\ComputeContextHandle.h" />
-    <ClInclude Include="src\ComputePipelineState.h" />
+    <ClInclude Include="src\ComputePipeline.h" />
     <ClInclude Include="src\CopyContextHandle.h" />
     <ClInclude Include="src\D3D12Include.h" />
     <ClInclude Include="src\DescriptorHandle.h" />
@@ -88,6 +118,7 @@
     <ClInclude Include="src\Entity.h" />
     <ClInclude Include="src\EntityManager.h" />
     <ClInclude Include="src\GraphicsContextHandle.h" />
+    <ClInclude Include="src\GraphicsPipeline.h" />
     <ClInclude Include="src\HelperFunctions.h" />
     <ClInclude Include="src\HiddenDescriptorHeap.h" />
     <ClInclude Include="src\InputHandler.h" />
@@ -105,17 +136,18 @@
     <ClInclude Include="src\ParentSystem.h" />
     <ClInclude Include="src\PBRMaterial.h" />
     <ClInclude Include="src\PhysicSystem.h" />
-    <ClInclude Include="src\PipelineState.h" />
     <ClInclude Include="src\RasterState.h" />
-    <ClInclude Include="src\ReadbackBuffer.h" />
+    <ClInclude Include="src\RenderSurfaces.h" />
     <ClInclude Include="src\RenderSystem.h" />
     <ClInclude Include="src\ResourceCache.h" />
-    <ClInclude Include="src\ResourceTrashcan.h" />
+    <ClInclude Include="src\ResourceRecycler.h" />
     <ClInclude Include="src\RootParameter.h" />
     <ClInclude Include="src\RootSignature.h" />
     <ClInclude Include="src\Sampler.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\SelectionList.h" />
+    <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\ShaderCache.h" />
     <ClInclude Include="src\ShaderDescriptorHeap.h" />
     <ClInclude Include="src\stbiHack.h" />
     <ClInclude Include="src\stb_image.h" />
@@ -133,17 +165,37 @@
     <ClInclude Include="src\VertexDefinitions.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="CS_PickingReadback.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+    </FxCompile>
     <FxCompile Include="src\CS_FXOutline.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
-    <FxCompile Include="src\CS_ProcessGlow.hlsl">
+    <FxCompile Include="src\CS_GlowHorizontal.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="src\CS_GlowVertical.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
     </FxCompile>
     <FxCompile Include="src\PS_Basic.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
@@ -225,6 +277,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\ThirdPartyDependencies\DirectXTK12\Inc\SimpleMath.inl" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -280,10 +333,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>$(SolutionDir)ThirdPartyDependencies\ReactPhysics\Debug;$(SolutionDir)ThirdPartyDependencies\assimp\lib\Debug;$(SolutionDir)ThirdPartyDependencies\DirectXTK\lib\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)ThirdPartyDependencies\ReactPhysics\Debug;$(SolutionDir)ThirdPartyDependencies\assimp\lib\Debug;$(SolutionDir)ThirdPartyDependencies\DirectXTK12\Bin\GDK_2022\Gaming.Desktop.x64\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(SolutionDir)ThirdPartyDependencies\ReactPhysics\Release;$(SolutionDir)ThirdPartyDependencies\assimp\lib\MinSizeRel;$(SolutionDir)ThirdPartyDependencies\DirectXTK\lib\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)ThirdPartyDependencies\ReactPhysics\Release;$(SolutionDir)ThirdPartyDependencies\assimp\lib\MinSizeRel;$(SolutionDir)ThirdPartyDependencies\DirectXTK12\Bin\GDK_2022\Gaming.Desktop.x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -319,14 +372,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);NOMINMAX;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdPartyDependencies\assimp\include;$(SolutionDir)ThirdPartyDependencies\DirectXTK\include;$(SolutionDir)ThirdPartyDependencies\ImGui;$(SolutionDir)ThirdPartyDependencies\ReactPhysics\include;$(SolutionDir)ThirdPartyDependencies\DirectXCore;$(SolutionDir)aZeroDependencies;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdPartyDependencies\assimp\include;$(SolutionDir)ThirdPartyDependencies\ImGui;$(SolutionDir)ThirdPartyDependencies\ReactPhysics\include;$(SolutionDir)ThirdPartyDependencies\DirectXCore;$(SolutionDir)aZeroDependencies;%(AdditionalIncludeDirectories);$(SolutionDir)ThirdPartyDependencies\DirectXTK12\Inc;$(SolutionDir)ThirdPartyDependencies\DirectXTK12\Src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>DirectXTK.lib;reactphysics3d.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;dxguid.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK12.lib;reactphysics3d.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;dxguid.lib;assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -337,7 +390,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);NOMINMAX;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdPartyDependencies\assimp\include;$(SolutionDir)ThirdPartyDependencies\DirectXTK\include;$(SolutionDir)ThirdPartyDependencies\ImGui;$(SolutionDir)ThirdPartyDependencies\ReactPhysics\include;$(SolutionDir)ThirdPartyDependencies\DirectXCore;$(SolutionDir)aZeroDependencies;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdPartyDependencies\assimp\include;$(SolutionDir)ThirdPartyDependencies\DirectXTK\include;$(SolutionDir)ThirdPartyDependencies\ImGui;$(SolutionDir)ThirdPartyDependencies\ReactPhysics\include;$(SolutionDir)ThirdPartyDependencies\DirectXCore;$(SolutionDir)aZeroDependencies;%(AdditionalIncludeDirectories);$(SolutionDir)ThirdPartyDependencies\DirectXTK12\Inc;$(SolutionDir)ThirdPartyDependencies\DirectXTK12\Src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -346,7 +399,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>DirectXTK.lib;reactphysics3d.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;dxguid.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK12.lib;reactphysics3d.lib;d3d12.lib;d3dcompiler.lib;dxgi.lib;dxguid.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

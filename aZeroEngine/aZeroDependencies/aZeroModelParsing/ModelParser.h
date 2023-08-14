@@ -19,6 +19,7 @@ namespace aZeroFiles
 	{
 		short m_startIndex;
 		short m_stopIndex;
+		float m_maxDistance;
 	};
 
 	struct ModelGenerateSettings
@@ -32,18 +33,53 @@ namespace aZeroFiles
 
 	struct LoadedModelContainer
 	{
-		int m_NumVertices;
+		int m_numVertices;
 		void* m_rawVertexData = nullptr;
-		int m_NumIndices;
+		int m_numIndices;
 		void* m_rawIndexData = nullptr;
 		std::vector<PerSubmeshInfo> m_subMeshInfo;
 
+		LoadedModelContainer() = default;
+
+		LoadedModelContainer(const LoadedModelContainer&) = delete;
+		LoadedModelContainer& operator=(const LoadedModelContainer&) = delete;
+
+		LoadedModelContainer(LoadedModelContainer&& other) noexcept
+		{
+			m_numVertices = other.m_numVertices;
+			m_numIndices = other.m_numIndices;
+			m_rawVertexData = other.m_rawVertexData;
+			m_rawIndexData = other.m_rawIndexData;
+			m_subMeshInfo = other.m_subMeshInfo;
+
+			other.m_rawVertexData = nullptr;
+			other.m_rawIndexData = nullptr;
+			
+		}
+
+		LoadedModelContainer& operator=(LoadedModelContainer&& other) noexcept
+		{
+			if (this != &other)
+			{
+				m_numVertices = other.m_numVertices;
+				m_numIndices = other.m_numIndices;
+				m_rawVertexData = other.m_rawVertexData;
+				m_rawIndexData = other.m_rawIndexData;
+				m_subMeshInfo = other.m_subMeshInfo;
+
+				other.m_rawVertexData = nullptr;
+				other.m_rawIndexData = nullptr;
+			}
+			return *this;
+		}
+
 		~LoadedModelContainer()
 		{
-			delete m_rawVertexData;
-			m_rawVertexData = nullptr;
-			delete m_rawIndexData;
-			m_rawIndexData = nullptr;
+			if (m_rawVertexData)
+			{
+				delete m_rawVertexData;
+				delete m_rawIndexData;
+			}
 		}
 	};
 

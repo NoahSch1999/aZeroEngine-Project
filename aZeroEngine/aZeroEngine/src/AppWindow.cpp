@@ -35,6 +35,11 @@ LRESULT WndProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam)
 
 	switch (_msg)
 	{
+	case WM_SIZE:
+	{
+		WINDOWRESIZE = true;
+		break;
+	}
 	case WM_DESTROY:
 	{
 		WINDOWQUIT = true;

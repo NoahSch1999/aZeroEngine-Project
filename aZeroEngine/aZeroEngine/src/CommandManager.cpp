@@ -94,41 +94,44 @@ CommandManager::CommandManager(ID3D12Device* device, UINT numGraphicsContexts, U
 	}
 }
 
-void CommandManager::flushCPU()
+void CommandManager::flushCPU(bool resetContexts)
 {
-	m_computeQueue.stallCPU(m_computeQueue.getLastSignalValue());
-	m_copyQueue.stallCPU(m_copyQueue.getLastSignalValue());
-	m_directQueue.stallCPU(m_directQueue.getLastSignalValue());
+	m_computeQueue.flushCPU(m_computeQueue.getLastSignalValue());
+	m_copyQueue.flushCPU(m_copyQueue.getLastSignalValue());
+	m_directQueue.flushCPU(m_directQueue.getLastSignalValue());
 
+	if (resetContexts)
 	{
-		std::lock_guard<std::mutex> lock(m_graphicsMutex);
-		for (std::shared_ptr<CommandContext> context : m_freeGraphicsContexts)
 		{
-			if (context->hasRecorded())
+			std::lock_guard<std::mutex> lock(m_graphicsMutex);
+			for (std::shared_ptr<CommandContext> context : m_freeGraphicsContexts)
 			{
-				context->reset();
+				if (context->hasRecorded())
+				{
+					context->reset();
+				}
 			}
 		}
-	}
 
-	{
-		std::lock_guard<std::mutex> lock(m_copyMutex);
-		for (std::shared_ptr<CommandContext> context : m_freeCopyContexts)
 		{
-			if (context->hasRecorded())
+			std::lock_guard<std::mutex> lock(m_copyMutex);
+			for (std::shared_ptr<CommandContext> context : m_freeCopyContexts)
 			{
-				context->reset();
+				if (context->hasRecorded())
+				{
+					context->reset();
+				}
 			}
 		}
-	}
 
-	{
-		std::lock_guard<std::mutex> lock(m_computeMutex);
-		for (std::shared_ptr<CommandContext> context : m_freeComputeContexts)
 		{
-			if (context->hasRecorded())
+			std::lock_guard<std::mutex> lock(m_computeMutex);
+			for (std::shared_ptr<CommandContext> context : m_freeComputeContexts)
 			{
-				context->reset();
+				if (context->hasRecorded())
+				{
+					context->reset();
+				}
 			}
 		}
 	}

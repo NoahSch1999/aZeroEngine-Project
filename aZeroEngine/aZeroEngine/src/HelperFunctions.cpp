@@ -4,23 +4,47 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "stb_image.h"
+#include "../ThirdPartyDependencies/DirectXTK12/Inc/WICTextureLoader.h"
+#include "../ThirdPartyDependencies/DirectXTK12/Inc/DDSTextureLoader.h"
 
-Microsoft::WRL::ComPtr<ID3DBlob> Helper::LoadBlobFromFile(const std::wstring& _filePath)
+Helper::MSQueryLevelResult Helper::getMultisampleLevels(ID3D12Device* device, DXGI_FORMAT format, UINT sampleCount, UINT sampleQuality)
 {
-	std::ifstream fin(_filePath, std::ios::binary);
-	fin.seekg(0, std::ios_base::end);
-	std::streampos size = fin.tellg();
-	fin.seekg(0, std::ios_base::beg);
+	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityCheck;
+	msQualityCheck.Format = format;
+	msQualityCheck.SampleCount = sampleCount;
+	msQualityCheck.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+	msQualityCheck.NumQualityLevels = sampleQuality;
 
-	Microsoft::WRL::ComPtr<ID3DBlob> blob;
-	HRESULT hr = D3DCreateBlob(size, blob.GetAddressOf());
-	if (FAILED(hr))
+	if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+		&msQualityCheck, sizeof(D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS))))
 		throw;
 
-	fin.read((char*)blob->GetBufferPointer(), size);
-	fin.close();
+	MSQueryLevelResult result;
+	result.m_sampleCount = msQualityCheck.SampleCount;
+	result.m_sampleQuality = msQualityCheck.NumQualityLevels;
+	return result;
+}
 
-	return blob;
+Microsoft::WRL::ComPtr<ID3DBlob> Helper::loadBlobFromFile(const std::wstring& filePath)
+{
+	std::ifstream fin(filePath, std::ios::binary);
+	if (fin.is_open())
+	{
+		fin.seekg(0, std::ios_base::end);
+		std::streampos size = fin.tellg();
+		fin.seekg(0, std::ios_base::beg);
+
+		Microsoft::WRL::ComPtr<ID3DBlob> blob;
+		HRESULT hr = D3DCreateBlob(size, blob.GetAddressOf());
+		if (FAILED(hr))
+			throw;
+
+		fin.read((char*)blob->GetBufferPointer(), size);
+		fin.close();
+		return blob;
+	}
+
+	return nullptr;
 }
 
 void Helper::LoadFBXFile(ModelFileData& dataContainer, const std::string& path)
@@ -138,35 +162,28 @@ Helper::STBIImageData Helper::LoadSTBIImage(const std::string& _fileName)
 	return data;
 }
 
-bool Helper::OpenFileDialogForExtension(const std::string& _extension, std::string& _storeFileStr)
+bool Helper::LoadTextureFile(ID3D12Device* device, const std::string& fileName, LoadedTextureFileData& container)
 {
-	CHAR ogPath[MAX_PATH];
-	DWORD dw = GetCurrentDirectoryA(MAX_PATH, ogPath);
+	const std::wstring wFileName(fileName.begin(), fileName.end());
 
-	OPENFILENAMEA openDialog = { 0 };
-	CHAR filePath[260] = { 0 };
-	ZeroMemory(&openDialog, sizeof(openDialog));
-	openDialog.lStructSize = sizeof(openDialog);
-	openDialog.hwndOwner = NULL;
-	openDialog.lpstrInitialDir = LPCSTR(ogPath);
-	openDialog.lpstrFile = filePath;
-	openDialog.nMaxFile = MAX_PATH;
-	openDialog.lpstrTitle = "Select a file";
-	openDialog.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
-	GetOpenFileNameA(&openDialog);
-
-	const std::string selectedFilePath(filePath);
-
-	if (selectedFilePath.ends_with(_extension))
+	if (fileName.ends_with(".dds"))
 	{
-		std::string fileameWithExt = selectedFilePath.substr(selectedFilePath.find_last_of("/\\") + 1);
-		_storeFileStr = fileameWithExt;
-		return true;
+		if (FAILED(DirectX::LoadDDSTextureFromFile(device, wFileName.c_str(), container.m_resource.GetAddressOf(), container.m_data, container.m_subresourceData)))
+			return false;
 	}
-	return false;
+	else
+	{
+		D3D12_SUBRESOURCE_DATA subData;
+		if (FAILED(DirectX::LoadWICTextureFromFile(device, wFileName.c_str(), container.m_resource.GetAddressOf(), container.m_data, subData)))
+			return false;
+
+		container.m_subresourceData.push_back(subData);
+	}
+
+	return true;
 }
 
-bool Helper::OpenFileDialogForExtension(const std::vector<std::string>& extensions, std::string& storeFileStr, std::string& storeExtension)
+bool Helper::OpenFileDialogForExtension(const std::vector<std::string>& extensions, std::string& storeFileStr)
 {
 	CHAR ogPath[MAX_PATH];
 	DWORD dw = GetCurrentDirectoryA(MAX_PATH, ogPath);
@@ -191,10 +208,10 @@ bool Helper::OpenFileDialogForExtension(const std::vector<std::string>& extensio
 		{
 			std::string fileameWithExt = selectedFilePath.substr(selectedFilePath.find_last_of("/\\") + 1);
 			storeFileStr = fileameWithExt;
-			storeExtension = extension;
 			return true;
 		}
 	}
+	
 	return false;
 }
 
@@ -212,12 +229,12 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateReadbackBuffer(ID3D12Device
 	return readbackBuffer;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateBufferResource(ID3D12Device* _device, UINT _width, D3D12_HEAP_TYPE _heapType)
+Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateBufferResource(ID3D12Device* device, UINT width, D3D12_HEAP_TYPE heapType, D3D12_RESOURCE_FLAGS flags)
 {
 	D3D12_RESOURCE_DESC rDesc = {};
 	ZeroMemory(&rDesc, sizeof(rDesc));
 	rDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	rDesc.Width = _width;
+	rDesc.Width = width;
 	rDesc.Height = 1;
 	rDesc.DepthOrArraySize = 1;
 	rDesc.MipLevels = 1;
@@ -225,18 +242,14 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateBufferResource(ID3D12Device
 	rDesc.SampleDesc.Count = 1;
 	rDesc.SampleDesc.Quality = 0;
 	rDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	rDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	rDesc.Flags = flags;
 
 	D3D12_HEAP_PROPERTIES heapProps = {};
-	heapProps.Type = _heapType;
+	heapProps.Type = heapType;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> retResource;
 
-	D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
-	if (_heapType == D3D12_HEAP_TYPE_UPLOAD)
-		state = D3D12_RESOURCE_STATE_GENERIC_READ;
-
-	HRESULT hr = _device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &rDesc, state, nullptr, IID_PPV_ARGS(&retResource));
+	HRESULT hr = device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE, &rDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&retResource));
 	if (FAILED(hr))
 		throw;
 
@@ -338,43 +351,112 @@ void Helper::CreateTextureResource(ID3D12Device* _device, ID3D12GraphicsCommandL
 	UpdateSubresources(_copyList, _gpuOnlyResource.Get(), _intermediateResource.Get(), 0, 0, 1, &sData);
 }
 
-void Helper::CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format)
+void Helper::CreateRTVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format, bool multiSampled, int mipSlice)
 {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
 	ZeroMemory(&rtvDesc, sizeof(D3D12_RENDER_TARGET_VIEW_DESC));
 	rtvDesc.Format = _format;
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+	if (multiSampled)
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+	else
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+	rtvDesc.Texture2D.MipSlice = mipSlice;
 	_device->CreateRenderTargetView(_resource.Get(), &rtvDesc, _cpuHandle);
 }
 
-void Helper::CreateDSVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format)
+void Helper::CreateDSVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format, bool multiSampled, int mipSlice)
 {
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	ZeroMemory(&dsvDesc, sizeof(D3D12_DEPTH_STENCIL_VIEW_DESC));
 	dsvDesc.Format = _format;
-	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	if (multiSampled)
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+	else
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+
+	dsvDesc.Texture2D.MipSlice = mipSlice;
 	_device->CreateDepthStencilView(_resource.Get(), &dsvDesc, _cpuHandle);
 }
 
-void Helper::CreateSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format)
+void Helper::createSRVHandle(ID3D12Device* _device, Microsoft::WRL::ComPtr<ID3D12Resource> _resource, 
+	D3D12_CPU_DESCRIPTOR_HANDLE _cpuHandle, DXGI_FORMAT _format, bool multiSampled, UINT mipLevels)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = _format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	if (multiSampled)
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+	else
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MipLevels = mipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	_device->CreateShaderResourceView(_resource.Get(), &srvDesc, _cpuHandle);
 }
 
-void Helper::createUAVHandle(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format)
+void Helper::createSRVHandleMIP(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format, UINT startMipLevel, UINT endMipLevel, bool multiSampled)
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = format;
+
+	if (multiSampled)
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+	else
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	srvDesc.Texture2D.MostDetailedMip = endMipLevel;
+	srvDesc.Texture2D.MipLevels = startMipLevel;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
+	device->CreateShaderResourceView(resource.Get(), &srvDesc, cpuHandle);
+}
+
+void Helper::createUAVHandle(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, 
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format, bool multiSampled, int mipSlice)
 {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.Format = format;
-	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	uavDesc.Texture2D.MipSlice = 0;
+
+	if (multiSampled)
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DMS;
+	else
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+	uavDesc.Texture2D.MipSlice = mipSlice;
+	device->CreateUnorderedAccessView(resource.Get(), nullptr, &uavDesc, cpuHandle);
+}
+
+void Helper::createUAVHandleBuffer(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format)
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = format;
+
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+
 	device->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpuHandle);
+}
+
+void Helper::createSRVHandleBuffer(ID3D12Device* device, ID3D12Resource* resource, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, DXGI_FORMAT format)
+{
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = format;
+
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+
+	device->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
+}
+
+void Helper::createCBVHandleBuffer(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_VIRTUAL_ADDRESS virtualAddress, UINT sizeInBytes)
+{
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = virtualAddress;
+	cbvDesc.SizeInBytes = sizeInBytes;
+
+	device->CreateConstantBufferView(&cbvDesc, cpuHandle);
 }
 
 Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Device* _device, UINT _width, UINT _height, DXGI_FORMAT _format, D3D12_RESOURCE_FLAGS _flags, D3D12_RESOURCE_STATES _initialState, D3D12_CLEAR_VALUE* _clearValue)
@@ -397,6 +479,32 @@ Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Devic
 	Microsoft::WRL::ComPtr<ID3D12Resource> retResource = nullptr;
 	HRESULT hr = _device->CreateCommittedResource(&properties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
 		&rDesc, _initialState, _clearValue, IID_PPV_ARGS(&retResource));
+	if (FAILED(hr))
+		throw;
+
+	return retResource;
+}
+
+Microsoft::WRL::ComPtr<ID3D12Resource> Helper::CreateTextureResource(ID3D12Device* device, UINT width, UINT height, UINT sampleCount, UINT sampleQuality, DXGI_FORMAT format, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initialState, D3D12_CLEAR_VALUE* clearValue)
+{
+	D3D12_RESOURCE_DESC rDesc = {};
+	rDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	rDesc.Width = width;
+	rDesc.Height = height;
+	rDesc.DepthOrArraySize = 1;
+	rDesc.MipLevels = 1;
+	rDesc.Format = format;
+	rDesc.SampleDesc.Count = sampleCount;
+	rDesc.SampleDesc.Quality = sampleQuality;
+	rDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	rDesc.Flags = flags;
+
+	D3D12_HEAP_PROPERTIES properties = {};
+	properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> retResource = nullptr;
+	HRESULT hr = device->CreateCommittedResource(&properties, D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+		&rDesc, initialState, clearValue, IID_PPV_ARGS(&retResource));
 	if (FAILED(hr))
 		throw;
 

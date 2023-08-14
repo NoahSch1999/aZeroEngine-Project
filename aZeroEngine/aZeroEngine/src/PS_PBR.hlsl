@@ -55,6 +55,12 @@ cbuffer DirectionalLight : register(b5)
     float pad2;
 };
 
+cbuffer PassConstants : register(b6)
+{
+    int samplerIndex;
+    float hdrExposure;
+}
+
 struct FragmentInput
 {
     float4 position : SV_Position;
@@ -72,13 +78,6 @@ struct PointLight
     float3 position;
     float range;
 };
-
-//struct DirectionalLight
-//{
-//    float4 direction;
-//    float3 color;
-//    float pad;
-//};
 
 StructuredBuffer<PointLight> pointLights : register(t0, space0);
 
@@ -126,7 +125,7 @@ float3 SCHLICKFresnelFunc(float _viewDotHalf, float3 _albedoColor, float _metall
 
 float3 CalcPBRPointLight(PointLight _pLight, float3 _albedoColor, float3 _fragNormal, float3 _fragWorldPos, float _metallic, float _roughness)
 {
-    float3 lightIntensity = _pLight.color * _pLight.intensity;
+    float3 lightIntensity = _pLight.color * (_pLight.intensity);
     
     float3 lightVec = _pLight.position.xyz - _fragWorldPos;
     float ligthDistance = length(lightVec);
@@ -174,6 +173,18 @@ float3 CalcPBRPointLight(PointLight _pLight, float3 _albedoColor, float3 _fragNo
     return (diffuseBRDF + specBRDF) * lightIntensity * nDotL;
 }
 
+float3 applyReinhardToneMapping(float3 color)
+{
+    color = color / (color + float3(1.f, 1.f, 1.f));
+    return color;
+}
+
+float3 applyReinhardToneMappingExposure(float3 color)
+{
+    color *= hdrExposure / (1. + color / hdrExposure);
+    return color;
+}
+
 struct Output
 {
     float4 fragmentColor : SV_TARGET0;
@@ -185,7 +196,7 @@ Output main(FragmentInput input)
 {
     MaterialConstants matData = materials[materialIndex];
     
-    SamplerState basicSampler = SamplerDescriptorHeap[0];
+    SamplerState basicSampler = SamplerDescriptorHeap[samplerIndex];
     float3 fragNDCPos = input.position;
     float3 fragWorldPos = input.worldPosition;
     
@@ -195,13 +206,14 @@ Output main(FragmentInput input)
     {
         Texture2D<float4> normalTexture = ResourceDescriptorHeap[matData.normalMapIndex];
         fragNormal = normalTexture.Sample(basicSampler, input.uv);
+        //fragNormal = normalTexture.SampleLevel(basicSampler, input.uv, 4);
         fragNormal = normalize(fragNormal * 2.0 - 1.0);
         fragNormal = normalize(mul(fragNormal, input.TBN));
     }
     
     Texture2D<float4> albedoTexture = ResourceDescriptorHeap[matData.albedoMapIndex];
     float4 albedoColor = albedoTexture.Sample(basicSampler, input.uv);
-    albedoColor = pow(albedoColor, 2.2f);
+    albedoColor = pow(albedoColor, 2.4);
     
     float roughness = matData.roughnessFactor;
     if (matData.roughnessMapIndex != -1)
@@ -217,7 +229,7 @@ Output main(FragmentInput input)
         metallic = metallicTexture.Sample(basicSampler, input.uv).x;
     }
     
-    float3 totalLighting = float3(0.f, 0.f, 0.f);
+    float3 totalLighting = float3(0.2f, 0.2f, 0.2f) * albedoColor.xyz;
     for (int i = 0; i < numPointLights; i++)
     {
         totalLighting += CalcPBRPointLight(pointLights[i], albedoColor.xyz, fragNormal, fragWorldPos, metallic, roughness);
@@ -248,8 +260,12 @@ Output main(FragmentInput input)
     
     totalLighting *= shadow;
     
+    //totalLighting = applyReinhardToneMapping(totalLighting);
+    
+    totalLighting = applyReinhardToneMappingExposure(totalLighting);
+    
     Output output;
-    output.fragmentColor = float4(totalLighting, 1);
+    output.fragmentColor = float4(totalLighting.xyz, 1);
     output.pickingOutput = pickingID;
     output.glowOutput = float4(0.f, 0.f, 0.f, 1.f);
     
@@ -258,13 +274,19 @@ Output main(FragmentInput input)
         if (matData.glowMapIndex != -1)
         {
             Texture2D glowMap = ResourceDescriptorHeap[matData.glowMapIndex];
-            output.glowOutput = glowMap.Sample(basicSampler, input.uv) * float4(matData.glowFullColor, 1.f) * matData.glowIntensity;
+            float4 glowColor = glowMap.Sample(basicSampler, input.uv);
+            output.glowOutput = glowColor * float4(matData.glowFullColor, glowColor.a) * matData.glowIntensity;
+            if (glowColor.x > 0.5)
+                output.fragmentColor = float4(matData.glowFullColor, 1.f); // Ensures equal glow color independent of lighting
         }
         else
         {
             output.glowOutput = float4(matData.glowFullColor, 1.f) * matData.glowIntensity;
+            output.fragmentColor = float4(matData.glowFullColor, 1.f); // Ensures equal glow color independent of lighting
         }
     }
+    
+   
     
     return output;
 }

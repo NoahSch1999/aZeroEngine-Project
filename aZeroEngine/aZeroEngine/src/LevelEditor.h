@@ -35,7 +35,8 @@ public:
 
 		{
 			GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
-			ui->currentScene = engine->LoadScene(context, "../scenes/", "Epic Scene");
+			//ui->currentScene = engine->LoadScene(context, "../scenes/", "Epic Scene");
+			ui->currentScene = engine->LoadScene(context, "../scenes/", "Megascans Scene");
 			engine->GetCommandManager().executeContext(context);
 			engine->GetCommandManager().flushCPU();
 		}
@@ -61,14 +62,30 @@ public:
 
 			if (camera)
 			{
-				if (camera->Active())
-				{
-					DXM::Vector2 clientDimensions = engine->GetClientWindowSize();
-					CopyContextHandle context = engine->GetCommandManager().getCopyContext();
-					camera->Update(timer.deltaTime, (float)clientDimensions.x / (float)clientDimensions.y, 
-						context.getList(), engine->GetFrameIndex());
-					engine->GetCommandManager().executeContext(context);
-				}
+				
+				DXM::Vector2 clientDimensions = engine->getSwapChain()->getBackBufferDimensions();
+				CopyContextHandle context = engine->GetCommandManager().getCopyContext();
+				camera->Update(timer.deltaTime, (float)clientDimensions.x / (float)clientDimensions.y, 
+					context.getList(), engine->GetFrameIndex(), !editorMode);
+				engine->GetCommandManager().executeContext(context);
+			}
+
+			if (InputManager::MouseBtnDown(LEFT) && !editorMode)
+			{
+				static int count = 0;
+				DXM::Vector3 forward = camera->GetForward() * 2.f;
+				const std::string name = "EntityShoot" + std::to_string(count);
+				aZeroECS::Entity& entity = ui->currentScene->CreateEntity(name);
+				ui->currentScene->GetComponentForEntity<Transform>(entity)->GetTranslation() = camera->GetPosition();
+				ui->currentScene->GetComponentForEntity<Transform>(entity)->GetScale() = { 0.01, 0.01, 0.01 };
+				ui->currentScene->AddComponentToEntity<Mesh>(entity, Mesh(engine->GetModelCache().GetID("defaultSphere")));
+				ui->currentScene->AddComponentToEntity<MaterialComponent>(entity, MaterialComponent(engine->GetMaterialManager().GetReferenceID<PBRMaterial>("Rock Mat")));
+				ui->currentScene->AddComponentToEntity<RigidBody>(entity);
+				RigidBody* rbComp = ui->currentScene->GetComponentForEntity<RigidBody>(entity);
+				rbComp->m_body->applyLocalForceAtCenterOfMass({ forward.x, forward.y, forward.z });
+				engine->GetPhysicSystem().lock()->addSphereCollider(*rbComp, "Collider");
+				
+				count++;
 			}
 
 			if (InputManager::KeyHeld('R') && InputManager::KeyHeld(VK_CONTROL))

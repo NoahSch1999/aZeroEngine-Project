@@ -25,7 +25,9 @@ int WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR commandLine, int s
 
 	{
 		/*
-		* Why isn't copy and compute running parallell? (test in PostEffectOutlinePass)
+		*	
+		* Make texture and mesh drag/drop area scrollable
+		* 
 		* Fix so transform is kept when adding rb
 		* Fix so transform is kept when parenting/childing
 		* 

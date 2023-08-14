@@ -4,18 +4,18 @@ Size=400,400
 Collapsed=0
 
 [Window][Performance Data]
-Pos=295,0
-Size=660,51
-Collapsed=1
+Pos=330,5
+Size=660,216
+Collapsed=0
 
 [Window][Dear ImGui Demo]
-Pos=955,2
-Size=632,44
+Pos=986,2
+Size=622,728
 Collapsed=1
 
 [Window][Application Info]
-Pos=0,0
-Size=294,292
+Pos=10,10
+Size=311,292
 Collapsed=0
 DockId=0x00000002,0
 
@@ -26,26 +26,26 @@ Collapsed=0
 DockId=0x0000000C,0
 
 [Window][Scene Manager]
-Pos=0,597
-Size=294,428
+Pos=10,607
+Size=311,428
 Collapsed=0
 DockId=0x00000005,0
 
 [Window][Settings]
-Pos=0,294
-Size=294,301
+Pos=10,304
+Size=311,301
 Collapsed=0
 DockId=0x00000003,0
 
 [Window][Entity Editor]
-Pos=1587,534
-Size=319,475
+Pos=1525,531
+Size=404,475
 Collapsed=0
 DockId=0x0000000E,0
 
 [Window][Material Editor]
-Pos=1587,1
-Size=319,531
+Pos=1525,-2
+Size=404,531
 Collapsed=0
 DockId=0x0000000D,0
 
@@ -65,16 +65,16 @@ Size=402,94
 Collapsed=0
 
 [Window][File Textures]
-Pos=293,795
-Size=1294,214
-Collapsed=0
-DockId=0x00000006,0
-
-[Window][Meshes]
-Pos=293,795
-Size=1294,214
+Pos=346,726
+Size=737,208
 Collapsed=0
 DockId=0x00000006,1
+
+[Window][Meshes]
+Pos=346,726
+Size=737,208
+Collapsed=0
+DockId=0x00000006,0
 
 [Window][##1333333337]
 Pos=60,60
@@ -88,17 +88,121 @@ Collapsed=0
 
 [Window][##OverwriteScenePopup]
 Pos=751,473
-Size=402,94
+Size=437,94
 Collapsed=0
 
+[Window][DEBUG WINDOW]
+Pos=344,232
+Size=428,186
+Collapsed=0
+
+[Table][0xC9935533,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x64418101,3]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Width=63
+
+[Table][0x47600645,3]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Weight=1.0000
+
+[Table][0xDE6957FF,6]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Width=-1
+Column 3  Weight=1.0000
+Column 4  Weight=1.0000
+Column 5  Weight=-1.0000
+
+[Table][0x861D378E,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x1F146634,3]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Width=63
+
+[Table][0x8DFA6E86,2]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+
+[Table][0xFABAAEF7,2]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+
+[Table][0xA43C3885,3]
+RefScale=13
+Column 0  Width=56
+Column 1  Width=56
+Column 2  Width=56
+
+[Table][0x49F8DCEA,3]
+RefScale=13
+Column 0  Weight=1.0000
+Column 1  Width=84
+Column 2  Width=126
+
+[Table][0x82CBB907,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x49D11DC0,3]
+RefScale=13
+Column 0  Width=86
+Column 1  Width=86
+Column 2  Width=86
+
+[Table][0x45A0E60D,7]
+RefScale=13
+Column 0  Width=49
+Column 1  Width=112
+Column 2  Width=112
+Column 3  Width=112
+Column 4  Width=112
+Column 5  Width=112
+Column 6  Width=112
+
+[Table][0xE0773582,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x20DF7A63,4]
+RefScale=13
+Column 0  Width=28 Sort=0v
+Column 1  Width=42
+Column 2  Width=42
+Column 3  Weight=1.0000
+
+[Table][0xDA36A7E0,6]
+RefScale=13
+Column 0  Width=28 Sort=0v
+Column 1  Width=42
+Column 2  Width=73
+Column 3  Width=68
+Column 4  Weight=1.0000
+Column 5  Width=-1
+
 [Docking][Data]
-DockNode      ID=0x00000001 Pos=0,0 Size=294,1025 Split=Y
-  DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=276,583 Split=Y
-    DockNode  ID=0x00000002 Parent=0x00000004 SizeRef=276,286 HiddenTabBar=1 Selected=0x6FE96694
-    DockNode  ID=0x00000003 Parent=0x00000004 SizeRef=276,295 HiddenTabBar=1 Selected=0x54723243
-  DockNode    ID=0x00000005 Parent=0x00000001 SizeRef=276,420 HiddenTabBar=1 Selected=0x6B58BA6D
-DockNode      ID=0x00000006 Pos=293,795 Size=1294,214 Selected=0xECCD6856
-DockNode      ID=0x0000000A Pos=1587,1 Size=319,1008 Split=Y Selected=0xEEF06B6F
+DockNode      ID=0x00000001 Pos=10,10 Size=311,1025 Split=Y
+  DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=276,595 Split=Y
+    DockNode  ID=0x00000002 Parent=0x00000004 SizeRef=276,292 HiddenTabBar=1 Selected=0x6FE96694
+    DockNode  ID=0x00000003 Parent=0x00000004 SizeRef=276,301 HiddenTabBar=1 Selected=0x54723243
+  DockNode    ID=0x00000005 Parent=0x00000001 SizeRef=276,428 HiddenTabBar=1 Selected=0x6B58BA6D
+DockNode      ID=0x00000006 Pos=346,726 Size=737,208 Selected=0xECCD6856
+DockNode      ID=0x0000000A Pos=1525,-2 Size=404,1008 Split=Y Selected=0xEEF06B6F
   DockNode    ID=0x0000000B Parent=0x0000000A SizeRef=366,729 Split=Y Selected=0xEEF06B6F
     DockNode  ID=0x0000000D Parent=0x0000000B SizeRef=403,539 Selected=0x744B41B5
     DockNode  ID=0x0000000E Parent=0x0000000B SizeRef=403,482 Selected=0xEEF06B6F

@@ -7,10 +7,16 @@
   </ProjectOutputs>
   <ContentFiles>
     <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_PickingReadback.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
       <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_FXOutline.cso</FullPath>
     </ContentFile>
     <ContentFile>
-      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_ProcessGlow.cso</FullPath>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_GlowHorizontal.cso</FullPath>
+    </ContentFile>
+    <ContentFile>
+      <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\CS_GlowVertical.cso</FullPath>
     </ContentFile>
     <ContentFile>
       <FullPath>C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\x64\Debug\PS_Basic.cso</FullPath>

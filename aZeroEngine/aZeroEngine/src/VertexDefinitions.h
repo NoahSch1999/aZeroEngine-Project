@@ -1,5 +1,5 @@
 #pragma once
-#include "DirectXTK/SimpleMath.h"
+#include "SimpleMath.h"
 namespace DXM = DirectX::SimpleMath;
 
 struct BasicVertex

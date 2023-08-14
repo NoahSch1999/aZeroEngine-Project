@@ -19,13 +19,10 @@ private:
 	// Settings
 	float maxFov = 3.14f * 0.7f;
 	float minFov = 3.14f * 0.05f;
-	float fov = 3.14f * 0.2f;
 	float fovChange = 100.f;
 	float pitch = 0.f;
 	float yaw = 0.f;
 	float moveSpeed = 4.f;
-	float nearPlane;
-	float farPlane;
 	DXM::Vector2 sensitivity;
 
 	// Buffer
@@ -35,6 +32,9 @@ private:
 	bool active = true;
 
 public:
+	float fov = 3.14f * 0.2f;
+	float nearPlane = 0.01f;
+	float farPlane = 1000.f;
 
 	UploadBuffer<DXM::Matrix>* GetBuffer() { return buffer.get(); }
 	DXM::Vector3& GetPosition() { return position; }
@@ -47,7 +47,7 @@ public:
 		active = _active;
 	}
 
-	Camera(ID3D12Device* device, ResourceTrashcan& trashcan, float _fov, uint32_t _aspectRatio, float _nearPlane = 0.1f, 
+	Camera(ID3D12Device* device, ResourceRecycler& trashcan, float _fov, uint32_t _aspectRatio, float _nearPlane = 0.001f,
 		float _farPlane = 1000.f, DXM::Vector2 _sensitivity = DXM::Vector2(0.005f, 0.005f), const std::string& _name = "")
 		:fov(_fov), nearPlane(_nearPlane), farPlane(_farPlane), sensitivity(_sensitivity), name(_name)
 	{
@@ -98,7 +98,7 @@ public:
 		buffer->update(_cmdList, _frameIndex, mat, 0);
 	}
 
-	void Update(double _deltaTime, float _aspectRatio, ID3D12GraphicsCommandList* _cmdList, UINT _frameIndex)
+	void Update(double _deltaTime, float _aspectRatio, ID3D12GraphicsCommandList* _cmdList, UINT _frameIndex, bool enableMove = true)
 	{
 		DXM::Matrix vecRotMatrix = DXM::Matrix::CreateFromYawPitchRoll(yaw, pitch, 0);
 
@@ -112,51 +112,54 @@ public:
 
 		bool dirty = false;
 
-		if (InputManager::KeyHeld('W'))
+		if (enableMove)
 		{
-			position += forward * moveSpeed * _deltaTime;
-			dirty = true;
-		}
-		if (InputManager::KeyHeld('S'))
-		{
-			position -= forward * moveSpeed * _deltaTime;
-			dirty = true;
-		}
-		if (InputManager::KeyHeld('D'))
-		{
-			position -= right * moveSpeed * _deltaTime;
-			dirty = true;
-		}
-		if (InputManager::KeyHeld('A'))
-		{
-			position += right * moveSpeed * _deltaTime;
-			dirty = true;
-		}
-		if (InputManager::KeyHeld(VK_SPACE))
-		{
-			position += UP * moveSpeed * _deltaTime;
-			dirty = true;
-		}
-		if (InputManager::KeyHeld(VK_SHIFT))
-		{
-			position -= UP * moveSpeed * _deltaTime;
-			dirty = true;
-		}
-		if (InputManager::MouseMoved())
-		{
-			DXM::Vector2 mouseDir = InputManager::GetMouseFrameDirection();
-			yaw -= mouseDir.x * sensitivity.x;
-			pitch += mouseDir.y * sensitivity.y;
-			dirty = true;
+			if (InputManager::KeyHeld('W'))
+			{
+				position += forward * moveSpeed * _deltaTime;
+				dirty = true;
+			}
+			if (InputManager::KeyHeld('S'))
+			{
+				position -= forward * moveSpeed * _deltaTime;
+				dirty = true;
+			}
+			if (InputManager::KeyHeld('D'))
+			{
+				position -= right * moveSpeed * _deltaTime;
+				dirty = true;
+			}
+			if (InputManager::KeyHeld('A'))
+			{
+				position += right * moveSpeed * _deltaTime;
+				dirty = true;
+			}
+			if (InputManager::KeyHeld(VK_SPACE))
+			{
+				position += UP * moveSpeed * _deltaTime;
+				dirty = true;
+			}
+			if (InputManager::KeyHeld(VK_SHIFT))
+			{
+				position -= UP * moveSpeed * _deltaTime;
+				dirty = true;
+			}
+			if (InputManager::MouseMoved())
+			{
+				DXM::Vector2 mouseDir = InputManager::GetMouseFrameDirection();
+				yaw -= mouseDir.x * sensitivity.x;
+				pitch += mouseDir.y * sensitivity.y;
+				dirty = true;
+			}
 		}
 			
-		if (dirty)
-		{
+		/*if (dirty)
+		{*/
 			view = DXM::Matrix::CreateLookAt(position, camTarget, UP);
 			proj = DXM::Matrix::CreatePerspectiveFieldOfView(fov, _aspectRatio, nearPlane, farPlane);
 
 			DXM::Matrix mat = view * proj;
 			buffer->update(_cmdList, _frameIndex, mat, 0);
-		}
+		/*}*/
 	}
 };

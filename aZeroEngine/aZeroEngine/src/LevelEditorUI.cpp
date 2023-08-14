@@ -23,6 +23,12 @@ void LevelEditorUI::ShowPerformanceData()
 
 	ImGui::Text("Average MS and FPS: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
+	if (ImGui::Button("TESTSTTS"))
+	{
+		
+		printf("h");
+	}
+
 	ImGui::End();
 }
 
@@ -100,8 +106,6 @@ void LevelEditorUI::showApplicationSettings()
 
 		lastPlaystop = m_currentlyPlaying;
 
-		ImGui::Checkbox("Enable Prepass", &engine->GetRenderSystem().lock()->m_prePassUsed);
-
 		{
 			std::shared_ptr<PhysicSystem> pSystem = engine->GetPhysicSystem().lock();
 			float currentGravity = pSystem->getGravity();
@@ -110,26 +114,118 @@ void LevelEditorUI::showApplicationSettings()
 		}
 
 		{
-			std::shared_ptr<RendererSystem> pSystem = engine->GetRenderSystem().lock();
+			std::shared_ptr<RendererSystem> rSystem = engine->GetRenderSystem().lock();
 
-			ImGui::Checkbox("Enable Blur", &pSystem->m_blurByDistance);
+			ImGui::Checkbox("Enable Glow", &rSystem->m_renderSettings.m_enableGlow);
 
-			if (pSystem->m_blurByDistance)
+			ImGui::SliderInt("Glow Radius", &rSystem->m_renderSettings.m_glowRadius, 0, 25);
+
+			std::shared_ptr<Camera> cam = camera.lock();
+
+			ImGui::SliderFloat("Far Plane", &cam->farPlane, cam->nearPlane + 0.2f, 1000.f, "%.3f", 32);
+			ImGui::SliderAngle("Fov", &cam->fov, 10.f, 180.f);
+
+			ImGui::InputFloat("Gamma", &rSystem->m_renderSettings.m_gamma, 0.1f);
+			ImGui::SliderFloat("HDR Exposure", &rSystem->m_renderSettings.m_hdrExposure, 0.001f, 10.f);
+
+			ImGui::Checkbox("Enable Selection Outlines", &rSystem->m_renderSettings.m_drawSelectionOutlines);
+
+			if (rSystem->m_renderSettings.m_drawSelectionOutlines)
 			{
-				int blurValues[2] = { pSystem->m_blurDistRadiusX, pSystem->m_blurDistRadiusY };
-				ImGui::SliderInt("Blur Kernel Size##1337", &blurValues[0], 1, 100);
-
-				pSystem->m_blurDistRadiusX = blurValues[0];
-				pSystem->m_blurDistRadiusY = blurValues[0];
+				ImGui::SliderInt("Outline Thickness", &rSystem->m_renderSettings.m_outlineThickness, 1, 20);
+				ImGui::ColorEdit3("Main Selection Color", (float*)&rSystem->m_renderSettings.m_mainOutlineColor);
+				ImGui::ColorEdit3("Secondary Selection Color", (float*)&rSystem->m_renderSettings.m_secondaryOutlineColor);
 			}
 
-			ImGui::Checkbox("Enable Selection Outlines", &pSystem->m_drawSelectionOutlines);
-
-			if (pSystem->m_drawSelectionOutlines)
 			{
-				ImGui::SliderInt("Outline Thickness", &pSystem->m_outlineThickness, 1, 20);
-				ImGui::ColorEdit3("Main Selection Color", (float*)&pSystem->m_mainOutlineColor);
-				ImGui::ColorEdit3("Secondary Selection Color", (float*)&pSystem->m_secondaryOutlineColor);
+				ImGui::Text("MSAA Sample Count");
+				int currentMSAACount = rSystem->m_renderSettings.m_msaaCount;
+				ImGui::RadioButton("1##msaa", (int*)&rSystem->m_renderSettings.m_msaaCount, 1); ImGui::SameLine();
+				ImGui::RadioButton("2##msaa", (int*)&rSystem->m_renderSettings.m_msaaCount, 2); ImGui::SameLine();
+				ImGui::RadioButton("4##msaa", (int*)&rSystem->m_renderSettings.m_msaaCount, 4); ImGui::SameLine();
+				ImGui::RadioButton("8##msaa", (int*)&rSystem->m_renderSettings.m_msaaCount, 8);
+
+				if (currentMSAACount != rSystem->m_renderSettings.m_msaaCount)
+					rSystem->notifyRenderSettingsUpdate();
+
+				const char* resolutions[] = { "1920x1080", "1600x900", "1280x1024"};
+				static int currentResolution = 0; 
+				const char* comboValue = resolutions[currentResolution];  
+				if (ImGui::BeginCombo("Resolution", comboValue))
+				{
+					for (int n = 0; n < IM_ARRAYSIZE(resolutions); n++)
+					{
+						const bool is_selected = (currentResolution == n);
+						if (ImGui::Selectable(resolutions[n], is_selected))
+						{
+							currentResolution = n;
+							switch (currentResolution)
+							{
+								case 0:
+								{
+									engine->resizeWindow(1920, 1080);
+									break;
+								}
+								case 1:
+								{
+									engine->resizeWindow(1600, 900);
+									break;
+								}
+								case 2:
+								{
+									engine->resizeWindow(1280, 1024);
+									break;
+								}
+							}
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				const char* textureFilterings[] = { "POINT", "LINEAR", "ANISOTROPIC_X8", "ANISOTROPIC_X16" };
+				static int currentFiltering = rSystem->m_renderSettings.m_currentSampler; 
+				const char* currentFilteringValue = textureFilterings[currentFiltering];  
+				if (ImGui::BeginCombo("Texture Filtering", currentFilteringValue))
+				{
+					for (int n = 0; n < IM_ARRAYSIZE(textureFilterings); n++)
+					{
+						const bool is_selected = (currentFiltering == n);
+						if (ImGui::Selectable(textureFilterings[n], is_selected))
+						{
+							currentFiltering = n;
+							switch (currentFiltering)
+							{
+							case 0:
+							{
+								rSystem->m_renderSettings.m_currentSampler = RendererSystem::RenderSettings::SAMPLERTYPE::POINT;
+								break;
+							}
+							case 1:
+							{
+								rSystem->m_renderSettings.m_currentSampler = RendererSystem::RenderSettings::SAMPLERTYPE::LINEAR;
+								break;
+							}
+							case 2:
+							{
+								rSystem->m_renderSettings.m_currentSampler = RendererSystem::RenderSettings::SAMPLERTYPE::ANISOTROPIC_X8;
+								break;
+							}
+							case 3:
+							{
+								rSystem->m_renderSettings.m_currentSampler = RendererSystem::RenderSettings::SAMPLERTYPE::ANISOTROPIC_X16;
+								break;
+							}
+							}
+						}
+
+						if (is_selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
 			}
 		}
 
@@ -238,12 +334,13 @@ int LevelEditorUI::applyTexturePopup(int ID)
 std::optional<std::string> LevelEditorUI::LoadModelDataFromDirectory()
 {
 	std::string nameWithExt = "";
-	std::string extension = "";
+	
 
-	if (Helper::OpenFileDialogForExtension({".fbx", ".azModel"}, nameWithExt, extension))
+	if (Helper::OpenFileDialogForExtension({".fbx", ".azModel"}, nameWithExt))
 	{
-		std::string::size_type const p(nameWithExt.find_last_of('.'));
-		std::string nameWithoutExt = nameWithExt.substr(0, p);
+		const std::string::size_type const nameLengthNoExt(nameWithExt.find_last_of('.'));
+		std::string nameWithoutExt = nameWithExt.substr(0, nameLengthNoExt);
+		const std::string extension(nameWithExt.substr(nameLengthNoExt, nameWithExt.length() - nameLengthNoExt));
 
 		GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 
@@ -273,7 +370,7 @@ std::optional<std::string> LevelEditorUI::LoadPBRMaterialFromDirectory()
 {
 	std::string matNameWithExt = "";
 
-	if (Helper::OpenFileDialogForExtension(".azmpbr", matNameWithExt))
+	if (Helper::OpenFileDialogForExtension({ ".azmpbr" }, matNameWithExt))
 	{
 		std::string::size_type const p(matNameWithExt.find_last_of('.'));
 		std::string fileNameWithoutExt = matNameWithExt.substr(0, p);
@@ -308,6 +405,28 @@ void LevelEditorUI::Update()
 
 		if (currentScene)
 			ShowEntityWindow();
+
+		if (!selectionList.Empty())
+		{
+			RigidBody* rbComp = currentScene->GetComponentForEntity<RigidBody>(currentScene->GetEntity(*selectionList.Begin()));
+			if (rbComp)
+			{
+				if (ImGui::Begin("DEBUG WINDOW"))
+				{
+					if (rbComp->m_colliders.count("Collider") > 0)
+					{
+						reactphysics3d::Transform tf = rbComp->m_colliders.at("Collider")->getLocalToBodyTransform();
+						float localToBody[3]{ tf.getPosition().x, tf.getPosition().y, tf.getPosition().z };
+						ImGui::InputFloat3("Local To Body", localToBody);
+
+						tf = rbComp->m_colliders.at("Collider")->getLocalToWorldTransform();
+						float localToWorld[3]{ tf.getPosition().x, tf.getPosition().y, tf.getPosition().z };
+						ImGui::InputFloat3("Local To World", localToWorld);
+					}
+					ImGui::End();
+				}
+			}
+		}
 	}
 }
 
@@ -615,13 +734,17 @@ void LevelEditorUI::DrawEntityComponents(aZeroECS::Entity& _entity)
 								}
 								else
 								{
-									for (PBRMaterial& mat : pbrMaterials)
+									if (ImGui::BeginListBox("##matselpopuplistbox"))
 									{
-										if (ImGui::Selectable(mat.GetName().c_str()))
+										for (PBRMaterial& mat : pbrMaterials)
 										{
-											matComp->materialID = mManager.GetReferenceID<PBRMaterial>(mat.GetName());
-											break;
+											if (ImGui::Selectable(mat.GetName().c_str()))
+											{
+												matComp->materialID = mManager.GetReferenceID<PBRMaterial>(mat.GetName());
+												break;
+											}
 										}
+										ImGui::EndListBox();
 									}
 								}
 
@@ -738,6 +861,81 @@ void LevelEditorUI::DrawEntityComponents(aZeroECS::Entity& _entity)
 								rigidBodyComp->m_body->setMass(rbMass);
 							}
 
+							static std::string lastSelected = "";
+							static int collCount = 0;
+							std::shared_ptr<PhysicSystem> pSystem = engine->GetPhysicSystem().lock();
+							if (ImGui::Button("Add Collider##Rb"))
+							{
+								const std::string collName = "BoxCollider" + std::to_string(collCount);
+								pSystem->addBoxCollider(*rigidBodyComp, collName);
+								collCount++;
+							}
+
+							if (ImGui::Button("Add Collider2##Rb"))
+							{
+								const std::string collName = "Sphere" + std::to_string(collCount);
+								pSystem->addSphereCollider(*rigidBodyComp, collName);
+								//pSystem->addConvexCollider(*rigidBodyComp, collName, "defaultSphere");
+								collCount++;
+							}
+
+							if (ImGui::Button("Remove Collider"))
+								ImGui::OpenPopup("RemoveColliderPopup");
+
+							if (ImGui::BeginPopup("RemoveColliderPopup"))
+							{
+								if (ImGui::BeginListBox("##RemoveColliderListbox"))
+								{
+									for (auto& [name, collider] : rigidBodyComp->m_colliders)
+									{
+										if (ImGui::Selectable(name.c_str()))
+										{
+											if (lastSelected == name)
+												lastSelected = "";
+											pSystem->removeCollider(*rigidBodyComp, name);
+											ImGui::CloseCurrentPopup();
+											break;
+										}
+									}
+									ImGui::EndListBox();
+								}
+								
+								ImGui::EndPopup();
+							}
+
+							if (ImGui::BeginListBox("Colliders"))
+							{
+								for (auto& [name, collider] : rigidBodyComp->m_colliders)
+								{
+									bool test = name == lastSelected ? 1 : 0;
+									if (ImGui::Selectable(name.c_str(), test))
+									{
+										lastSelected = name;
+										break;
+									}
+								}
+								ImGui::EndListBox();
+							}
+
+							if (lastSelected != "")
+							{
+								if (rigidBodyComp->m_colliders.count(lastSelected))
+								{
+									reactphysics3d::Collider* collider = rigidBodyComp->m_colliders.at(lastSelected);
+									reactphysics3d::CollisionShape* shape = collider->getCollisionShape();
+
+									reactphysics3d::CollisionShapeName name = shape->getName();
+
+									if (name == reactphysics3d::CollisionShapeName::BOX)
+									{
+										reactphysics3d::BoxShape* box = dynamic_cast<reactphysics3d::BoxShape*>(shape);
+										float tempBoxDims[3]{ box->getHalfExtents().x,box->getHalfExtents().y, box->getHalfExtents().z };
+										ImGui::SliderFloat3("Dimensions", tempBoxDims, 0.f, 5.f);
+										box->setHalfExtents({ tempBoxDims[0], tempBoxDims[1], tempBoxDims[2] });
+									}
+								}
+							}
+
 							if (ImGui::Button("Delete##1337"))
 							{
 								currentScene->RemoveComponentFromEntity<RigidBody>(rootEntity);
@@ -777,7 +975,7 @@ void LevelEditorUI::ShowSceneWindow()
 			if (ImGui::Button("Open Scene"))
 			{
 				std::string sceneNameWithExt = "";
-				if (Helper::OpenFileDialogForExtension(".azs", sceneNameWithExt))
+				if (Helper::OpenFileDialogForExtension({ ".azs" }, sceneNameWithExt))
 				{
 					std::string::size_type const p(sceneNameWithExt.find_last_of('.'));
 					std::string sceneNameWithoutExt = sceneNameWithExt.substr(0, p);
@@ -1159,7 +1357,7 @@ void LevelEditorUI::ShowMaterialWindow()
 		if (ImGui::Button("Load##0"))
 		{
 			std::string matNameWithExt = "";
-			if (Helper::OpenFileDialogForExtension(".azmpbr", matNameWithExt))
+			if (Helper::OpenFileDialogForExtension({ ".azmpbr" }, matNameWithExt))
 			{
 				std::string::size_type const p(matNameWithExt.find_last_of('.'));
 				std::string matNameWithoutExt = matNameWithExt.substr(0, p);
@@ -1336,6 +1534,8 @@ void LevelEditorUI::ShowMaterialWindow()
 				// Transparency
 				ImGui::Checkbox("Use Transparency##1337", (bool*)&info.enableTransparency);
 
+				ImGui::SliderFloat("Opacity", &info.transparencyFactor, 0.f, 1.f);
+
 				ImGui::Text("Transparency Map");
 				t = engine->GetTexture2DCache().GetResource(engine->GetTexture2DCache().GetTextureName(info.transparencyMapIndex));
 				if (t)
@@ -1466,7 +1666,8 @@ void LevelEditorUI::showMeshes()
 					ImGui::BeginTooltip();
 					const std::string tx = "Name: " + name + 
 						"\nNum Vertices: " + std::to_string(model.getNumVertices()) +
-						"\nNum Indices: " + std::to_string(model.getNumIndices());
+						"\nNum Indices: " + std::to_string(model.getNumIndices()) +
+						"\nBounding Radius: " + std::to_string(model.getBoundingRadius());
 					ImGui::Text(tx.c_str());
 					ImGui::EndTooltip();
 				}
@@ -1496,7 +1697,7 @@ void LevelEditorUI::showFileTextures()
 		if (ImGui::Button("Load"))
 		{
 			std::string fileName = "";
-			if (Helper::OpenFileDialogForExtension(".png", fileName))
+			if (Helper::OpenFileDialogForExtension({ ".png" , ".jpg", ".dds"}, fileName))
 			{
 				GraphicsContextHandle context = engine->GetCommandManager().getGraphicsContext();
 				tCache.LoadResource(engine->GetDevice(), context,
@@ -1539,13 +1740,13 @@ void LevelEditorUI::showFileTextures()
 				}
 			}
 		}
-
-		if (ImGui::BeginListBox("##13333337"))
+		
+		if (ImGui::BeginListBox("##13333337", ImVec2(ImGui::GetWindowContentRegionMax().x, ImGui::GetWindowContentRegionMax().y)))
 		{
-			for (Texture& texture : tCache.GetAllResources())
+			for (const Texture& texture : tCache.GetAllResources())
 			{
 				const std::string name = tCache.GetFileNameByHeapIndex(texture.getSRVHandle().getHeapIndex());
-
+				
 				ImGui::SameLine();
 				if (selTexture2DID == tCache.GetID(name))
 				{
@@ -1569,8 +1770,9 @@ void LevelEditorUI::showFileTextures()
 				if (ImGui::IsItemHovered())
 				{
 					ImGui::BeginTooltip();
-					const std::string tx = "Name: " + name + "\nDimensions: " + std::to_string(static_cast<int>(texture.getDimensions().x))
-						+ " x " + std::to_string(static_cast<int>(texture.getDimensions().y));
+					const std::string tx = "Name: " + name + "\nDimensions: " + std::to_string(static_cast<int>(texture.getWidth()))
+						+ " x " + std::to_string(static_cast<int>(texture.getHeight()))
+							+ "\nMip Levels: " + std::to_string(static_cast<int>(texture.getMipLevels()));
 					ImGui::Text(tx.c_str());
 					ImGui::EndTooltip();
 				}

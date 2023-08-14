@@ -38,7 +38,7 @@ UINT64 CommandQueue::execute(ID3D12CommandList* commandList)
 }
 
 // Waits for the signaled value returned from CommandQueue::Execute()
-void CommandQueue::stallCPU(UINT64 valueToWaitFor)
+void CommandQueue::flushCPU(UINT64 valueToWaitFor)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	// Get last fence value reached 
@@ -75,4 +75,12 @@ UINT64 CommandQueue::getLastSignalValue()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	return m_lastFenceValue;
+}
+
+void CommandQueue::signal()
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_queue->Signal(m_fence.Get(), m_nextFenceValue);
+	m_lastFenceValue = m_nextFenceValue;
+	m_nextFenceValue++;
 }

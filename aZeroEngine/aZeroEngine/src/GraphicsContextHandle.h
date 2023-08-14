@@ -1,6 +1,7 @@
 #pragma once
 #include "CommandContext.h"
 #include "Texture.h"
+#include "Buffer.h"
 
 /** @brief Wraps a CommandContext which is used for recording graphics/direct commands.
 * Dependency injects a CommandManager instance in the constructor.
@@ -79,13 +80,24 @@ public:
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRootShaderResourceView(index, virtualAddress);
 	}
 
-	void setConstantBufferView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
+	void setGraphicsConstantBufferView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
 	{
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetGraphicsRootConstantBufferView(index, virtualAddress);
 	}
-	void setUnorderedAccessView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
+
+	void setComputeConstantBufferView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
 	{
-		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetGraphicsRootUnorderedAccessView(index, virtualAddress);
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRootUnorderedAccessView(index, virtualAddress);
+	}
+
+	void setGraphicsUnorderedAccessView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetGraphicsRootConstantBufferView(index, virtualAddress);
+	}
+
+	void setComputeUnorderedAccessView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRootUnorderedAccessView(index, virtualAddress);
 	}
 
 	void setDescriptorTable(UINT index, const D3D12_GPU_DESCRIPTOR_HANDLE startHandle)
@@ -151,12 +163,19 @@ public:
 
 	void clearRenderTargetView(Texture& renderTarget)
 	{
-		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ClearRenderTargetView(renderTarget.m_handleRTVDSV.getCPUHandle(), renderTarget.m_settings.m_clearValue.Color, 0, nullptr);
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ClearRenderTargetView(renderTarget.getRTVHandle().getCPUHandle(), renderTarget.getClearValue().Color, 0, nullptr);
 	}
 
 	void clearDepthStencilView(Texture& depthStencil)
 	{
-		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ClearDepthStencilView(depthStencil.m_handleRTVDSV.getCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ClearDepthStencilView(depthStencil.getDSVHandle().getCPUHandle(), D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+	}
+
+	void clearUnorderedAccessViewFloat(Texture& uavTexture, const FLOAT* color)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ClearUnorderedAccessViewFloat(
+			uavTexture.getUAVHandle().getGPUHandle(), uavTexture.getUAVHandle().getCPUHandle(), uavTexture.getGPUResource(),
+			color, 0, nullptr);
 	}
 
 	void copyTextureToBuffer(ID3D12Device* const device, ID3D12Resource* const srcTextureResource, ID3D12Resource* const readbackDest,
@@ -184,6 +203,80 @@ public:
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->CopyTextureRegion(&dest, dstX, dstY, dstZ, &source, srcBox);
 	}
 
+	void copyTextureToBuffer(ID3D12Device* const device, const Texture& src, const Buffer& dst, const DXM::Vector2& srcOffset, UINT dstOffset, const DXM::Vector2& copyDimensions)
+	{
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footPrint[1];
+		UINT numRows = 0;
+		UINT64 rowSize = 0;
+		UINT64 totalSize = 0;
+
+		D3D12_RESOURCE_DESC desc = src.getGPUResource()->GetDesc();
+		desc.Width = copyDimensions.x;
+		desc.Height = copyDimensions.y;
+		device->GetCopyableFootprints(&desc, 0, 1, 0, footPrint, &numRows, &rowSize, &totalSize);
+
+		D3D12_TEXTURE_COPY_LOCATION dest; // Readback
+		dest.pResource = dst.getResource();
+		dest.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		dest.PlacedFootprint = footPrint[0];
+
+		D3D12_TEXTURE_COPY_LOCATION source; // GPUOnly
+		source.pResource = src.getGPUResource();
+		source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		source.SubresourceIndex = 0;
+
+		UINT dstX = dstOffset;
+		UINT dstY = 0;
+		UINT dstZ = 0;
+		D3D12_BOX srcBox;
+		srcBox.back = 1;
+		srcBox.front = 0;
+		srcBox.left = srcOffset.x;
+		srcBox.right = srcOffset.x + copyDimensions.x;
+		srcBox.top = srcOffset.y;
+		srcBox.bottom = srcOffset.y + copyDimensions.y;
+
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->CopyTextureRegion(&dest, dstX, dstY, dstZ, &source, &srcBox);
+	}
+
+	void copyTextureToBuffer(ID3D12Device* const device, 
+		const Texture& src, const Texture& dst, const DXM::Vector2& srcOffset, const DXM::Vector2& dstOffset, 
+		const DXM::Vector2& copyDimensions)
+	{
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footPrint[1];
+		UINT numRows = 0;
+		UINT64 rowSize = 0;
+		UINT64 totalSize = 0;
+
+		D3D12_RESOURCE_DESC desc = src.getGPUResource()->GetDesc();
+		desc.Width = copyDimensions.x;
+		desc.Height = copyDimensions.y;
+		device->GetCopyableFootprints(&desc, 0, 1, 0, footPrint, &numRows, &rowSize, &totalSize);
+
+		D3D12_TEXTURE_COPY_LOCATION dest;
+		dest.pResource = dst.getGPUResource();
+		dest.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dest.SubresourceIndex = 0;
+
+		D3D12_TEXTURE_COPY_LOCATION source;
+		source.pResource = src.getGPUResource();
+		source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		source.SubresourceIndex = 0;
+
+		UINT dstX = dstOffset.x;
+		UINT dstY = dstOffset.y;
+		UINT dstZ = 0;
+		D3D12_BOX srcBox;
+		srcBox.back = 1;
+		srcBox.front = 0;
+		srcBox.left = srcOffset.x;
+		srcBox.right = srcOffset.x + copyDimensions.x;
+		srcBox.top = srcOffset.y;
+		srcBox.bottom = srcOffset.y + copyDimensions.y;
+
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->CopyTextureRegion(&dest, dstX, dstY, dstZ, &source, &srcBox);
+	}
+
 	void copyBufferRegion(ID3D12Resource* const dest, UINT destOffset, ID3D12Resource* const src, UINT srcOffset, UINT numBytes)
 	{
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->CopyBufferRegion(dest, destOffset, src, srcOffset, numBytes);
@@ -194,9 +287,20 @@ public:
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->CopyResource(dest, src);
 	}
 
+	void resolveSubresource(ID3D12Resource* const dest, UINT destSubresource, ID3D12Resource* const src, UINT srcSubresource, DXGI_FORMAT format)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ResolveSubresource(dest, destSubresource, src, srcSubresource, format);
+	}
+
+	void resolveSubresource(Texture& dest, UINT destSubresource, Texture& src, UINT srcSubresource)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ResolveSubresource(dest.getGPUResource(), destSubresource, src.getGPUResource(), srcSubresource, src.getMainFormat());
+	}
+
 	void transitionTexture(Texture& texture, D3D12_RESOURCE_STATES newState)
 	{
-		texture.transition(static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()), newState);
+		if(texture.getResourceState() != newState)
+			texture.transition(static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()), newState);
 	}
 
 	void dispatch(UINT tGroupX, UINT tGroupY, UINT tGroupZ)

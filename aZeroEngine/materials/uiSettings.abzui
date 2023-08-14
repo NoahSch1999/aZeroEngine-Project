@@ -1,0 +1,210 @@
+[Window][Debug##Default]
+Pos=60,60
+Size=400,400
+Collapsed=0
+
+[Window][Performance Data]
+Pos=327,5
+Size=660,216
+Collapsed=0
+
+[Window][Dear ImGui Demo]
+Pos=729,25
+Size=622,728
+Collapsed=1
+
+[Window][Application Info]
+Pos=13,9
+Size=311,292
+Collapsed=0
+DockId=0x00000002,0
+
+[Window][Test]
+Pos=1493,739
+Size=403,266
+Collapsed=0
+DockId=0x0000000C,0
+
+[Window][Scene Manager]
+Pos=13,606
+Size=311,428
+Collapsed=0
+DockId=0x00000005,0
+
+[Window][Settings]
+Pos=13,303
+Size=311,301
+Collapsed=0
+DockId=0x00000003,0
+
+[Window][Entity Editor]
+Pos=1493,532
+Size=404,475
+Collapsed=0
+DockId=0x0000000E,0
+
+[Window][Material Editor]
+Pos=1493,-1
+Size=404,531
+Collapsed=0
+DockId=0x0000000D,0
+
+[Window][Resources]
+Pos=355,740
+Size=1135,267
+Collapsed=0
+
+[Window][End Frame]
+Pos=955,4
+Size=538,336
+Collapsed=0
+
+[Window][OverwriteScenePopup]
+Pos=751,473
+Size=402,94
+Collapsed=0
+
+[Window][File Textures]
+Pos=402,807
+Size=737,180
+Collapsed=0
+DockId=0x00000006,1
+
+[Window][Meshes]
+Pos=402,807
+Size=737,180
+Collapsed=0
+DockId=0x00000006,0
+
+[Window][##1333333337]
+Pos=60,60
+Size=82,187
+Collapsed=0
+
+[Window][OverwriteScenePopup##1337]
+Pos=751,473
+Size=402,94
+Collapsed=0
+
+[Window][##OverwriteScenePopup]
+Pos=751,473
+Size=437,94
+Collapsed=0
+
+[Window][DEBUG WINDOW]
+Pos=344,232
+Size=428,186
+Collapsed=0
+
+[Table][0xC9935533,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x64418101,3]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Width=63
+
+[Table][0x47600645,3]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Weight=1.0000
+
+[Table][0xDE6957FF,6]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Width=-1
+Column 3  Weight=1.0000
+Column 4  Weight=1.0000
+Column 5  Weight=-1.0000
+
+[Table][0x861D378E,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x1F146634,3]
+RefScale=13
+Column 0  Width=63
+Column 1  Width=63
+Column 2  Width=63
+
+[Table][0x8DFA6E86,2]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+
+[Table][0xFABAAEF7,2]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+
+[Table][0xA43C3885,3]
+RefScale=13
+Column 0  Width=56
+Column 1  Width=56
+Column 2  Width=56
+
+[Table][0x49F8DCEA,3]
+RefScale=13
+Column 0  Weight=1.0000
+Column 1  Width=84
+Column 2  Width=126
+
+[Table][0x82CBB907,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x49D11DC0,3]
+RefScale=13
+Column 0  Width=86
+Column 1  Width=86
+Column 2  Width=86
+
+[Table][0x45A0E60D,7]
+RefScale=13
+Column 0  Width=49
+Column 1  Width=112
+Column 2  Width=112
+Column 3  Width=112
+Column 4  Width=112
+Column 5  Width=112
+Column 6  Width=112
+
+[Table][0xE0773582,3]
+Column 0  Weight=1.0000
+Column 1  Weight=1.0000
+Column 2  Weight=1.0000
+
+[Table][0x20DF7A63,4]
+RefScale=13
+Column 0  Width=28 Sort=0v
+Column 1  Width=42
+Column 2  Width=42
+Column 3  Weight=1.0000
+
+[Table][0xDA36A7E0,6]
+RefScale=13
+Column 0  Width=28 Sort=0v
+Column 1  Width=42
+Column 2  Width=73
+Column 3  Width=68
+Column 4  Weight=1.0000
+Column 5  Width=-1
+
+[Docking][Data]
+DockNode      ID=0x00000001 Pos=13,9 Size=311,1025 Split=Y
+  DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=276,595 Split=Y
+    DockNode  ID=0x00000002 Parent=0x00000004 SizeRef=276,292 HiddenTabBar=1 Selected=0x6FE96694
+    DockNode  ID=0x00000003 Parent=0x00000004 SizeRef=276,301 HiddenTabBar=1 Selected=0x54723243
+  DockNode    ID=0x00000005 Parent=0x00000001 SizeRef=276,428 HiddenTabBar=1 Selected=0x6B58BA6D
+DockNode      ID=0x00000006 Pos=402,807 Size=737,180 Selected=0xECCD6856
+DockNode      ID=0x0000000A Pos=1493,-1 Size=404,1008 Split=Y Selected=0xEEF06B6F
+  DockNode    ID=0x0000000B Parent=0x0000000A SizeRef=366,729 Split=Y Selected=0xEEF06B6F
+    DockNode  ID=0x0000000D Parent=0x0000000B SizeRef=403,539 Selected=0x744B41B5
+    DockNode  ID=0x0000000E Parent=0x0000000B SizeRef=403,482 Selected=0xEEF06B6F
+  DockNode    ID=0x0000000C Parent=0x0000000A SizeRef=366,266 Selected=0x44A6A033
+

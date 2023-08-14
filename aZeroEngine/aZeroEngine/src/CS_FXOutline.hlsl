@@ -7,6 +7,7 @@ cbuffer outlineSettings : register(b0)
     int renderTargetID;
     int pickingTextureID;
     int numSelections;
+    int msaaOn;
 };
 
 StructuredBuffer<int> SelectionList : register(t0, space0);
@@ -31,38 +32,81 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID )
         return;
     */
     
-    Texture2D<uint> pickingRTV = ResourceDescriptorHeap[pickingTextureID];
-    
-    RWTexture2D<float4> finalRenderTarget = ResourceDescriptorHeap[renderTargetID];
-    
-    uint texelID = pickingRTV[dispatchThreadID.xy];
-    
-    if(texelID != -1)
+    if(msaaOn == 1)
     {
-        for (int i = 0; i < numSelections; i++)
+    
+        Texture2DMS<int> pickingRTV = ResourceDescriptorHeap[pickingTextureID];
+    
+        RWTexture2D<float4> finalRenderTarget = ResourceDescriptorHeap[renderTargetID];
+    
+        int texelID = pickingRTV[dispatchThreadID.xy];
+    
+        if (texelID != -1)
         {
-            if(texelID == SelectionList[i])
+            for (int i = 0; i < numSelections; i++)
             {
-                float3 outlineColor = secondOutlineColor;
-                if (texelID == SelectionList[0])
+                if (texelID == SelectionList[i])
                 {
-                    outlineColor = mainOutlineColor;
-                }
-        
-                for (int row = -outlineThickness; row < outlineThickness; row++)
-                {
-                    for (int column = -outlineThickness; column < outlineThickness; column++)
+                    float3 outlineColor = secondOutlineColor;
+                    if (texelID == SelectionList[0])
                     {
-                        uint2 texel = uint2(row, column);
-                        uint texelIDKernel = pickingRTV[texel + dispatchThreadID.xy];
-                        if (texelIDKernel != texelID)
+                        outlineColor = mainOutlineColor;
+                    }
+        
+                    for (int row = -outlineThickness; row < outlineThickness; row++)
+                    {
+                        for (int column = -outlineThickness; column < outlineThickness; column++)
                         {
-                            finalRenderTarget[dispatchThreadID.xy] = float4(outlineColor, 1.f);
-                            return;
+                            uint2 texel = uint2(row, column);
+                            uint texelIDKernel = pickingRTV[texel + dispatchThreadID.xy];
+                            if (texelIDKernel != texelID)
+                            {
+                                finalRenderTarget[dispatchThreadID.xy] = float4(outlineColor, 1.f);
+                                return;
+                            }
                         }
                     }
+                    break;
                 }
-                break;
+            }
+        }
+    }
+    else
+    {
+    
+        Texture2D<int> pickingRTV = ResourceDescriptorHeap[pickingTextureID];
+    
+        RWTexture2D<float4> finalRenderTarget = ResourceDescriptorHeap[renderTargetID];
+    
+        int texelID = pickingRTV[dispatchThreadID.xy];
+    
+        if (texelID != -1)
+        {
+            for (int i = 0; i < numSelections; i++)
+            {
+                if (texelID == SelectionList[i])
+                {
+                    float3 outlineColor = secondOutlineColor;
+                    if (texelID == SelectionList[0])
+                    {
+                        outlineColor = mainOutlineColor;
+                    }
+        
+                    for (int row = -outlineThickness; row < outlineThickness; row++)
+                    {
+                        for (int column = -outlineThickness; column < outlineThickness; column++)
+                        {
+                            uint2 texel = uint2(row, column);
+                            uint texelIDKernel = pickingRTV[texel + dispatchThreadID.xy];
+                            if (texelIDKernel != texelID)
+                            {
+                                finalRenderTarget[dispatchThreadID.xy] = float4(outlineColor, 1.f);
+                                return;
+                            }
+                        }
+                    }
+                    break;
+                }
             }
         }
     }

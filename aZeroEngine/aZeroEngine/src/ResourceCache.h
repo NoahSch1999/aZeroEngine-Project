@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include "HelperFunctions.h"
-#include "ResourceTrashcan.h"
+#include "ResourceRecycler.h"
 #include "ECS.h"
 #include "GraphicsContextHandle.h"
 
@@ -12,9 +12,9 @@ class ResourceCache
 {
 protected:
 	NamedMappedVector<T> resources;
-	ResourceTrashcan& m_trashcan;
+	ResourceRecycler& m_trashcan;
 public:
-	ResourceCache(ResourceTrashcan& trashcan)
+	ResourceCache(ResourceRecycler& trashcan)
 		:m_trashcan(trashcan), resources(100, 100) { }
 
 	/**Clears all the resources within the unordered map

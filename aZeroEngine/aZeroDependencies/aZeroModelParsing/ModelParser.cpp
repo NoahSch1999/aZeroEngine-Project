@@ -46,7 +46,8 @@ namespace aZeroFiles
 			PerSubmeshInfo perSubInfo;
 			perSubInfo.m_startIndex = vertexData.size();
 			perSubInfo.m_stopIndex = vertexData.size() + mesh->mNumVertices - 1;
-			submeshesInfo.emplace_back(perSubInfo);
+
+			float maxDistance = 0;
 
 			for (int j = 0; j < mesh->mNumVertices; j++)
 			{
@@ -67,7 +68,16 @@ namespace aZeroFiles
 				vertex.m_tangent[2] = mesh->mTangents[j].z;
 
 				vertexData.emplace_back(vertex);
+
+				short distanceFromOrigin = mesh->mVertices[j].Length();
+				if (distanceFromOrigin > maxDistance)
+				{
+					maxDistance = distanceFromOrigin;
+				}
 			}
+
+			perSubInfo.m_maxDistance = maxDistance;
+			submeshesInfo.emplace_back(perSubInfo);
 
 			for (int j = 0; j < mesh->mNumFaces; j++)
 			{
@@ -101,7 +111,7 @@ namespace aZeroFiles
 
 		if (fileStream.is_open())
 		{
-			std::unique_ptr<LoadedModelContainer> container = std::make_unique<LoadedModelContainer>();
+			std::unique_ptr<LoadedModelContainer> container(std::make_unique<LoadedModelContainer>());
 
 			std::unique_ptr<VectorLoad> load = ReadVector(fileStream);
 			int numSubmeshes = load->m_numElements;
@@ -114,18 +124,18 @@ namespace aZeroFiles
 			}
 
 			load = ReadVector(fileStream);
-			container->m_NumVertices = load->m_numElements;
+			container->m_numVertices = load->m_numElements;
 
 			container->m_rawVertexData = new char[load->m_numElements * load->m_sizePerElement];
 			memcpy(container->m_rawVertexData, load->m_data, load->m_numElements * load->m_sizePerElement);
 
 			load = ReadVector(fileStream);
-			container->m_NumIndices = load->m_numElements;
+			container->m_numIndices = load->m_numElements;
 
 			container->m_rawIndexData = new char[load->m_numElements * load->m_sizePerElement];
 			memcpy(container->m_rawIndexData, load->m_data, load->m_numElements * load->m_sizePerElement);
 
-			return container;
+			return std::move(container);
 		}
 
 		return {};

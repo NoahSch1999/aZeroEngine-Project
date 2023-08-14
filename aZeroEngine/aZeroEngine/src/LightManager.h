@@ -79,12 +79,12 @@ public:
 
 	LightManager() = default;
 
-	LightManager(ID3D12Device* _device, ResourceTrashcan& _trashcan, int _numPLights = 100)
+	LightManager(ID3D12Device* _device, ResourceRecycler& _trashcan, int _numPLights = 100)
 	{
 		Init(_device, _trashcan, _numPLights);
 	}
 
-	void Init(ID3D12Device* _device, ResourceTrashcan& _trashcan, int _numPLights = 100)
+	void Init(ID3D12Device* _device, ResourceRecycler& _trashcan, int _numPLights = 100)
 	{
 		pLightList.Init(_device, _trashcan, _numPLights, true, true);
 

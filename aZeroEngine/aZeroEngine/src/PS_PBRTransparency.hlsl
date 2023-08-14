@@ -245,21 +245,7 @@ Output main(FragmentInput input)
     output.fragmentColor = float4(totalLighting, 1);
     output.pickingOutput = pickingID;
     
-    if(matData.enableTransparency)
-    {
-        if (matData.transparencyMapIndex != -1)
-        {
-            Texture2D<float> transparenceTexture = ResourceDescriptorHeap[matData.transparencyMapIndex];
-            float transparencyValue = transparenceTexture.Sample(basicSampler, input.uv).x;
-            output.fragmentColor.a = transparencyValue;
-        }
-        else
-        {
-            output.fragmentColor.a = matData.transparencyFactor;
-        }
-    }
-    
-    if(matData.enableGlow)
+    if (matData.enableGlow)
     {
         if (matData.glowMapIndex != -1)
         {
@@ -269,6 +255,35 @@ Output main(FragmentInput input)
         else
         {
             output.glowOutput = float4(matData.glowFullColor, 1.f) * matData.glowIntensity;
+        }
+    }
+    
+    if(matData.enableTransparency)
+    {
+        if (matData.transparencyMapIndex != -1)
+        {
+            Texture2D<float> transparenceTexture = ResourceDescriptorHeap[matData.transparencyMapIndex];
+            float transparencyValue = transparenceTexture.Sample(basicSampler, input.uv).x;
+            output.fragmentColor.a = transparencyValue;
+            
+            if (matData.enableGlow)
+            {
+                output.glowOutput.a = transparencyValue;
+            
+                if (transparencyValue > 0.99f)
+                    output.glowOutput.a = 1.f;
+            }
+        }
+        else
+        {
+            output.fragmentColor.a = matData.transparencyFactor;
+            output.glowOutput.a = matData.transparencyFactor;
+            
+            if (matData.enableGlow)
+            {
+                if (matData.transparencyFactor > 0.99f)
+                    output.glowOutput.a = 1.f;
+            }
         }
     }
     

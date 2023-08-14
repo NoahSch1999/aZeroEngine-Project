@@ -12,7 +12,7 @@ public:
 	/**Initiates the ModelCache object.
 	@param _resourceEngine ResourceEngine used for D3D12 resource creations.
 	*/
-	ModelCache(ResourceTrashcan& trashcan);
+	ModelCache(ResourceRecycler& trashcan);
 
 	virtual ~ModelCache();
 

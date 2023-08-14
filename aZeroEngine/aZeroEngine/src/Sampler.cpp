@@ -1,71 +1,78 @@
 #include "Sampler.h"
 
-Sampler::Sampler(ID3D12Device* device, DescriptorHandle handle, D3D12_FILTER filter,
+Sampler::Sampler(ID3D12Device* device, DescriptorManager& descriptorManager, D3D12_FILTER filter,
 	D3D12_TEXTURE_ADDRESS_MODE addressModeU, D3D12_TEXTURE_ADDRESS_MODE addressModeV,
 	D3D12_TEXTURE_ADDRESS_MODE addressModeW, D3D12_COMPARISON_FUNC comparisonFunc, 
 	int maxAnisotropy, DXM::Vector4 borderColor, float midLodBias, float minLod, float maxLod)
+	:m_descriptorManager(&descriptorManager)
 {
-	D3D12_SAMPLER_DESC desc = {};
-	desc.Filter = filter;
-	desc.AddressU = addressModeU;
-	desc.AddressV = addressModeV;
-	desc.AddressW = addressModeW;
-	desc.BorderColor[0] = borderColor.x;
-	desc.BorderColor[1] = borderColor.y;
-	desc.BorderColor[2] = borderColor.z;
-	desc.BorderColor[3] = borderColor.w;
-	desc.ComparisonFunc = comparisonFunc;
-	desc.MaxAnisotropy = maxAnisotropy;
-	desc.MipLODBias = midLodBias;
-	desc.MinLOD = minLod;
-	desc.MaxLOD = maxLod;
+	m_desc.Filter = filter;
+	m_desc.AddressU = addressModeU;
+	m_desc.AddressV = addressModeV;
+	m_desc.AddressW = addressModeW;
+	m_desc.BorderColor[0] = borderColor.x;
+	m_desc.BorderColor[1] = borderColor.y;
+	m_desc.BorderColor[2] = borderColor.z;
+	m_desc.BorderColor[3] = borderColor.w;
+	m_desc.ComparisonFunc = comparisonFunc;
+	m_desc.MaxAnisotropy = maxAnisotropy;
+	m_desc.MipLODBias = midLodBias;
+	m_desc.MinLOD = minLod;
+	m_desc.MaxLOD = maxLod;
 
-	handle = handle;
-	device->CreateSampler(&desc, handle.getCPUHandle());
+	m_handle = m_descriptorManager->getSamplerDescriptor();
+	device->CreateSampler(&m_desc, m_handle.getCPUHandle());
 }
 
-Sampler::Sampler(D3D12_FILTER filter, int shaderRegister, D3D12_SHADER_VISIBILITY shaderVisibility, int registerSpace,
-	D3D12_TEXTURE_ADDRESS_MODE addressModeU, D3D12_TEXTURE_ADDRESS_MODE addressModeV, D3D12_TEXTURE_ADDRESS_MODE addressModeW, 
-	D3D12_COMPARISON_FUNC comparisonFunc, int maxAnisotropy, DXM::Vector4 borderColor, float midLodBias, float minLod, float maxLod)
+Sampler::Sampler(const Sampler& other)
 {
-	m_staticDesc.Filter = filter;
-	m_staticDesc.AddressU = addressModeU;
-	m_staticDesc.AddressV = addressModeV;
-	m_staticDesc.AddressW = addressModeW;
-	m_staticDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-	m_staticDesc.ComparisonFunc = comparisonFunc;
-	m_staticDesc.MaxAnisotropy = maxAnisotropy;
-	m_staticDesc.MipLODBias = midLodBias;
-	m_staticDesc.MinLOD = minLod;
-	m_staticDesc.MaxLOD = maxLod;
-	m_staticDesc.ShaderRegister = shaderRegister;
-	m_staticDesc.RegisterSpace = registerSpace;
-	m_staticDesc.ShaderVisibility = shaderVisibility;
+	m_descriptorManager = other.m_descriptorManager;
+	m_desc = other.m_desc;
+
+	m_handle = m_descriptorManager->getSamplerDescriptor();
+
+	ComPtr<ID3D12Device> device = nullptr;
+	m_descriptorManager->getSamplerHeap()->GetDevice(IID_PPV_ARGS(device.GetAddressOf()));
+
+	device->CreateSampler(&m_desc, m_handle.getCPUHandle());
 }
 
-void Sampler::init(ID3D12Device* device, DescriptorHandle handle, D3D12_FILTER filter,
-	D3D12_TEXTURE_ADDRESS_MODE addressModeU,
-	D3D12_TEXTURE_ADDRESS_MODE addressModeV,
-	D3D12_TEXTURE_ADDRESS_MODE addressModeW,
-	D3D12_COMPARISON_FUNC comparisonFunc,
-	int maxAnisotropy, DXM::Vector4 borderColor,
-	float midLodBias, float minLod, float maxLod)
+Sampler& Sampler::operator=(const Sampler& other)
 {
-	D3D12_SAMPLER_DESC desc = {};
-	desc.Filter = filter;
-	desc.AddressU = addressModeU;
-	desc.AddressV = addressModeV;
-	desc.AddressW = addressModeW;
-	desc.BorderColor[0] = borderColor.x;
-	desc.BorderColor[1] = borderColor.y;
-	desc.BorderColor[2] = borderColor.z;
-	desc.BorderColor[3] = borderColor.w;
-	desc.ComparisonFunc = comparisonFunc;
-	desc.MaxAnisotropy = maxAnisotropy;
-	desc.MipLODBias = midLodBias;
-	desc.MinLOD = minLod;
-	desc.MaxLOD = maxLod;
+	if (this != &other)
+	{
+		m_descriptorManager = other.m_descriptorManager;
+		m_desc = other.m_desc;
 
-	handle = handle;
-	device->CreateSampler(&desc, handle.getCPUHandle());
+		m_handle = m_descriptorManager->getSamplerDescriptor();
+
+		ComPtr<ID3D12Device> device = nullptr;
+		m_descriptorManager->getSamplerHeap()->GetDevice(IID_PPV_ARGS(device.GetAddressOf()));
+
+		device->CreateSampler(&m_desc, m_handle.getCPUHandle());
+	}
+
+	return *this;
+}
+
+Sampler::Sampler(Sampler&& other) noexcept
+{
+	m_handle = other.m_handle;
+	m_descriptorManager = other.m_descriptorManager;
+	m_desc = other.m_desc;
+
+	other.m_handle.setHeapIndex(-1);
+}
+
+Sampler& Sampler::operator=(Sampler&& other) noexcept
+{
+	if (this != &other)
+	{
+		m_handle = other.m_handle;
+		m_descriptorManager = other.m_descriptorManager;
+		m_desc = other.m_desc;
+
+		other.m_handle.setHeapIndex(-1);
+	}
+	return *this;
 }

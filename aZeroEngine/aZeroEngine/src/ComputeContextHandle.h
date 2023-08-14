@@ -70,6 +70,11 @@ public:
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetComputeRootShaderResourceView(index, virtualAddress);
 	}
 
+	void setUnorderedAccessView(UINT index, const D3D12_GPU_VIRTUAL_ADDRESS virtualAddress)
+	{
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->SetGraphicsRootUnorderedAccessView(index, virtualAddress);
+	}
+
 	void dispatch(UINT tGroupX, UINT tGroupY, UINT tGroupZ)
 	{
 		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->Dispatch(tGroupX, tGroupY, tGroupZ);
@@ -78,5 +83,13 @@ public:
 	void transitionTexture(Texture& texture, D3D12_RESOURCE_STATES newState)
 	{
 		texture.transition(static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get()), newState);
+	}
+
+	void clearUnorderedAccessViewFloat(Texture& uavTexture, const FLOAT* color)
+	{
+
+		static_cast<ID3D12GraphicsCommandList*>(m_context->m_commandList.Get())->ClearUnorderedAccessViewFloat(
+			uavTexture.getUAVHandle().getGPUHandle(), uavTexture.getUAVHandle().getCPUHandle(), uavTexture.getGPUResource(),
+			color, 0, nullptr);
 	}
 };

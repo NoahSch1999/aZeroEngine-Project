@@ -3,6 +3,8 @@
 #include <bitset>
 #include "VertexDefinitions.h"
 
+// TODO: REWORK the whole class
+
 /** @brief Enumeration for the mouse buttons supported.
 * The last enum "MAX" is there to specify the max amount of enums supported.
 */

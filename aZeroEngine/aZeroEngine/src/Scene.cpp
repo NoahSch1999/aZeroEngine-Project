@@ -171,7 +171,7 @@ bool Scene::Load(ID3D12Device* device, GraphicsContextHandle& context, UINT fram
 			}
 			else
 			{
-				modelCache->LoadResource(device, context, frameIndex, name, "..\\meshes\\");
+				modelCache->LoadAZModel(device, context, frameIndex, name, "..\\meshes\\");
 				tempMesh.SetID(modelCache->GetID(name));
 			}
 

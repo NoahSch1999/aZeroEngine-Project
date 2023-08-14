@@ -54,7 +54,7 @@ public:
 	@param valueToWaitFor Value to wait for. The value is returned from CommandQueue::Execute().
 	@return void
 	*/
-	void stallCPU(UINT64 valueToWaitFor);
+	void flushCPU(UINT64 valueToWaitFor);
 
 	/**Stalls this CommandQueue on the GPU-side until the input CommandQueues' ID3D12Fence has signaled the input value.
 	* The input value is returned using CommandQueue::Execute() with the input CommandQueue.
@@ -75,5 +75,7 @@ public:
 	@return UINT64
 	*/
 	UINT64 getLastSignalValue();
+
+	void signal();
 };
 

@@ -1,7 +1,7 @@
 #include "ModelCache.h"
 #include "aZeroModelParsing/ModelParser.h"
 
-ModelCache::ModelCache(ResourceTrashcan& trashcan)
+ModelCache::ModelCache(ResourceRecycler& trashcan)
 	:ResourceCache(trashcan) { }
 
 ModelCache::~ModelCache() { }
@@ -9,10 +9,10 @@ ModelCache::~ModelCache() { }
 void ModelCache::Init(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex)
 {
 	if(!Exists("defaultCube"))
-		LoadResource(device, context, frameIndex, "defaultCube", "..\\meshes\\");
+		LoadAZModel(device, context, frameIndex, "defaultCube", "..\\meshes\\");
 
 	if (!Exists("defaultSphere"))
-		LoadResource(device, context, frameIndex, "defaultSphere", "..\\meshes\\");
+		LoadAZModel(device, context, frameIndex, "defaultSphere", "..\\meshes\\");
 }
 
 void ModelCache::LoadResource(ID3D12Device* device, GraphicsContextHandle& context, UINT frameIndex, const std::string& name, const std::string& directory)
@@ -51,8 +51,9 @@ void ModelCache::LoadAZModel(ID3D12Device* device, GraphicsContextHandle& contex
 	{
 		aZeroFiles::LoadedModelContainer* container = model->get();
 		GeometryData geoData;
-		geoData.m_numVertices = container->m_NumVertices;
-		geoData.m_numIndices = container->m_NumIndices;
+		geoData.m_numVertices = container->m_numVertices;
+		geoData.m_numIndices = container->m_numIndices;
+		geoData.m_boundingRadius = container->m_subMeshInfo[0].m_maxDistance; // temp for 1 submesh
 		geoData.m_meshName = name;
 
 		*temp = std::move(ModelAsset(device, context.getList(), frameIndex, m_trashcan, geoData, container->m_rawVertexData, container->m_rawIndexData));

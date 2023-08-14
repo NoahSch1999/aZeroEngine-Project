@@ -10,6 +10,7 @@
 #include <iostream>
 
 inline bool WINDOWQUIT;
+inline bool WINDOWRESIZE;
 
 // https://learn.microsoft.com/en-us/windows/win32/gdi/positioning-objects-on-multiple-display-monitors
 // https://walbourn.github.io/care-and-feeding-of-modern-swap-chains-3/
@@ -65,9 +66,9 @@ public:
 	HWND& GetHandle() { return handle; }
 	HINSTANCE& GetInstance() { return instance; }
 
-	void Resize(int _width, int _height)
+	void resize(UINT width, UINT height)
 	{
-		SetWindowPos(handle, handle, 0, 0, _width, _height, SWP_SHOWWINDOW | SWP_NOZORDER);
+		SetWindowPos(handle, handle, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER);
 	}
 
 	void DisplayCursor(bool _show)

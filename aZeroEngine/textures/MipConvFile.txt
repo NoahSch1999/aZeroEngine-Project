@@ -1,0 +1,6 @@
+goblintexture.png
+pylot.png
+Albedo_2K__rkswd.png
+Normal_2K_LOD0_rkswd.png
+
+#"C:\Users\Noah Schierenbeck\Desktop\texconv.exe" -flist C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\textures\MipConvFile.txt -sx MIP -o "C:\Projects\aZeroEngine\aZeroEngine-Project\aZeroEngine\textures\Mip Map Generated Result" -ft dds -f RGBA -m 5 -pow2

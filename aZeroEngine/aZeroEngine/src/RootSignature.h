@@ -8,7 +8,6 @@ private:
 
 public:
 	RootSignature() = default;
-	~RootSignature() = default;
 
 	/** @brief Initializes the root signature with the input parameters, flags, sampler and more.
 	@param device ID3D12Device to use for the resource creations.

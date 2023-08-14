@@ -18,7 +18,7 @@ public:
 
 	StructuredList() = default;
 
-	void Init(ID3D12Device* device, ResourceTrashcan& trashcan, int _maxElements, bool _dynamic = false, bool _trippleBuffered = false)
+	void Init(ID3D12Device* device, ResourceRecycler& trashcan, int _maxElements, bool _dynamic = false, bool _trippleBuffered = false)
 	{
 		maxElements = _maxElements;
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "VertexDefinitions.h"
 #include "reactphysics3d/reactphysics3d.h"
+#include <map>
 
 class Transform
 {
@@ -72,6 +73,7 @@ struct RigidBody
 {
 	RigidBody() = default;
 	reactphysics3d::RigidBody* m_body = nullptr;
+	std::map<std::string, reactphysics3d::Collider*> m_colliders;
 	/*reactphysics3d::BodyType m_type = reactphysics3d::BodyType::DYNAMIC;*/
 	/*reactphysics3d::Vector3 m_force = reactphysics3d::Vector3(0.f, 0.f, 0.f);
 	reactphysics3d::Vector3 m_centerOfMass = reactphysics3d::Vector3(0.f, 0.f, 0.f);
